@@ -1,0 +1,357 @@
+/**
+* Copyright 2012 MarkLogic Corporation
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+**/
+body {
+  margin: 0;
+  padding: 0 1em;
+}
+.render-time {
+  font-size: 80%;
+}
+
+#warning {
+  padding: .5em 1em;
+  margin-bottom: 2em;
+  color: red;
+  font-weight: bold;
+  background-color: #ddd;
+  border-radius: 0px 0px 10px 10px;
+}
+
+#db-info {
+  float: right;
+  color: black;
+  font-weight: normal;
+  padding: .5em 1em;
+}
+#db-info span {
+  padding-left: .5em;
+  font-size: 125%;
+  font-weight: bold
+}
+
+#warning img {
+  top: -10px;
+}
+
+#overview {
+  background-color: #EEEEEE;
+  border: 1px solid #CCCCCC;
+  border-radius: 10px;
+  font-weight: bold;
+  margin-bottom: 0.75em;
+  padding: 0.75em;
+  float: left;
+}
+
+#overview h2 {
+  margin: 0;
+  padding: 0;
+}
+
+#passed-count {
+  padding-right: .25em;
+  color: green;
+}
+
+#failed-count {
+  padding-left: .25em;
+  color: #ff5555;
+}
+
+table {
+  width: 100%;
+  border: 1px solid #999;
+  border-radius: 10px;
+  margin-bottom: 2em;
+}
+
+table th {
+  border-bottom: 1px solid #999;
+  background-color: #ddd;
+  padding: .25em;
+  text-align: left;
+}
+
+table th:first-child {
+  border-top-left-radius: 10px;
+}
+
+table th:last-child {
+  border-top-right-radius: 10px;
+}
+
+table td {
+  padding: .25em;
+  vertical-align: top;
+}
+
+tr.even {
+  background-color: #dfd;
+}
+
+td.specifics {
+}
+
+td.failures {
+  font-weight: bold;
+  font-size: 14pt;
+}
+
+td div.column {
+  display: table-cell;
+//    position: relative;
+}
+
+td div.column1 {
+  width: 30%;
+}
+
+td div.column2 {
+  width: 30%;
+}
+
+tr.running td {
+  border-top: 4px solid #ff5555;
+  border-bottom: 4px solid #ff5555;
+}
+
+tr.running td:first-child {
+  border-left: 4px solid #ff5555;
+}
+
+tr.running td:last-child {
+  border-right: 4px solid #ff5555;
+}
+
+.passed {
+  color: green;
+  font-weight: bold;
+  font-size: 115%;
+}
+
+.failed {
+  color: red;
+  font-weight: bold;
+  font-size: 115%;
+}
+
+ul.tests {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+ul.tests li {
+  vertical-align: middle;
+  margin: 0;
+  padding: 0.5em;
+}
+
+ul.tests li.tests:nth-child(odd) {
+  background-color: #EFFEEF;
+}
+
+ul.tests li span.outcome {
+  float: right;
+}
+
+span.success {
+  color: green;
+}
+
+span.fail {
+  color: red;
+}
+
+.gritter-without-image span {
+  font-weight: bold;
+  font-size: 160%;
+  margin-right: 1em;
+}
+
+ul.tests input {
+  margin-right: 10px;
+}
+
+div.test-name {
+  cursor: pointer;
+}
+
+div.tests {
+  border: 1px solid #CCCCCC;
+  border-radius: 10px 10px 10px 10px;
+  display: none;
+  margin: 1em auto;
+  width: 75%;
+//    position: absolute;
+}
+
+div.tests div.wrapper {
+  background-color: #EEEEEE;
+  border-bottom: 1px solid #CCCCCC;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  font-weight: bold;
+  margin: 0;
+  padding: 0.5em;
+}
+
+input.check-all-tests {
+  padding-right: 10px;
+}
+
+img.tests-toggle-plus {
+  padding-right: 10px;
+}
+
+img.tests-toggle-minus {
+  padding-right: 10px;
+  display: none;
+}
+
+div.success {
+  width: 600px;
+  margin: .5em auto;
+  padding: .5em;
+  border-bottom: 1px solid #eee;
+}
+
+div.success span {
+  color: green;
+  font-weight: bold;
+  float: right;
+}
+div.failure {
+  width: 600px;
+  margin: 0.5em auto;
+  border: 2px solid #ff5555;
+  border-radius: 10px 10px 10px 10px;
+}
+
+div.text-failure {
+  padding: 1em;
+}
+
+div.text-failure span {
+  padding: 0em 1em;
+}
+
+div.text-failure span.message {
+  font-weight: bold;
+}
+
+div.text-failure span.location {
+  font-style: italic;
+}
+
+span.spinner {
+  display: none;
+  padding-left: .5em;
+}
+
+span.spinner b {
+  padding-left: .5em;
+}
+
+div.frame {
+  border: 1px solid #999;
+  background-color: #eee;
+  padding: .5em;
+  margin: .5em 0;
+}
+
+p.bold {
+  font-weight: bold
+}
+
+ul.variables {
+  list-style-type: none;
+}
+
+ul.variable li {
+}
+
+input.canceltests {
+  display: none;
+}
+
+.call-stack-container {
+  padding-top: .5em;
+  padding-bottom: .5em;
+}
+
+.call-stack-container span {
+  font-weight: bold;
+  padding-right: .5em;
+}
+
+.failure .test-name {
+  font-weight: bold;
+  border-bottom: 1px solid #999;
+  background-color: #ff5555;
+  color: white;
+  padding: .25em;
+  border-radius: 8px 8px 0px 0px;
+}
+
+.failure .test-data {
+  padding: .25em;
+}
+
+img.plus,
+img.minus {
+  cursor: pointer;
+}
+
+.button {
+	-moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
+	-webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
+	box-shadow:inset 0px 1px 0px 0px #ffffff;
+	background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #f9f9f9), color-stop(1, #e9e9e9) );
+	background:-moz-linear-gradient( center top, #f9f9f9 5%, #e9e9e9 100% );
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#f9f9f9", endColorstr="#e9e9e9");
+	background-color:#f9f9f9;
+	-moz-border-radius:6px;
+	-webkit-border-radius:6px;
+	border-radius:6px;
+	border:1px solid #ccc;
+	display:inline-block;
+	color:#666666;
+	font-family:arial;
+	font-size:15px;
+	font-weight:bold;
+	padding:2px 10px;
+	text-decoration:none;
+	text-shadow:1px 1px 0px #ffffff;
+	margin: .5em;
+	cursor: pointer;
+}
+
+.button:hover {
+	background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #e9e9e9), color-stop(1, #f9f9f9) );
+	background:-moz-linear-gradient( center top, #e9e9e9 5%, #f9f9f9 100% );
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#e9e9e9", endColorstr="#f9f9f9");
+	background-color:#e9e9e9;
+}
+
+.button:active {
+	position:relative;
+	top:1px;
+}
+
+.disabled {
+  color: #bbb;
+}

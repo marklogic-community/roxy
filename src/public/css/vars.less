@@ -1,0 +1,56 @@
+/**
+* Copyright 2012 MarkLogic Corporation
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+**/
+@theme-background: #fff;
+@theme-major: #d2d2d2;
+@theme-major-variant: #98bede;
+@theme-major-light: #e2e2e2;
+@theme-major-dark: #929292;
+@theme-highlight-color: #e6e6e6;
+@theme-major-text: #4B4B4B; /* A color that shows up well on the major color */
+@theme-major-text-dark: #323231;
+@theme-major-text-light: #969696;
+
+/* an IE-friendly version of inline-block */
+.inline-block {
+  display: inline-block;
+  zoom: 1;
+  *display: inline;
+}
+
+/* Applies border radius styles with default of 5px. */
+.less-border-radius(@radius-top: 5px, @radius-right: 5px, @radius-bottom: 5px, @radius-left: 5px) {
+  border-radius:        @radius-top @radius-right @radius-bottom @radius-left;
+  -moz-border-radius:   @radius-top @radius-right @radius-bottom @radius-left;
+  -webkit-border-radius:@radius-top @radius-right @radius-bottom @radius-left;
+  -o-border-radius:     @radius-top @radius-right @radius-bottom @radius-left;
+  -ms-border-radius:    @radius-top @radius-right @radius-bottom @radius-left;
+  -khtml-border-radius: @radius-top @radius-right @radius-bottom @radius-left;
+}
+
+/* Applies linear gradient from top to bottom */
+.less-grad-linear(@fromColor, @toColor) {
+  background-image: -webkit-gradient(linear, left top, left bottom, from(@fromColor), to(@toColor));
+  background: -webkit-linear-gradient(top, @fromColor, @toColor);
+  background: -moz-linear-gradient(top, @fromColor, @toColor);
+  background: -o-linear-gradient(top, @fromColor, @toColor);
+  background: -ms-linear-gradient(top, @fromColor, @toColor);
+  background: linear-gradient(top, @fromColor, @toColor);
+  /* For Internet Explorer 5.5 - 7
+  filter: ~"progid:DXImageTransform.Microsoft.gradient(startColorstr='@{fromColor}', endColorstr='@{toColor}')"; */
+  /* For Internet Explorer 8
+  -ms-filter: ~"progid:DXImageTransform.Microsoft.gradient(startColorstr='@{fromColor}', endColorstr='@{toColor}')";
+  zoom: 1;*/
+}

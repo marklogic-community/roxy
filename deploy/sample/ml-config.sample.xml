@@ -1,0 +1,142 @@
+<configuration>
+<!--
+  Only enable the task server section if you need to.
+  <task-server xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+    <threads>16</threads>
+    <debug-threads>16</debug-threads>
+    <max-time-limit>3600</max-time-limit>
+    <default-time-limit>600</default-time-limit>
+    <queue-size>100000</queue-size>
+    <pre-commit-trigger-depth>1000</pre-commit-trigger-depth>
+    <post-commit-trigger-depth>1000</post-commit-trigger-depth>
+    <pre-commit-trigger-limit>10000</pre-commit-trigger-limit>
+    <log-errors>true</log-errors>
+    <debug-allow>true</debug-allow>
+    <profile-allow>true</profile-allow>
+    <scheduled-tasks/>
+  </task-server>
+-->
+  <http-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+    <!--Default Application Server-->
+    <http-server>
+      <http-server-name>@ml.app-name</http-server-name>
+      <port>@ml.app-port</port>
+      <database name="@ml.content-db"/>
+      <modules name="@ml.app-modules-db"/>
+      <root>@ml.modules-root</root>
+      <authentication>@ml.authentication-method</authentication>
+      <default-user name="@ml.default-user"/>
+      <url-rewriter>rewrite.xqy</url-rewriter>
+      <error-handler>error.xqy</error-handler>
+    </http-server>
+    @ml.test-appserver
+  </http-servers>
+  <xdbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+    @ml.xdbc-server
+  </xdbc-servers>
+  <!--Assignments-->
+  <assignments xmlns="http://marklogic.com/xdmp/assignments" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/assignments assignments.xsd">
+    <assignment>
+      <forest-name>@ml.content-db</forest-name>
+    </assignment>
+    @ml.test-content-db-assignment
+    <assignment>
+      <forest-name>@ml.modules-db</forest-name>
+    </assignment>
+    @ml.schemas-assignment
+    @ml.triggers-assignment
+  </assignments>
+  <!--
+    =========================================================
+    Databases that are created as part of the application
+    Add any database configuration or indexes here
+      =========================================================
+  -->
+  <databases xmlns="http://marklogic.com/xdmp/database" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/database database.xsd">
+    <!--Application Database Configuration-->
+    @ml.test-content-db-xml
+    <database>
+      <database-name>@ml.content-db</database-name>
+      @ml.schemas-mapping
+      @ml.triggers-mapping
+      <forests>
+        <forest-id name="@ml.content-db"/>
+      </forests>
+      <uri-lexicon>true</uri-lexicon>
+      <collection-lexicon>true</collection-lexicon>
+      <directory-creation>manual</directory-creation>
+      <maintain-last-modified>false</maintain-last-modified>
+<!--
+      <fields>
+        <field>
+          <field-name/>
+          <include-root>true</include-root>
+          <word-lexicons/>
+          <included-elements>
+            <included-element>
+              <namespace-uri>http://ns.com</namespace-uri>
+              <localname>blah</localname>
+              <weight>1.0</weight>
+              <attribute-namespace-uri/>
+              <attribute-localname/>
+              <attribute-value/>
+            </included-element>
+          </included-elements>
+          <excluded-elements/>
+        </field>
+      </fields>
+-->
+      <range-element-indexes>
+        <!--
+      Sample Range index
+        <range-element-index>
+          <scalar-type>string</scalar-type>
+          <namespace-uri>http://marklogic.com/ns/social-media/media</namespace-uri>
+          <localname>social-network</localname>
+          <collation>http://marklogic.com/collation/codepoint</collation>
+          <range-value-positions>false</range-value-positions>
+        </range-element-index>
+-->
+      </range-element-indexes>
+      <range-element-attribute-indexes>
+      </range-element-attribute-indexes>
+      <geospatial-element-attribute-pair-indexes>
+      </geospatial-element-attribute-pair-indexes>
+    </database>
+    <!--Create Application Modules Database-->
+    <database>
+      <database-name>@ml.modules-db</database-name>
+      <forests>
+        <forest-id name="@ml.modules-db"/>
+      </forests>
+      <stemmed-searches>off</stemmed-searches>
+      <word-searches>false</word-searches>
+      <word-positions>false</word-positions>
+      <fast-phrase-searches>false</fast-phrase-searches>
+      <fast-reverse-searches>false</fast-reverse-searches>
+      <fast-case-sensitive-searches>false</fast-case-sensitive-searches>
+      <fast-diacritic-sensitive-searches>false</fast-diacritic-sensitive-searches>
+      <fast-element-word-searches>false</fast-element-word-searches>
+      <element-word-positions>false</element-word-positions>
+      <fast-element-phrase-searches>false</fast-element-phrase-searches>
+      <element-value-positions>false</element-value-positions>
+      <attribute-value-positions>false</attribute-value-positions>
+      <three-character-searches>false</three-character-searches>
+      <three-character-word-positions>false</three-character-word-positions>
+      <fast-element-character-searches>false</fast-element-character-searches>
+      <trailing-wildcard-searches>false</trailing-wildcard-searches>
+      <trailing-wildcard-word-positions>false</trailing-wildcard-word-positions>
+      <fast-element-trailing-wildcard-searches>false</fast-element-trailing-wildcard-searches>
+      <word-lexicons/>
+      <two-character-searches>false</two-character-searches>
+      <one-character-searches>false</one-character-searches>
+      <uri-lexicon>false</uri-lexicon>
+      <collection-lexicon>false</collection-lexicon>
+      <directory-creation>automatic</directory-creation>
+      <maintain-last-modified>false</maintain-last-modified>
+    </database>
+    <!--Create a Triggers Database-->
+    @ml.triggers-db-xml
+    @ml.schemas-db-xml
+  </databases>
+</configuration>

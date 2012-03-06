@@ -1,0 +1,47 @@
+<config xmlns="http://marklogic.com/framework/cpf">
+  <domains>
+    <!-- one <domain> for each cpf domain -->
+    <domain>
+      <name>My Test Domain</name>
+      <description>This domain is awesome!!!</description>
+      <pipelines>
+        <!-- one <pipeline> for each cpf pipeline to install in this domain -->
+        <pipeline>/locaton/to/your/pipeline.xml</pipeline>
+      </pipelines>
+      <system-pipelines>
+        <system-pipeline>Status Change Handling</system-pipeline>
+      </system-pipelines>
+<!--
+      3 types of scopes exist: Make sure you use one
+
+      <scope>
+        <type>directory</type>
+        <uri>/</uri>
+        <depth>infinity</depth>
+      </scope>
+      <scope>
+        <type>collection</type>
+        <uri>MyCollection</uri>
+        <depth/>
+      </scope>
+      <scope>
+        <type>document</type>
+        <uri>/stuff.xml</uri>
+        <depth/>
+      </scope>
+-->
+      <context>
+        <modules-database>@ml.modules-db</modules-database>
+        <root>/</root>
+      </context>
+      <restart-user>your-restart-user-name</restart-user>
+      <!-- Permissions are optional -->
+      <permissions>
+        <permission>
+          <capability>read</capability>
+          <role-name>admin</role-name>
+        </permission>
+      </permissions>
+    </domain>
+  </domains>
+</config>

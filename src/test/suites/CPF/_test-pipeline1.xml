@@ -1,0 +1,27 @@
+<?xml-stylesheet href="/cpf/pipelines.css" type="text/css"?>
+<pipeline xmlns="http://marklogic.com/cpf/pipelines"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://marklogic.com/cpf/pipelines pipelines.xsd">
+  <pipeline-name>Test Pipeline 1</pipeline-name>
+  <pipeline-description>This is a test pipeline</pipeline-description>
+
+  <success-action>
+    <module>/MarkLogic/cpf/actions/success-action.xqy</module>
+  </success-action>
+  <failure-action>
+    <module>/MarkLogic/cpf/actions/failure-action.xqy</module>
+  </failure-action>
+
+
+  <state-transition>
+    <annotation>Do something</annotation>
+    <state>http://marklogic.com/custom/state1</state>
+    <on-success>http://marklogic.com/custom/my-whacky-state</on-success>
+    <on-failure>http://marklogic.com/states/error</on-failure>
+    <priority>5000</priority>
+    <default-action>
+      <module>/pipeline/who-cares.xqy</module>
+    </default-action>
+  </state-transition>
+
+</pipeline>

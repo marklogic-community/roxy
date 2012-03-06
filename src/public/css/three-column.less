@@ -1,0 +1,473 @@
+/**
+* Copyright 2012 MarkLogic Corporation
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+**/
+@import "vars.less";
+
+@facet-width: 100%;
+
+body {
+  margin: 0;
+  background: @theme-background;
+  color: @theme-major-text;
+}
+
+#header {
+  .less-grad-linear(@theme-major-dark, @theme-major);
+  border-bottom: solid 2px @theme-major-light;
+  color: @theme-major-text;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+
+  h1 {
+    .inline-block;
+    margin: 0 0 0 10px;
+    vertical-align: top;
+
+    a {
+      text-decoration: none;
+      color: @theme-major-text;
+    }
+  }
+
+  .search {
+    float: right;
+    overflow: hidden;
+
+    label {
+      font-size: 1em;
+      float: left;
+      position: relative;
+      top: 5px;
+    }
+
+    form {
+      margin: 4px 0 0 0;
+      float: left;
+      display: inline;
+      width: 400px;
+      height: 24px;
+      position: relative;
+      top: -3px;
+
+      input {
+        position: relative;
+      }
+
+      input#q {
+        width: 345px;
+        font-size: 10px;
+        margin-top: 3px;
+        margin-left: 10px;
+        padding: 4px 25px 1px 1px;
+        border-image: initial;
+      }
+
+      button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        position: absolute;
+        top: 4px;
+        right: 15px;
+        z-index: 10;
+      }
+    }
+  }
+}
+
+/* column container */
+.colmask {
+	position: relative;	/* This fixes the IE7 overflow hidden bug */
+	clear: both;
+	float: left;
+	width: 100%;			/* width of whole page */
+	overflow: hidden;		/* This chops off any overhanging divs */
+}
+
+/* common column settings */
+.colright,
+.colmid,
+.colleft {
+	float: left;
+	width: 100%;			/* width of page */
+	position: relative;
+}
+
+.col1,
+.col2,
+.col3 {
+	float: left;
+	position: relative;
+	padding: 0 0 1em 0;	/* no left and right padding on columns, we just make them narrower instead
+					only padding top and bottom is included here, make it whatever value you need */
+	overflow: hidden;
+}
+
+@left-column-width: 25%;
+@middle-column-width: 50%;
+@right-column-width: 25%;
+
+@left-column-padding: 2%;
+@middle-column-padding: 2%;
+@right-column-padding: 2%;
+
+
+/* 3 Column settings */
+.threecol {
+  .colmid {
+  	right: @right-column-width;			/* width of the right column */
+  }
+  .colleft {
+  	right: @middle-column-width;			/* width of the middle column */
+  }
+  .col1 {
+  	width: @middle-column-width - (2 * @middle-column-padding);			/* width of center column content (column width minus padding on either side) */
+  	left: 100% + @middle-column-padding;			/* 100% plus left padding of center column */
+  }
+  .col2 {
+  	width: @left-column-width - (2 * @left-column-padding);			/* Width of left column content (column width minus padding on either side) */
+  	left: @right-column-width + (2 * @middle-column-padding) + @left-column-padding;			/* width of (right column) plus (center column left and right padding) plus (left column left padding) */
+  }
+  .col3 {
+  	width: @right-column-width - (2 * @right-column-padding);			/* Width of right column content (column width minus padding on either side) */
+  	left: 100% - @left-column-width + (2 * @middle-column-padding) + (2 * @left-column-padding) + @right-column-padding;			/* Please make note of the brackets here:
+  					(100% - left column width) plus (center column left and right padding) plus (left column left and right padding) plus (right column left padding) */
+  }
+}
+
+#footer {
+	clear:both;
+	float:left;
+	width:100%;
+  border-top: solid 2px @theme-major-light;
+
+  img {
+    margin-top: 5px;
+  }
+}
+
+#search {
+  border: 1px solid @theme-major-dark;
+
+  h2 {
+    padding: 2em;
+    margin: 0pt auto;
+    background: none;
+    color: black;
+    text-align: center;
+  }
+
+  .pagination {
+    background-color: @theme-major-light;
+    padding: .25em;
+    border-bottom: 1px solid @theme-major-dark;
+
+    .nav {
+      .button {
+        padding: 0 .5em;
+      }
+    }
+  }
+
+  .results {
+    min-height: 450px;
+    overflow: auto;
+    padding-bottom: 5px;
+
+    .result {
+      padding: 1em;
+      margin-bottom: 1px;
+      border-bottom: 1px solid @theme-major;
+
+      .title {
+        padding: .5em;
+        font-weight: bold;
+      }
+      .snippet {
+        padding: .5em;
+        .highlight {
+          font-weight: bold;
+          color: red;
+        }
+      }
+      .meta {
+        border-top: 1px solid @theme-major-light;
+        padding: .5em;
+        font-size: 80%;
+
+        .separator {
+          color: #999;
+          margin: 0 .5em;
+        }
+      }
+    }
+
+    h2 {
+      border: none;
+    }
+    .result:last-child {
+      border-bottom: none;
+    }
+
+    .result.active {
+      background-color: @theme-highlight-color;
+    }
+  }
+}
+
+.details {
+  .highlight-nav {
+    background-color: @theme-major-dark;
+    padding: 0.25em;
+    border-bottom: 1px solid @theme-major-light;
+    overflow: hidden;
+
+    div.txt {
+      margin-right: 1em;
+      float: left;
+    }
+
+    span.nav {
+      margin-right: .5em;
+      position: relative;
+      top: 3px;
+    }
+  }
+
+  #content {
+    overflow: auto;
+    height: 500px;
+    padding: .5em;
+  }
+
+  .notation {
+    font-style: italic;
+  }
+
+  .highlight {
+    font-weight: bold;
+    color: #ff5555;
+  }
+
+  .highlight.active {
+    cursor: pointer;
+    font-size: 115%;
+    color: red;
+    font-weight: bold;
+  }
+}
+
+span.form-error {
+  color: red;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.ui-dialog-titlebar {
+  .less-grad-linear(@theme-major-variant, @theme-major);
+  border: solid 1px @theme-major-light;
+}
+
+.ui-state-active,
+.ui-state-hover,
+.ui-widget-content .ui-state-active,
+.ui-widget-content .ui-state-hover,
+.ui-widget-header .ui-state-active
+.ui-widget-header .ui-state-hover {
+  border: solid 1px @theme-major-light;
+  color: @theme-major-text;
+  background: @theme-major;
+}
+
+.user {
+  display: inline;
+
+  form {
+    display: inline;
+  }
+  div {
+    display: inline;
+  }
+}
+.sidebar {
+  border: 1px solid @theme-major-dark;
+  background: white;
+  cursor: default;
+  float: left;
+  padding-bottom: 15px;
+  width: @facet-width - 1;
+
+  .sidebar-header,
+  .sidebar-sub-header {
+    color: @theme-major-text;
+    letter-spacing: 1px;
+    background: @theme-major;
+    position: relative;
+    top: 0;
+    left: 0;
+    padding: .25em;
+    font-size: 1em;
+  }
+
+  .sidebar-header {
+    letter-spacing: 1px;
+    font-size: 1em;
+    z-index: 1;
+  }
+
+  .category {
+    border-top: 1px solid @theme-major;
+    border-bottom: 1px solid @theme-major;
+    margin-bottom: -1px;
+
+    a {
+      color: @theme-major-text;
+    }
+
+    h4 {
+      color: @theme-highlight-color;
+      letter-spacing: 1px;
+      background: url('/images/toolbar_background_dark_gradient.png') left -1px repeat-x @theme-major-text-dark;
+      cursor: pointer;
+      font-size: 1em;
+    }
+
+    h4:hover {
+      background-position: left -42px;
+    }
+
+    i {
+      color: @theme-major-text-light;
+      font-style: normal;
+    }
+
+    h4,
+    h5,
+    ul,
+    li {
+      cursor: pointer;
+    }
+
+    h4,
+    h5 {
+      height: 22px;
+      margin: 0;
+      padding: 8px 20px 0;
+    }
+
+    ul {
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      line-height: 1.2em;
+
+      ul {
+        overflow: hidden;
+        margin:0;
+        padding: 0;
+      }
+
+    }
+
+    li {
+      margin: 8px 0 8px 20px;
+      cursor: pointer;
+      list-style-type: none;
+    }
+
+    .list-toggle {
+        margin-top: 0;
+    }
+  }
+
+  .facet {
+    color: white;
+    background: url('/images/facet_green.png') right top no-repeat;
+
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 213px;
+    height: 32px;
+    margin: 3px;
+    z-index: 2;
+
+    .label {
+      position: absolute;
+      display: block;
+      top: 0px;
+      left: 15px;
+      width: 170px;
+      height: 32px;
+      line-height: 32px;
+      overflow: hidden;
+    }
+
+    .close {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      width: 15px;
+      height: 20px;
+      overflow: hidden;
+      text-decoration: none;
+
+      span {
+        background: url('/images/facet_close.png') no-repeat;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 15px;
+        height: 40px;
+      }
+    }
+
+    a:hover.close {
+      text-decoration: none;
+
+      span {
+        top: -25px;
+      }
+    }
+
+    a {
+      outline: none!important;
+    }
+
+  }
+
+  .selected-category {
+    display: none;
+  }
+
+  .closed-category {
+    height: 30px;
+
+    ul {
+      position: relative;
+      overflow: hidden;
+      height: 0;
+    }
+  }
+
+  .sidebar-background {
+    position: absolute;
+    width: 218px;
+    height: 100%;
+    z-index: -1;
+  }
+}
