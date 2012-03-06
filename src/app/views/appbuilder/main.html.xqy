@@ -25,8 +25,6 @@ declare namespace search = "http://marklogic.com/appservices/search";
 
 declare option xdmp:mapping "false";
 
-declare variable $data as map:map external;
-
 declare variable $q as xs:string? := vh:get("q");
 declare variable $page as xs:int := vh:get("page");
 declare variable $search-options as element(search:options) := vh:get("search-options");

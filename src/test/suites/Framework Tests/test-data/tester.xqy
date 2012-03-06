@@ -17,7 +17,9 @@ declare option xdmp:mapping "false";
 declare function c:main() as item()*
 {
   ch:add-value("message", "test message: main"),
-  ch:add-value("title", "main")
+  ch:add-value("title", "main"),
+  ch:use-layout("test-layout", "html"),
+  ch:use-layout((), "xml")
 };
 
 declare function c:missing-layout()
@@ -35,7 +37,8 @@ declare function c:no-layout()
 declare function c:no-view()
 {
   ch:add-value("message", "test message: no-view"),
-  ch:use-view(())
+  ch:use-view(()),
+  ch:use-layout("test-layout")
 };
 
 declare function c:no-view-or-layout()
@@ -49,7 +52,8 @@ declare function c:different-view()
 {
   ch:add-value("title", "different-view"),
   ch:add-value("message", "test message: different-view"),
-  ch:use-view("tester/main")
+  ch:use-view("tester/main"),
+  ch:use-layout("test-layout")
 };
 
 declare function c:different-layout()
@@ -63,20 +67,25 @@ declare function c:different-view-xml-only()
 {
   ch:add-value("title", "different-view"),
   ch:add-value("message", "test message: different-view"),
-  ch:use-view("tester/main", "xml")
+  ch:use-view("tester/main", "xml"),
+  ch:use-layout("test-layout", "html"),
+  ch:use-layout((), "xml")
 };
 
 declare function c:missing-variable()
 {
-  ch:add-value("title", "missing-variable")
+  ch:add-value("title", "missing-variable"),
+  ch:use-layout("test-layout")
 };
 
 declare function c:missing-view()
 {
-  ch:add-value("title", "missing-view")
+  ch:add-value("title", "missing-view"),
+  ch:use-layout("test-layout")
 };
 
 declare function c:view-that-returns-the-input()
 {
-  ch:add-value("title", "view-that-returns-the-input")
+  ch:add-value("title", "view-that-returns-the-input"),
+  ch:use-layout("test-layout")
 };
