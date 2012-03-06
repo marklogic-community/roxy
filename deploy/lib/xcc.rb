@@ -194,7 +194,7 @@ module Roxy
         data = get_files(path, options)
         size = data.size
 
-        @logger.info "Loading #{size} #{pluralize(size, "document", "documents")} from #{path} to #{@hostname}:#{@port}"
+        @logger.info "Loading #{size} #{pluralize(size, "document", "documents")} from #{path} to #{@hostname}:#{@port}/#{options[:db]}"
 
         batch_commit = options[:batch_commit] == true
         @logger.debug "Using Batch commit: #{batch_commit}"
