@@ -30,7 +30,7 @@ then
     app_name="$1"
     shift
     printf "\nCreating new Application: ${app_name}..."
-    git clone https://github.com/marklogic/xqsync ${app_name}
+    git clone https://github.com/marklogic/roxy ${app_name}
     cd ${app_name}
     rm -rf .git*
     ml init
