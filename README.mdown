@@ -26,7 +26,7 @@ This section describes the quickest way to get started using Roxy.
 * You know the admin logon to your MarkLogic Server(s)
 
 ### Download Roxy
-`> git clone git@github.com:marklogic/roxy.git`
+`> git clone git://github.com/marklogic/roxy.git`
 
 ### Configure your application
 1. Open a command prompt in the root folder of Roxy
