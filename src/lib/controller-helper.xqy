@@ -77,6 +77,11 @@ declare function ch:use-layout($layout as xs:string?, $formats as xs:string*)
 
 declare function ch:add-value($key as xs:string, $value as item()*)
 {
+  map:put($ch:map, $key, (map:get($ch:map, $key), $value))
+};
+
+declare function ch:set-value($key as xs:string, $value as item()*)
+{
   map:put($ch:map, $key, $value)
 };
 
