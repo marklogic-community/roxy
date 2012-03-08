@@ -572,20 +572,13 @@ private
     @properties.each do |k, v|
       cpf_config.gsub!("@#{k}", v)
     end
-    # @logger.info(cpf_config)
-    execute_query %Q{
-      xquery version "1.0-ml";
-      import module namespace cpf = "http://marklogic.com/framework/cpf" at "/lib/cpf.xqy";
-      cpf:load-from-config(#{cpf_config})
-    }
+    cpf_code = open(File.expand_path('../xquery/cpf.xqy', __FILE__)).readlines.join
+    r = execute_query %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}
   end
 
   def clean_cpf
-    execute_query %Q{
-      xquery version "1.0-ml";
-      import module namespace cpf = "http://marklogic.com/framework/cpf" at "/lib/cpf.xqy";
-      cpf:clean-cpf()
-    }
+    cpf_code = open(File.expand_path('../xquery/cpf.xqy', __FILE__)).readlines.join
+    r = execute_query %Q{#{cpf_code} cpf:clean-cpf()}
   end
 
   def xcc
