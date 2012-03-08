@@ -486,11 +486,13 @@ class ServerConfig < MLClient
 
 private
   def deploy_modules
+    ignore_us = nil
+    ignore_us = ["^#{@properties['ml.xquery-test.dir']}.*$"] if @properties['ml.xquery-test.dir']
     load_data @properties["ml.xquery.dir"], {
       :add_prefix => @properties["ml.modules-root"],
       :remove_prefix => @properties["ml.xquery.dir"],
       :db => @properties['ml.modules-db'],
-      :ignore_list => ["^#{@properties['ml.xquery-test.dir']}.*$"]
+      :ignore_list => ignore_us
     }
 
     # only deploy test code if test db is enabled.
