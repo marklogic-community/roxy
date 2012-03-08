@@ -567,13 +567,20 @@ private
   end
 
   def deploy_cpf
-
-    cpf_config = open(File.expand_path("../../pipeline-config.xml", __FILE__)).readlines.join
-    @properties.each do |k, v|
-      cpf_config.gsub!("@#{k}", v)
+    if (!File.exist?(File.expand_path("../../pipeline-config.xml", __FILE__)))
+      @logger.error("
+Before you can deploy CPF, you must define a configuration. Steps:
+1. Run 'ml initcpf'
+2. Edit deploy/pipeline-config.xml to set up your domain and pipelines
+3. Run 'ml <env> deploy cpf')")
+    else
+      cpf_config = open(File.expand_path("../../pipeline-config.xml", __FILE__)).readlines.join
+      @properties.each do |k, v|
+        cpf_config.gsub!("@#{k}", v)
+      end
+      cpf_code = open(File.expand_path('../xquery/cpf.xqy', __FILE__)).readlines.join
+      r = execute_query %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}
     end
-    cpf_code = open(File.expand_path('../xquery/cpf.xqy', __FILE__)).readlines.join
-    r = execute_query %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}
   end
 
   def clean_cpf
