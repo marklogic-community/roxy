@@ -567,7 +567,9 @@ private
   end
 
   def deploy_cpf
-    if (!File.exist?(File.expand_path("../../pipeline-config.xml", __FILE__)))
+    if (!@properties["ml.triggers-db"] or @properties["ml.data.dir"] == "")
+      @logger.error("To use CPF, you must define the triggers-db property in your build.properties file")
+    elsif (!File.exist?(File.expand_path("../../pipeline-config.xml", __FILE__)))
       @logger.error("
 Before you can deploy CPF, you must define a configuration. Steps:
 1. Run 'ml initcpf'
