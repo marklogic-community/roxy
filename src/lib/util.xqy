@@ -29,7 +29,12 @@ declare function u:module-file-exists($file as xs:string) as xs:boolean {
     let $root := if (fn:ends-with($root, "/")) then fn:substring($root, 1, fn:string-length($root) - 1) else $root
     return
       try {
-        xdmp:invoke(fn:concat($root, $file), (), <options xmlns="xdmp:eval"><static-check>true</static-check></options>), fn:true()
+        xdmp:invoke(fn:concat($root, $file), (), 
+          <options xmlns="xdmp:eval">
+            <static-check>true</static-check>
+            <isolation>same-statement</isolation>
+          </options>),
+        fn:true()
       }
       catch ($ex) {
         fn:false()
