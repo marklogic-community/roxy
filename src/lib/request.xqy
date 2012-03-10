@@ -97,7 +97,10 @@ declare function req:get($name as xs:string, $default as item()*, $options as xs
           else $default
       else if ($value and $type) then
         try {
-          xdmp:value(fn:concat('"', fn:replace(fn:replace($value, '"', '""'), "&amp;", "&amp;amp;"), '" cast as ', $type))
+          (: Ensure $type is a valid QName before putting it through xdmp:value() :)
+          let $_ := xs:QName($type)
+          return
+            xdmp:value(fn:concat('"', fn:replace(fn:replace($value, '"', '""'), "&amp;", "&amp;amp;"), '" cast as ', $type))
         }
         catch($ex) {
           req:assert-max-count($name, $value, $max-count),
