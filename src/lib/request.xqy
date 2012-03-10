@@ -156,7 +156,7 @@ declare private function req:get-option($options as xs:string*, $name as xs:stri
   return
     if ($value) then
       try {
-        xdmp:eval(fn:concat('"', $value, '" cast as ', $type))
+        xdmp:value(fn:concat('"', $value, '" cast as ', $type))
       }
       catch($ex) {()}
     else ()
