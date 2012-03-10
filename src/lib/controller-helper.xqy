@@ -21,7 +21,7 @@ declare option xdmp:mapping "false";
 
 declare variable $ALL-FORMATS as xs:string+ := ("html", "xml", "json", "text");
 
-declare variable $ch:map as map:map? := ();
+declare variable $ch:map as map:map external;
 
 declare function ch:use-view($view as xs:string?)
 {

@@ -23,6 +23,7 @@ import module namespace rh = "http://marklogic.com/roxy/routing-helper" at "/lib
 declare option xdmp:mapping "false";
 
 declare variable $controller as xs:string := req:get("controller", "", "type=xs:string");
+declare variable $controller-namespace as xs:string := fn:concat("http://marklogic.com/roxy/controller/", $controller);
 declare variable $controller-path as xs:string := fn:concat("/app/controllers/", $controller, ".xqy");
 declare variable $func as xs:string := req:get("func", "index", "type=xs:string");
 declare variable $format as xs:string := req:get("format", $config:DEFAULT-FORMAT, "type=xs:string");
@@ -34,15 +35,11 @@ declare variable $default-layout as xs:string? := map:get($config:DEFAULT-LAYOUT
 try
 {
   let $map := map:map()
-  let $eval-str :=
-    fn:concat('
-        import module namespace c="http://marklogic.com/roxy/controller/', $controller, '" at "', $controller-path, '";
-        import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/lib/controller-helper.xqy";
-        declare variable $map as map:map external;
-        xdmp:set($ch:map, $map),
-      c:', $func, '()')
-
-  let $data := xdmp:eval($eval-str, (xs:QName("map"), $map))
+  let $data :=
+    xdmp:invoke($controller-path, (
+      xs:QName("function-QName"), fn:QName($controller-namespace, $func),
+      xs:QName("ch:map"), $map
+    ))
 
   (: framework options :)
   let $options :=
