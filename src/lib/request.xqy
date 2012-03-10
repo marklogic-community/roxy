@@ -97,7 +97,7 @@ declare function req:get($name as xs:string, $default as item()*, $options as xs
           else $default
       else if ($value and $type) then
         try {
-          xdmp:eval(fn:concat('"', fn:replace(fn:replace($value, '"', '""'), "&amp;", "&amp;amp;"), '" cast as ', $type))
+          xdmp:value(fn:concat('"', fn:replace(fn:replace($value, '"', '""'), "&amp;", "&amp;amp;"), '" cast as ', $type))
         }
         catch($ex) {
           req:assert-max-count($name, $value, $max-count),
@@ -188,10 +188,10 @@ declare function req:required($name as xs:string, $options as xs:string*) as ite
 {
   let $value := req:get($name, $options)
   return
-  	if (fn:exists($value)) then
-  		$value
-  	else
-  		fn:error(xs:QName("MISSING-CONTROLLER-PARAM"), fn:concat("Required parameter '", $name, "' is missing"), ($name, $r:__CALLER_FILE__))
+    if (fn:exists($value)) then
+      $value
+    else
+      fn:error(xs:QName("MISSING-CONTROLLER-PARAM"), fn:concat("Required parameter '", $name, "' is missing"), ($name, $r:__CALLER_FILE__))
 };
 
 (:~
