@@ -23,16 +23,17 @@ declare option xdmp:mapping "false";
 
 declare function u:module-file-exists($file as xs:string) as xs:boolean {
   if (xdmp:modules-database() eq 0) then
-  	xdmp:uri-is-file($file)
+    xdmp:uri-is-file($file)
   else
     let $root := xdmp:modules-root()
     let $root := if (fn:ends-with($root, "/")) then fn:substring($root, 1, fn:string-length($root) - 1) else $root
     return
-    	xdmp:eval(
-    	  fn:concat('fn:doc-available("',$root, $file, '")'), (),
-      		<options xmlns="xdmp:eval">
-      			<database>{xdmp:modules-database()}</database>
-      		</options>)
+      try {
+        xdmp:invoke(fn:concat($root, $file), (), <options xmlns="xdmp:eval"><static-check>true</static-check></options>), fn:true()
+      }
+      catch ($ex) {
+        fn:false()
+      }
 };
 
 (:~
