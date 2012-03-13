@@ -1,7 +1,5 @@
 xquery version "1.0-ml";
 
-module namespace c = "http://marklogic.com/roxy/controller/tester";
-
 (: The request library provides awesome helper methods to abstract get-request-field :)
 import module namespace req = "http://marklogic.com/framework/request" at "/lib/request.xqy";
 
@@ -10,7 +8,11 @@ import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/
 
 import module namespace search = "http://marklogic.com/appservices/search" at "/MarkLogic/appservices/search/search.xqy";
 
+declare namespace c = "http://marklogic.com/roxy/controller/tester";
+
 declare namespace html = "http://www.w3.org/1999/xhtml";
+
+declare variable $function-QName as xs:QName external;
 
 declare option xdmp:mapping "false";
 
@@ -89,3 +91,6 @@ declare function c:view-that-returns-the-input()
   ch:add-value("title", "view-that-returns-the-input"),
   ch:use-layout("test-layout")
 };
+
+(: Apply the passed-in function :)
+xdmp:apply(xdmp:function($function-QName))

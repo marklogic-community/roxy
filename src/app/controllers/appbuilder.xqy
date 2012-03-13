@@ -15,8 +15,6 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-module namespace c = "http://marklogic.com/roxy/controller/appbuilder";
-
 (: the controller helper library provides methods to control which view and template get rendered :)
 import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/lib/controller-helper.xqy";
 
@@ -24,6 +22,10 @@ import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/
 import module namespace req = "http://marklogic.com/framework/request" at "/lib/request.xqy";
 
 import module namespace s = "http://marklogic.com/ns/models/search" at "/app/models/search-lib.xqy";
+
+declare namespace c = "http://marklogic.com/roxy/controller/appbuilder";
+
+declare variable $function-QName as xs:QName external;
 
 declare option xdmp:mapping "false";
 
@@ -48,3 +50,6 @@ declare function c:main() as item()*
   ch:use-view((), "xml"),
   ch:use-layout((), "xml")
 };
+
+(: Apply the passed-in function :)
+xdmp:apply(xdmp:function($function-QName))
