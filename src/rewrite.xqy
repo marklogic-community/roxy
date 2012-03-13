@@ -70,7 +70,7 @@ return
       concat("/public", $url)
   else if (u:module-file-exists(concat('/public', $path, '.html'))) then
     concat("/public", $url, '.html')
-  else if (u:module-file-exists(concat('/public/', $path))) then
+  else if (u:module-file-exists(concat('/public', $path))) then
     concat("/public/", $url)
   else if ($config:ALIASES/alias[@uri = $naked-path]) then
     let $endpoint as xs:string+ := fn:tokenize($config:ALIASES/alias[@uri = $naked-path]/@endpoint, "/")
