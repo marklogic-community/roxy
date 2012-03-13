@@ -50,5 +50,11 @@ declare function vh:get($name as xs:string)
 
 declare function vh:add-value($key as xs:string, $value as item()*)
 {
+  map:put($vh:map, $key, (map:get($vh:map, $key), $value))
+};
+
+declare function vh:set-value($key as xs:string, $value as item()*)
+{
   map:put($vh:map, $key, $value)
 };
+
