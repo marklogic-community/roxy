@@ -303,16 +303,21 @@ class ServerConfig < MLClient
   end
 
   def bootstrap
-    @logger.info("Bootstrapping your project into MarkLogic on #{@hostname}...")
-    setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
-    r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
+    if @hostname and @hostname != ""
+      @logger.info("Bootstrapping your project into MarkLogic on #{@hostname}...")
+      setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
+      r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
 
-    @logger.debug r.body
+      @logger.debug r.body
 
-    if (r.body.match("(note: restart required)")) then
-      @logger.warn("NOTE*** RESTART OF MARKLOGIC IS REQUIRED")
+      if (r.body.match("(note: restart required)")) then
+        @logger.warn("NOTE*** RESTART OF MARKLOGIC IS REQUIRED")
+      end
+      @logger.info("... Bootstrap Complete")
+    else
+      @logger.error "Bootstrap requires the target environment's hostname to be defined"
+      exit
     end
-    @logger.info("... Bootstrap Complete")
   end
 
   def wipe
