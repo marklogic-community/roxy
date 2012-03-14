@@ -11,4 +11,10 @@ if (xdmp:modules-database() ne 0) then
     <options xmlns="xdmp:eval">
       <database>{xdmp:modules-database()}</database>
     </options>)
-else ()
+else (),
+
+try
+{
+	xdmp:document-delete("/test-insert.xml")
+}
+catch($ex){()}

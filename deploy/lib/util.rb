@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
+require 'rbconfig'
+
 def find_arg(args = [])
   args.each do |arg|
     if (ARGV.include?(arg))
@@ -25,7 +27,7 @@ def find_arg(args = [])
 end
 
 def is_windows?
-  RUBY_PLATFORM.downcase.include?("mswin")
+  return (Config::CONFIG['host_os'] =~ /mswin|mingw/).nil? == false
 end
 
 def path_separator

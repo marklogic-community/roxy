@@ -192,4 +192,23 @@ let $response := xdmp:http-get(test:easy-url("/not-real/at-all"), $options-non-x
 return
 (
   test:assert-equal(404, fn:data($response[1]/*:code))
-)
+),
+
+(: test for xquery injection via evil urls :)
+let $url := "default.xqy?func=main(),%20xdmp:document-insert(%22foo.xml%22,%20%3Cboo/%3E),%20&amp;controller=appbuilder"
+let $url := fn:concat("http://localhost:", fn:tokenize(xdmp:get-request-header("Host"), ":")[2], if (fn:starts-with($url, "/")) then () else "/", $url)
+let $response := xdmp:http-get($url, $options-non-xml)
+return
+(
+  test:assert-equal(404, fn:data($response[1]/*:code))
+),
+
+
+let $response := xdmp:http-get(test:easy-url("/tester/update"), $options-non-xml)
+return
+  test:assert-equal(200, fn:data($response[1]/*:code));
+
+import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+let $doc := xdmp:eval('fn:doc("/test-insert.xml")/*')
+return
+  test:assert-equal(<test/>, $doc)

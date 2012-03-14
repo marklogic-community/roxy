@@ -96,10 +96,15 @@ declare function req:get($name as xs:string, $default as item()*, $options as xs
           if (fn:exists($v)) then $v/*
           else $default
       else if ($value and $type) then
-        try {
-          xdmp:eval(fn:concat('"', fn:replace(fn:replace($value, '"', '""'), "&amp;", "&amp;amp;"), '" cast as ', $type))
+        try
+        {
+          (: Ensure $type is a valid QName before putting it through xdmp:value() :)
+          let $_ := xs:QName($type)
+          return
+            xdmp:value(fn:concat('"', fn:replace(fn:replace($value, '"', '""'), "&amp;", "&amp;amp;"), '" cast as ', $type))
         }
-        catch($ex) {
+        catch($ex)
+        {
           req:assert-max-count($name, $value, $max-count),
           if ($validate eq fn:true()) then
             fn:error(xs:QName("INVALID-REQUEST-PARAMETER"), fn:concat($name, "=", $value), "response-code=400")
@@ -156,7 +161,7 @@ declare private function req:get-option($options as xs:string*, $name as xs:stri
   return
     if ($value) then
       try {
-        xdmp:eval(fn:concat('"', $value, '" cast as ', $type))
+        xdmp:value(fn:concat('"', $value, '" cast as ', $type))
       }
       catch($ex) {()}
     else ()

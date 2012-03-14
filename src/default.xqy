@@ -22,7 +22,7 @@ import module namespace rh = "http://marklogic.com/roxy/routing-helper" at "/lib
 
 declare option xdmp:mapping "false";
 
-declare variable $controller as xs:string := req:get("controller", "", "type=xs:string");
+declare variable $controller as xs:QName := req:get("controller", "type=xs:QName");
 declare variable $controller-path as xs:string := fn:concat("/app/controllers/", $controller, ".xqy");
 declare variable $func as xs:string := req:get("func", "index", "type=xs:string");
 declare variable $format as xs:string := req:get("format", $config:DEFAULT-FORMAT, "type=xs:string");
@@ -34,15 +34,13 @@ declare variable $default-layout as xs:string? := map:get($config:DEFAULT-LAYOUT
 try
 {
   let $map := map:map()
+  (: Ensure $type is a valid QName :)
+  let $_ := xs:QName($func)
   let $eval-str :=
     fn:concat('
         import module namespace c="http://marklogic.com/roxy/controller/', $controller, '" at "', $controller-path, '";
-        import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/lib/controller-helper.xqy";
-        declare variable $map as map:map external;
-        xdmp:set($ch:map, $map),
       c:', $func, '()')
-
-  let $data := xdmp:eval($eval-str, (xs:QName("map"), $map))
+  let $data := xdmp:eval($eval-str, (xs:QName("ch:map"), $map))
 
   (: framework options :)
   let $options :=
@@ -106,6 +104,8 @@ catch($ex)
 {
   if ($ex/error:code = "XDMP-UNDVAR" and $ex/error:data/error:datum = "$c:map") then
     fn:error(xs:QName("MISSING-MAP"), fn:concat("Missing external map declaration in ", $controller-path), $controller-path)
+  else if ($ex/error:code eq "XDMP-CAST" and $ex/error:expr eq "xs:QName($func)") then
+    fn:error(xs:QName("four-o-four"))
   else
     xdmp:rethrow()
 }

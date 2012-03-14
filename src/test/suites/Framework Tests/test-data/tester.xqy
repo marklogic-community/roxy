@@ -89,3 +89,10 @@ declare function c:view-that-returns-the-input()
   ch:add-value("title", "view-that-returns-the-input"),
   ch:use-layout("test-layout")
 };
+declare function c:update()
+{
+  xdmp:document-insert("/test-insert.xml", <test/>),
+  ch:use-layout(()),
+  ch:use-view(()),
+  ch:add-value("test", "done")
+};
