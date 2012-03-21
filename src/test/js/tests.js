@@ -110,7 +110,7 @@ function renderError(error) {
     }
 
     if (formatString && formatString.length > 0) {
-      result += '<p>' + formatString + '</p>';
+      result += '<p>' + formatString.replace(/</g, "&lt;").replace(/>/, "&gt;") + '</p>';
     }
 
     result +=

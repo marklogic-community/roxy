@@ -208,7 +208,7 @@ declare function u:distance-of-time($time as xs:dateTime)
     else if ($minutes ge 43200 and $minutes le 86399) then
       "1 month"
     else if ($minutes ge 86400 and $minutes le 525599) then
-      fn:concat(fn:round(functx:total-days-from-duration($distance) div 30), " months")
+      fn:concat(fn:round($distance div xs:dayTimeDuration("P30D")), " months")
     else
       let $years := fn:round(functx:total-days-from-duration($distance) div 365)
       return

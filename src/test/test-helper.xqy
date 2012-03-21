@@ -64,7 +64,7 @@ declare function helper:load-test-file($filename as xs:string, $database-id as x
   let $file := helper:get-modules-file(fn:replace(fn:concat($dir, "/test-data/", $filename), "//", "/"))
   return
     if ($database-id eq 0) then
-      let $uri := fn:replace(fn:concat(xdmp:modules-root(), $uri), "//", "/")
+      let $uri := fn:replace($uri, "//", "/")
       let $_ :=
         try {
           xdmp:filesystem-directory(cvt:basepath($uri))
@@ -82,7 +82,7 @@ declare function helper:load-test-file($filename as xs:string, $database-id as x
         xquery version "1.0-ml";
 
         declare variable $uri as xs:string external;
-        declare variable $file external;
+        declare variable $file as node() external;
         xdmp:document-insert($uri, $file)
       ',
       (xs:QName("uri"), $uri,

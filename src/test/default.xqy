@@ -50,15 +50,15 @@ declare function t:list() {
         else
           let $uris :=
             try {
-              xdmp:eval('cts:uri-match("/test/suites/*")', (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
+              xdmp:eval(fn:concat('cts:uri-match("', $root, 'test/suites/*")'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
             }
             catch($ex) {
-              xdmp:eval('xdmp:directory("/test/suites/", "infinity")/xdmp:node-uri(.)', (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
+              xdmp:eval(fn:concat('xdmp:directory("', $root, 'test/suites/", "infinity")/xdmp:node-uri(.)'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
             }
           return
             fn:distinct-values(
               for $uri in $uris
-              let $path := fn:replace(cvt:basepath($uri), "/test/suites/?", "")
+              let $path := fn:replace(cvt:basepath($uri), fn:concat($root, "test/suites/?"), "")
               where $path ne "" and fn:not(fn:contains($path, "/")) and fn:not($path = $suite-ignore-list)
               return
                 $path)
@@ -69,15 +69,15 @@ declare function t:list() {
         else
           let $uris :=
             try {
-              xdmp:eval(fn:concat('cts:uri-match("/test/suites/', $suite, '/*")'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
+              xdmp:eval(fn:concat('cts:uri-match("', $root, 'test/suites/', $suite, '/*")'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
             }
             catch($ex) {
-              xdmp:eval(fn:concat('xdmp:directory("/test/suites/', $suite, '/", "infinity")/xdmp:node-uri(.)'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
+              xdmp:eval(fn:concat('xdmp:directory("', $root, 'test/suites/', $suite, '/", "infinity")/xdmp:node-uri(.)'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
             }
           return
             fn:distinct-values(
               for $uri in $uris
-              let $path := fn:replace($uri, fn:concat("/test/suites/", $suite, "/"), "")
+              let $path := fn:replace($uri, fn:concat($root, "test/suites/", $suite, "/"), "")
               let $_ := xdmp:log(("PATH:", $path))
               where $path ne "" and fn:not(fn:contains($path, "/")) and fn:not($path = $test-ignore-list) and fn:ends-with($path, ".xqy")
               return

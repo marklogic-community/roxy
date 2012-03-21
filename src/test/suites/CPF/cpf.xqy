@@ -46,7 +46,7 @@ cpf:load-from-config(
       <name>My Test Domain</name>
       <description>This domain is awesome!!!</description>
       <pipelines>
-        <pipeline>/test/suites/CPF/_test-pipeline1.xml</pipeline>
+        <pipeline>{xdmp:modules-root()}test/suites/CPF/_test-pipeline1.xml</pipeline>
       </pipelines>
       <system-pipelines>
         <system-pipeline>Status Change Handling</system-pipeline>

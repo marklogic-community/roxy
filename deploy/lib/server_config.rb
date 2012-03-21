@@ -493,6 +493,8 @@ private
   def deploy_modules
     ignore_us = nil
     ignore_us = ["^#{@properties['ml.xquery-test.dir']}.*$"] if @properties['ml.xquery-test.dir']
+    app_config_file = "#{@properties['ml.xquery.dir']}/app/config/config.xqy"
+    ignore_us << "^#{app_config_file}$"
     load_data @properties["ml.xquery.dir"], {
       :add_prefix => @properties["ml.modules-root"],
       :remove_prefix => @properties["ml.xquery.dir"],
@@ -500,6 +502,23 @@ private
       :ignore_list => ignore_us
     }
 
+    if (File.exist?(app_config_file))
+      buffer = open(app_config_file).readlines.join
+      @properties.each do |k, v|
+        buffer.gsub!("@#{k}", v)
+      end
+
+      xcc.load_buffer("/config.xqy", buffer,{
+        :db => @properties['ml.modules-db'],
+        :add_prefix => File.join(@properties["ml.modules-root"], "app/config"),
+        :permissions => [
+          {
+            :capability => Roxy::ContentCapability::EXECUTE,
+            :role => "app-user"
+          }
+        ]
+      })
+    end
     # only deploy test code if test db is enabled.
     # don't deploy tests to prod
     if (@properties['ml.test-content-db'] and @properties['ml.test-content-db'] != "" and
@@ -521,8 +540,9 @@ private
           buffer.gsub!("@#{k}", v)
         end
 
-        xcc.load_buffer("/test/test-config.xqy", buffer,{
+        xcc.load_buffer("/test-config.xqy", buffer,{
           :db => @properties['ml.modules-db'],
+          :add_prefix => File.join(@properties["ml.modules-root"], "test"),
           :permissions => [
             {
               :capability => Roxy::ContentCapability::EXECUTE,

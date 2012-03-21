@@ -108,6 +108,12 @@ module Roxy
     def build_load_uri(file_uri, options, commit)
       url = "http://#{@hostname}:#{@port}/insert?"
 
+      file_uri = file_uri.sub(options[:remove_prefix] || "", "")
+      if (options[:add_prefix])
+        prefix = options[:add_prefix].chomp("/")
+        file_uri = prefix + file_uri
+      end
+
       url << "uri=#{url_encode(file_uri)}"
 
       if (options[:locale])
@@ -200,11 +206,8 @@ module Roxy
         @logger.debug "Using Batch commit: #{batch_commit}"
         data.each_with_index do |d, i|
           commit = ((false == batch_commit) or (i >= (size - 1)))
-          file_uri = d.sub(options[:remove_prefix], "")
-          if (options[:add_prefix])
-            prefix = options[:add_prefix].chomp("/")
-            file_uri = prefix + file_uri
-          end
+
+          file_uri = d
           url = build_load_uri(file_uri, options, commit)
           @logger.debug "loading: #{file_uri}"
 
