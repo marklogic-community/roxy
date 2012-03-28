@@ -144,6 +144,14 @@ declare function u:pluralize($string as xs:string, $count as xs:int) as xs:strin
     $string
 };
 
+declare function u:pluralize($count as xs:int, $singular as xs:string, $plural as xs:string) as xs:string
+{
+  if ($count > 1) then
+    $plural
+  else
+    $singular
+};
+
 declare function u:camel-case($string as xs:string)
 {
   fn:string-join(
