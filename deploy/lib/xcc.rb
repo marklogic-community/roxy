@@ -37,6 +37,15 @@ module Net
       sock.write buf
     end
   end
+
+  class << HTTPResponse
+    def read_status_line(sock)
+      str = sock.readline
+      m = /\A(?:HTTP|XDBC)(?:\/(\d+\.\d+))?\s+(\d\d\d)\s*(.*)\z/in.match(str) or
+        raise HTTPBadResponse, "wrong status line: #{str.dump}"
+      m.captures
+	end
+  end
 end
 
 module Roxy
