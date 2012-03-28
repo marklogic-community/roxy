@@ -69,6 +69,8 @@ class MLClient
     end
 
     response = get_http.request request_params
+    response.value
+    response
   end
 
   def url_encode(str)

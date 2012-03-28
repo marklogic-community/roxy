@@ -109,6 +109,14 @@ while ARGV.length > 0
         else
           @s.send(command)
       end
+    rescue Net::HTTPServerException => e
+      case e.response
+      when Net::HTTPUnauthorized then
+        @logger.error("Invalid login credentials for #{environment} environment!!")
+      else
+        @logger.error(e)
+        @logger.error(e.backtrace)
+      end
     rescue Exception => e
       @logger.error(e)
       @logger.error(e.backtrace)

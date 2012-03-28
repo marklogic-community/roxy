@@ -242,6 +242,10 @@ class ServerConfig < MLClient
     @logger.debug "port: #{@bootstrap_port}"
   end
 
+  def get_properties
+    return @properties
+  end
+
   def info
     @logger.info "Properties:"
     @properties.each do |k, v|
