@@ -32,11 +32,14 @@ declare variable $req:request as map:map :=
   (
     for $name as xs:string in xdmp:get-request-field-names()
     let $current := map:get($map, $name)
+    let $vals :=
+      for $val in xdmp:get-request-field($name)
+      return xdmp:url-decode($val)
     return
       if (fn:exists($current)) then
-        map:put($map, $name, ($current, xdmp:get-request-field($name)))
+        map:put($map, $name, ($current, $vals))
       else
-      map:put($map, $name, xdmp:get-request-field($name)),
+      map:put($map, $name, $vals),
     $map
   )
 ;
@@ -84,7 +87,7 @@ declare function req:get($name as xs:string, $default as item()*, $options as xs
   let $max-count as xs:int? := req:get-option($options, "max-count", "xs:int")
   let $allow-empty as xs:boolean := (req:get-option($options, "allow-empty", "xs:boolean"), fn:true())[1]
   let $item :=
-    let $value := map:get($req:request, $name)
+    for $value in map:get($req:request, $name)
     return
       if (fn:exists($value) and $type eq 'xml') then
         let $v :=
