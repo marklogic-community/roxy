@@ -38,8 +38,9 @@ declare function local:transform-snippet($nodes as node()*)
       case element(search:highlight) return
         <span xmlns="http://www.w3.org/1999/xhtml" class="highlight">{fn:data($n)}</span>
       case element() return
-        element { fn:node-name($n) }
+        element div
         {
+          attribute class { fn:local-name($n) },
           local:transform-snippet(($n/@*, $n/node()))
         }
       default return $n
@@ -109,7 +110,7 @@ return
         return
           <div class="result">
           {
-            $result/search:snippet/search:match
+            local:transform-snippet($result/search:snippet)
           }
           </div>
       }

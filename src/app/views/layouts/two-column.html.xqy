@@ -23,6 +23,7 @@ declare variable $view as item()* := vh:get("view");
 declare variable $sidebar as item()* := vh:get("sidebar");
 declare variable $title as xs:string? := vh:get("title");
 declare variable $username as xs:string? := vh:get("username");
+declare variable $q as xs:string? := vh:get("q");
 
 '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">',
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -31,7 +32,7 @@ declare variable $username as xs:string? := vh:get("username");
     <title>{$title}</title>
     <link href="/css/themes/ui-lightness/jquery-ui.css" type="text/css" rel="stylesheet"/>
     <link href="/css/two-column.less" type="text/css" rel="stylesheet/less"/>
-    <link href="/css/app.css" type="text/css" rel="stylesheet"/>
+    <link href="/css/app.less" type="text/css" rel="stylesheet/less"/>
     <script src="/js/lib/less-1.1.3.min.js" type='text/javascript'></script>
     <script src="/js/jquery-1.6.1.min.js" type='text/javascript'></script>
     <script src="/js/jquery-ui-1.8.13.min.js" type='text/javascript'></script>
@@ -50,7 +51,7 @@ declare variable $username as xs:string? := vh:get("username");
       <div class="header" arcsize="5 5 0 0">
         <label>Search</label>
         <form id="searchform" name="searchform" method="GET" action="/">
-	        <input type="text" id="q" name="q" class="searchbox" value=""/>
+	        <input type="text" id="q" name="q" class="searchbox" value="{$q}"/>
 	          <div id="suggestions"><!--suggestions here--></div>
 	          <div id="searchbutton" class="searchbutton">
               <button type="submit" title="Run Search"><img src="/images/mt_icon_search.gif"/></button>

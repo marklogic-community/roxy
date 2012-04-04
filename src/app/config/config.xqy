@@ -74,6 +74,6 @@ declare variable $c:SEARCH-OPTIONS :=
 declare variable $c:LABELS :=
   <labels xmlns="http://marklogic.com/xqutils/labels">
     <label key="facet1">
-      <value xml:lang="en">Facet 1</value>
+      <value xml:lang="en">Sample Facet</value>
     </label>
   </labels>;

@@ -31,3 +31,24 @@ declare function m:search($query as xs:string, $page as xs:int)
   return
     search:search($query, $c:SEARCH-OPTIONS, $start, $c:DEFAULT-PAGE-LENGTH)
 };
+declare function m:facets-only($query, $options) as element(search:facet)*
+{
+  let $init-options := impl:merge-options($impl:default-options, $options)
+  let $parsed-query := 
+    if ($init-options) then
+      impl:do-tokenize-parse($query, $init-options, fn:false())
+    else
+      fn:error((),"SEARCH-INVALARGS",("requires either $ctsquery or $qtext and $options"))
+  (: create and merge final options with any state contained in the parsed query :)
+  let $options := impl:apply-state($init-options,$parsed-query)
+
+  let $combined-query :=
+    let $extra-cts := $options/search:additional-query/*
+    return
+      if ($parsed-query and $extra-cts) then
+        element cts:and-query { ($parsed-query, $extra-cts) }
+      else
+        $parsed-query
+  return
+    impl:do-resolve-facets($options, $combined-query, 100)
+};
