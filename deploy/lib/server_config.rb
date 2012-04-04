@@ -254,6 +254,8 @@ class ServerConfig < MLClient
   end
 
   def self.init
+    # allow the caller to replace roxy with the new app name
+    name = ARGV.shift
     sample_config = File.expand_path("../../sample/ml-config.sample.xml", __FILE__)
     target_config = File.expand_path("../../ml-config.xml", __FILE__)
     default_properties = File.expand_path("../../default.properties", __FILE__)
@@ -263,6 +265,11 @@ class ServerConfig < MLClient
     else
       FileUtils.cp sample_config, target_config
       FileUtils.cp default_properties, build_properties
+      if (name)
+        properties_file = open(build_properties).read
+        properties_file.gsub!(/app-name=roxy/, "app-name=#{name}")
+        open(build_properties, 'w') {|f| f.write(properties_file) }
+      end
     end
   end
 

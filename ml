@@ -33,7 +33,7 @@ then
     git clone https://github.com/marklogic/roxy ${app_name}
     cd ${app_name}
     rm -rf .git*
-    ./ml init
+    ./ml init ${app_name}
     cd ..
     printf " done\n"
     if [ -e $app_name ]
