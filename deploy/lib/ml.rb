@@ -47,7 +47,7 @@ while ARGV.length > 0
       "#{msg}\n"
     }
 
-    @logger.info eval "Help.#{command}"
+    @logger.info(eval("Help.#{command}"))
     exit
   end
 

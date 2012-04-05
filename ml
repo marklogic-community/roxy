@@ -29,12 +29,21 @@ then
   then
     app_name="$1"
     shift
+
+    hash git 2>&- || { echo >&2 "Git is required to use the new command."; exit 1; }
+
+    if [ -e $app_name ]
+    then
+      printf "\n${app_name} already exists. Aborting\n"
+      exit 1
+    fi
+
     printf "\nCreating new Application: ${app_name}..."
-    git clone https://github.com/marklogic/roxy ${app_name}
-    cd ${app_name}
+    git clone git://github.com/marklogic/roxy.git ${app_name}
+    pushd ${app_name} > /dev/null
     rm -rf .git*
     ./ml init ${app_name}
-    cd ..
+    popd > /dev/null
     printf " done\n"
     if [ -e $app_name ]
     then
@@ -46,10 +55,9 @@ then
           --git)
             printf "Creating a git repository:\n"
             cd ${app_name}
-            echo `pwd`
             git init
             git add .
-            git commit -m "Initial Commit"
+            git commit -q -m "Initial Commit"
             printf "...done\n"
             ;;
         *)
@@ -63,5 +71,10 @@ then
     usage
   fi
 else
-  ruby deploy/lib/ml.rb $*
+  if [ -e deploy/lib/ml.rb ]
+  then
+    ruby deploy/lib/ml.rb $*
+  else
+    printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
+  fi
 fi
