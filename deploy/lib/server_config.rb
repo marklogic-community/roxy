@@ -507,7 +507,7 @@ private
     app_config_file = "#{@properties['ml.xquery.dir']}/app/config/config.xqy"
     ignore_us << "^#{app_config_file}$"
     load_data @properties["ml.xquery.dir"], {
-      :add_prefix => @properties["ml.modules-root"],
+      :add_prefix => "/",
       :remove_prefix => @properties["ml.xquery.dir"],
       :db => @properties['ml.modules-db'],
       :ignore_list => ignore_us
