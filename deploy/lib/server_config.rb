@@ -260,7 +260,7 @@ class ServerConfig < MLClient
     target_config = File.expand_path("../../ml-config.xml", __FILE__)
     default_properties = File.expand_path("../../default.properties", __FILE__)
     build_properties = File.expand_path("../../build.properties", __FILE__)
-    if (File.exists?(target_config) or File.exists?(build_properties)) then
+    if (File.exists?(target_config) || File.exists?(build_properties)) then
       @@logger.error "Init has already been run. Use --force to rerun it.\n"
     else
       FileUtils.cp sample_config, target_config
@@ -314,7 +314,7 @@ class ServerConfig < MLClient
   end
 
   def bootstrap
-    if @hostname and @hostname != ""
+    if @hostname && @hostname != ""
       @logger.info("Bootstrapping your project into MarkLogic on #{@hostname}...")
       setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
       r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
@@ -359,10 +359,10 @@ class ServerConfig < MLClient
 
   def load_data(dir, options = {})
     batch_override = nil
-    if (ARGV[0] and ARGV[0].match("--batch=(yes|no)"))
+    if (ARGV[0] && ARGV[0].match("--batch=(yes|no)"))
       batch_override = ARGV.shift.split("=")[1] == "yes"
     end
-    batch = (((@environment != "local") and (batch_override != false)) or (batch_override == true))
+    batch = (((@environment != "local") && (batch_override != false)) || (batch_override == true))
 
     xcc.load_files File.expand_path(dir), {
       :db => options[:db],
@@ -502,7 +502,7 @@ class ServerConfig < MLClient
 
 private
   def deploy_modules
-    ignore_us = nil
+    ignore_us = []
     ignore_us = ["^#{@properties['ml.xquery-test.dir']}.*$"] if @properties['ml.xquery-test.dir']
     app_config_file = "#{@properties['ml.xquery.dir']}/app/config/config.xqy"
     ignore_us << "^#{app_config_file}$"
@@ -532,8 +532,8 @@ private
     end
     # only deploy test code if test db is enabled.
     # don't deploy tests to prod
-    if (@properties['ml.test-content-db'] and @properties['ml.test-content-db'] != "" and
-        @properties['ml.test-port'] and @properties['ml.test-port'] != "" and 
+    if (@properties['ml.test-content-db'] && @properties['ml.test-content-db'] != "" &&
+        @properties['ml.test-port'] && @properties['ml.test-port'] != "" &&
         @environment != "prod")
 
       test_config_file = "#{@properties['ml.xquery-test.dir']}/test-config.xqy"
@@ -605,7 +605,7 @@ private
   end
 
   def deploy_cpf
-    if (!@properties["ml.triggers-db"] or @properties["ml.data.dir"] == "")
+    if (!@properties["ml.triggers-db"] || @properties["ml.data.dir"] == "")
       @logger.error("To use CPF, you must define the triggers-db property in your build.properties file")
     elsif (!File.exist?(File.expand_path("../../pipeline-config.xml", __FILE__)))
       @logger.error("
@@ -773,7 +773,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
     File.open(properties_filename, 'r') do |properties_file|
       properties_file.read.each_line do |line|
         line.strip!
-        if (line[0] != ?# and line[0] != ?= and line[0] != "")
+        if ((line[0] != ?#) && (line[0] != ?=) && (line[0] != ""))
           i = line.index('=')
           if (i)
             key = prefix + line[0..i - 1].strip
@@ -879,8 +879,8 @@ Before you can deploy CPF, you must define a configuration. Steps:
     end
 
     # Build the test appserver and db if it is provided
-    if (@properties['ml.test-content-db'] and @properties['ml.test-content-db'] != "" and
-        @properties['ml.test-port'] and @properties['ml.test-port'] != "" and 
+    if (@properties['ml.test-content-db'] && @properties['ml.test-content-db'] != "" &&
+        @properties['ml.test-port'] && @properties['ml.test-port'] != "" &&
         @environment != "prod")
       config.gsub!("@ml.test-content-db-xml",
       %Q{

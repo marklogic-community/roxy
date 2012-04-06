@@ -44,7 +44,21 @@ module Net
       m = /\A(?:HTTP|XDBC)(?:\/(\d+\.\d+))?\s+(\d\d\d)\s*(.*)\z/in.match(str) or
         raise HTTPBadResponse, "wrong status line: #{str.dump}"
       m.captures
-	end
+  	end
+  end
+
+  # Turns on keep-alive for xcc in Ruby 1.8.x
+  class HTTP
+    def keep_alive?(req, res)
+      true
+    end
+  end
+
+  # Turns on keep-alive for xcc in Ruby 1.9.x
+  module HTTPHeader
+    def connection_keep_alive?
+      true
+    end
   end
 end
 
@@ -93,7 +107,7 @@ module Roxy
           next if (entry == '..' || entry == '.' || entry == '.svn' || entry == '.git' || entry == '.DS_Store' || entry == "Thumbs.db" || entry == "thumbs.db")
           full_path = File.join(path, entry)
           skip = false
-          if (options and options[:ignore_list])
+          if (options && options[:ignore_list])
             options[:ignore_list].each do |ignore|
               if full_path.match(ignore)
                 skip = true
@@ -214,7 +228,7 @@ module Roxy
         batch_commit = options[:batch_commit] == true
         @logger.debug "Using Batch commit: #{batch_commit}"
         data.each_with_index do |d, i|
-          commit = ((false == batch_commit) or (i >= (size - 1)))
+          commit = ((false == batch_commit) || (i >= (size - 1)))
 
           file_uri = d
           url = build_load_uri(file_uri, options, commit)

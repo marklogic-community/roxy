@@ -314,10 +314,6 @@ module Roxy
       end
       # open connection
       @http.start
-      head_res = @http.head("/")
-      if (head_res.code.to_i == 401) then
-        request_params[:request].digest_auth(@user_name, @password, head_res)
-      end
     end
 
     public

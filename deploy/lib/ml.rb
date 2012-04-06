@@ -61,14 +61,14 @@ while ARGV.length > 0
   #
   # put things in ServerConfig class methods that don't depend on environment or server info
   #
-  elsif (ServerConfig.respond_to?(command.to_sym) or ServerConfig.respond_to?(command))
+  elsif (ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command))
     ServerConfig.set_logger @logger
     eval "ServerConfig.#{command}"
 
   #
   # ServerConfig methods require environment to be set in order to talk to a ML server
   #
-  elsif (ServerConfig.instance_methods.include?(command.to_sym) or ServerConfig.instance_methods.include?(command))
+  elsif (ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command))
 
     if (environment == nil)
       @logger.error "Missing environment for #{command}"
@@ -101,7 +101,7 @@ while ARGV.length > 0
             # ARGV.slice!(index)
           end
 
-          if (dir and db)
+          if (dir && db)
             @s.load_data dir, remove_prefix, db
           else
             puts "Error: Destination directory and Database are required"
@@ -115,9 +115,13 @@ while ARGV.length > 0
         @logger.error("Invalid login credentials for #{environment} environment!!")
       else
         @logger.error(e)
-        @logger.error(e.backtrace)
+        @logger.error(e.response.body)
       end
+    rescue Net::HTTPFatalError => e
+      @logger.error(e)
+      @logger.error(e.response.body)
     rescue Exception => e
+      @logger.error(e.class)
       @logger.error(e)
       @logger.error(e.backtrace)
     end

@@ -39,6 +39,9 @@ class MLClient
     if (!@request[verb])
       @logger.debug("creating new #{verb} request\n")
       @request[verb] = Net::HTTP.const_get(verb.capitalize).new(uri.request_uri)
+      @request[verb].add_field 'Connection', 'keep-alive'
+      @request[verb].add_field 'Keep-Alive', '30'
+      @request[verb].add_field 'User-Agent', 'Roxy'
     else
       @request[verb].set_path uri.request_uri
     end
