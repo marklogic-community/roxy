@@ -78,6 +78,7 @@ while ARGV.length > 0
     @s = ServerConfig.new({
       :environment => environment,
       :config_file => File.expand_path("../../ml-config.xml", __FILE__),
+      :default_properties_file => File.expand_path("../../default.properties", __FILE__),
       :properties_file => File.expand_path("../../build.properties", __FILE__),
       :env_properties_file => File.expand_path("../../#{environment}.properties", __FILE__),
       :logger => @logger

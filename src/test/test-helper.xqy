@@ -299,7 +299,6 @@ declare function helper:assert-throws-error($function as xdmp:function, $params 
         helper:success()
       else
       (
-        xdmp:log($ex),
         fn:error(xs:QName("ASSERT-THROWS-ERROR-FAILED"), fn:concat("Error code was: ", $ex/error:code, " not: ", $error-code))
       )
     else

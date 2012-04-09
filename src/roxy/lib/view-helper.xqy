@@ -17,7 +17,7 @@ xquery version "1.0-ml";
 
 module namespace vh = "http://marklogic.com/roxy/view-helper";
 
-import module namespace rh = "http://marklogic.com/roxy/routing-helper" at "/lib/routing-helper.xqy";
+import module namespace rh = "http://marklogic.com/roxy/routing-helper" at "/roxy/lib/routing-helper.xqy";
 
 declare option xdmp:mapping "false";
 

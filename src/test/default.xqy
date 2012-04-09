@@ -78,7 +78,6 @@ declare function t:list() {
             fn:distinct-values(
               for $uri in $uris
               let $path := fn:replace($uri, fn:concat($root, "test/suites/", $suite, "/"), "")
-              let $_ := xdmp:log(("PATH:", $path))
               where $path ne "" and fn:not(fn:contains($path, "/")) and fn:not($path = $test-ignore-list) and fn:ends-with($path, ".xqy")
               return
                 $path)

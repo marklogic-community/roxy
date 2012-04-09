@@ -15,7 +15,7 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-import module namespace vh = "http://marklogic.com/roxy/view-helper" at "/lib/view-helper.xqy";
+import module namespace vh = "http://marklogic.com/roxy/view-helper" at "/roxy/lib/view-helper.xqy";
 
 import module namespace uv = "http://www.marklogic.com/roxy/user-view" at "/app/views/helpers/user-lib.xqy";
 

@@ -16,6 +16,5 @@ let $response := xdmp:http-get(test:easy-url("/"), $options)
 return
 (
   test:assert-equal(fn:data($response[1]/*:code), 200),
-  xdmp:log($response[2]),
   test:assert-equal(1, fn:count($response[2]//*:html))
 )

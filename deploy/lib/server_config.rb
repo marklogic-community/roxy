@@ -219,7 +219,9 @@ class ServerConfig < MLClient
       print("ERROR: You must run ml init to configure your application.\n")
       exit
     end
-    @properties = load_properties(options[:properties_file], "ml.")
+
+    @properties = load_properties(options[:default_properties_file], "ml.")
+    @properties.merge!(load_properties(options[:properties_file], "ml.", @properties))
     if (File.exists? options[:env_properties_file])
       @properties.merge!(load_properties(options[:env_properties_file], "ml.", @properties))
     end
@@ -258,13 +260,13 @@ class ServerConfig < MLClient
     name = ARGV.shift
     sample_config = File.expand_path("../../sample/ml-config.sample.xml", __FILE__)
     target_config = File.expand_path("../../ml-config.xml", __FILE__)
-    default_properties = File.expand_path("../../default.properties", __FILE__)
+    sample_properties = File.expand_path("../../sample/build.sample.properties", __FILE__)
     build_properties = File.expand_path("../../build.properties", __FILE__)
     if (File.exists?(target_config) || File.exists?(build_properties)) then
       @@logger.error "Init has already been run. Use --force to rerun it.\n"
     else
       FileUtils.cp sample_config, target_config
-      FileUtils.cp default_properties, build_properties
+      FileUtils.cp sample_properties, build_properties
       if (name)
         properties_file = open(build_properties).read
         properties_file.gsub!(/app-name=roxy/, "app-name=#{name}")
@@ -364,19 +366,13 @@ class ServerConfig < MLClient
     end
     batch = (((@environment != "local") && (batch_override != false)) || (batch_override == true))
 
-    xcc.load_files File.expand_path(dir), {
-      :db => options[:db],
-      :add_prefix => options[:add_prefix],
-      :remove_prefix => options[:remove_prefix],
-      :batch_commit => batch,
-      :ignore_list => options[:ignore_list],
-      :permissions => [
+    options[:batch_commit] = batch
+    options[:permissions] = [
         {
           :capability => Roxy::ContentCapability::EXECUTE,
           :role => "app-user"
-        }
-      ]
-    }
+      }] unless options[:permissions]
+    xcc.load_files(File.expand_path(dir), options)
   end
 
   #
@@ -909,8 +905,8 @@ Before you can deploy CPF, you must define a configuration. Steps:
           <root>@ml.modules-root</root>
           <authentication>@ml.authentication-method</authentication>
           <default-user name="@ml.default-user"/>
-          <url-rewriter>rewrite.xqy</url-rewriter>
-          <error-handler>error.xqy</error-handler>
+          <url-rewriter>@ml.url-rewriter</url-rewriter>
+          <error-handler>@ml.error-handler</error-handler>
         </http-server>
       })
     else

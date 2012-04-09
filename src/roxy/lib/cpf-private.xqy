@@ -225,7 +225,7 @@ declare private function local:call-private-function(
   $database-id as xs:unsignedLong?)
 {
   xdmp:invoke(
-    "/lib/cpf-private.xqy",
+    "/roxy/lib/cpf-private.xqy",
     (xs:QName("map"), $map),
     if ($database-id) then
       <options xmlns="xdmp:eval">

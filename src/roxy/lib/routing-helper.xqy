@@ -17,7 +17,7 @@ xquery version "1.0-ml";
 
 module namespace rh = 'http://marklogic.com/roxy/routing-helper';
 
-import module namespace req = "http://marklogic.com/framework/request" at "/lib/request.xqy";
+import module namespace req = "http://marklogic.com/framework/request" at "/roxy/lib/request.xqy";
 
 declare namespace vh = "http://marklogic.com/roxy/view-helper";
 

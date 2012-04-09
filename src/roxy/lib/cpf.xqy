@@ -263,7 +263,7 @@ declare private function cpf:call-private-function(
   $database-id as xs:unsignedLong)
 {
   xdmp:invoke(
-    "/lib/cpf-private.xqy",
+    "/roxy/lib/cpf-private.xqy",
     (xs:QName("map"), $map),
     <options xmlns="xdmp:eval">
 		  <database>{$database-id}</database>

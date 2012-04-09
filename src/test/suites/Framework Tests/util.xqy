@@ -4,7 +4,7 @@ import module namespace test="http://marklogic.com/ps/test-helper" at "/test/tes
 
 import module namespace c = "http://marklogic.com/ns/test-config" at "/test/test-config.xqy";
 
-import module namespace u = "http://marklogic.com/framework/util" at "/lib/util.xqy";
+import module namespace u = "http://marklogic.com/framework/util" at "/roxy/lib/util.xqy";
 
 declare namespace html = "http://www.w3.org/1999/xhtml";
 

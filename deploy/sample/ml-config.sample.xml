@@ -26,8 +26,8 @@
       <root>@ml.modules-root</root>
       <authentication>@ml.authentication-method</authentication>
       <default-user name="@ml.default-user"/>
-      <url-rewriter>rewrite.xqy</url-rewriter>
-      <error-handler>error.xqy</error-handler>
+      <url-rewriter>@ml.url-rewriter</url-rewriter>
+      <error-handler>@ml.error-handler</error-handler>
     </http-server>
     @ml.test-appserver
   </http-servers>

@@ -12,11 +12,11 @@ if (xdmp:triggers-database() eq 0) then
   test:fail("You must configure a triggers database to run this test.")
 else ();
 
-import module namespace cpf = "http://marklogic.com/framework/cpf" at "/lib/cpf.xqy";
+import module namespace cpf = "http://marklogic.com/framework/cpf" at "/roxy/lib/cpf.xqy";
 cpf:clean-cpf()
 ;
 
-import module namespace cpf = "http://marklogic.com/framework/cpf" at "/lib/cpf.xqy";
+import module namespace cpf = "http://marklogic.com/framework/cpf" at "/roxy/lib/cpf.xqy";
 import module namespace dom = "http://marklogic.com/cpf/domains" at "/MarkLogic/cpf/domains.xqy";
 import module namespace p = "http://marklogic.com/cpf/pipelines" at "/MarkLogic/cpf/pipelines.xqy";
 import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
@@ -35,7 +35,7 @@ declare function local:get-domain()
 test:assert-throws-error(xdmp:function(xs:QName("local:get-domain")), "CPF-DOMAINNOTFOUND")
 ;
 
-import module namespace cpf = "http://marklogic.com/framework/cpf" at "/lib/cpf.xqy";
+import module namespace cpf = "http://marklogic.com/framework/cpf" at "/roxy/lib/cpf.xqy";
 
 import module namespace c = "http://marklogic.com/ns/test-config" at "/test/test-config.xqy";
 
@@ -73,7 +73,7 @@ cpf:load-from-config(
 </config>)
 ;
 
-import module namespace cpf = "http://marklogic.com/framework/cpf" at "/lib/cpf.xqy";
+import module namespace cpf = "http://marklogic.com/framework/cpf" at "/roxy/lib/cpf.xqy";
 import module namespace dom = "http://marklogic.com/cpf/domains" at "/MarkLogic/cpf/domains.xqy";
 import module namespace p = "http://marklogic.com/cpf/pipelines" at "/MarkLogic/cpf/pipelines.xqy";
 import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";

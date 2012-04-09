@@ -16,7 +16,7 @@ limitations under the License.
 xquery version "1.0-ml";
 module namespace helper = "http://marklogic.com/ps/test-helper-app-builder";
 
-import module namespace config="http://marklogic.com/appservices/config" at "/lib/config.xqy";
+import module namespace config="http://marklogic.com/appservices/config" at "/roxy/lib/config.xqy";
 
 (:  test-app-builder
  :

@@ -15,10 +15,10 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-import module namespace u = "http://marklogic.com/framework/util" at "/lib/util.xqy";
+import module namespace u = "http://marklogic.com/framework/util" at "/roxy/lib/util.xqy";
 
 import module namespace config = "http://marklogic.com/ns/config" at "/app/config/config.xqy";
-import module namespace soap = "http://marklogic/roxy/soap" at "/lib/soap-lib.xqy";
+import module namespace soap = "http://marklogic/roxy/soap" at "/roxy/lib/soap-lib.xqy";
 
 declare namespace s="http://www.w3.org/2009/xpath-functions/analyze-string";
 
@@ -38,7 +38,7 @@ declare function local:build-controller-url($url, $path, $params, $soap-call)
     if ($controller ne "") then
       if (u:module-file-exists(concat("/app/controllers/", $controller, ".xqy"))) then
         concat(
-          "/default.xqy?controller=",
+          "/roxy/default.xqy?controller=",
           $controller,
           "&amp;func=",
           $func,
@@ -80,7 +80,7 @@ return
     return
       if (u:module-file-exists(concat("/app/controllers/", $controller, ".xqy"))) then
         concat(
-          "/default.xqy?controller=",
+          "/roxy/default.xqy?controller=",
           $controller,
           "&amp;func=",
           $func,
