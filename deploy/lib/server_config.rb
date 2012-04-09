@@ -229,7 +229,17 @@ class ServerConfig < MLClient
       @properties["ml.server"] = @properties["ml.#{@environment}-server"]
     end
     @hostname = @properties["ml.server"]
-    @bootstrap_port = @properties["ml.bootstrap-port"]
+    @bootstrap_port_four = @properties["ml.bootstrap-port-four"]
+    @bootstrap_port_five = @properties["ml.bootstrap-port-five"]
+
+    @version = version
+
+    if (@version == 4) then
+      @bootstrap_port = @bootstrap_port_four
+    else
+      @bootstrap_port = @bootstrap_port_five
+      @properties["ml.bootstrap_port"] = @bootstrap_port
+    end
 
     super({
       :user_name => @properties["ml.user"],
@@ -298,7 +308,7 @@ class ServerConfig < MLClient
 
   def execute_query(query, db_name = nil)
     r = nil
-    if version == 4
+    if @version == 4
       r = execute_query_4 query, db_name
     else
       r = execute_query_5 query, db_name
@@ -645,7 +655,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
   end
 
   def get_version()
-    h = Net::HTTP.new(@hostname, @bootstrap_port)
+    h = Net::HTTP.new(@hostname, @bootstrap_port_four)
     response = h.request(Net::HTTP::Get.new("/use-cases/eval2.xqy"))
     is_4_0 = (response.body.match("MarkLogic Application Services") == nil)
     version = is_4_0 ? 4 : 5
