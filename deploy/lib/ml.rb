@@ -18,117 +18,8 @@ require File.expand_path('../framework', __FILE__)
 require File.expand_path('../util', __FILE__)
 require File.expand_path('../../app_specific.rb', __FILE__)
 
-ARGV << '--help' if ARGV.empty?
-
-@profile = find_arg(['-p', '--profile'])
-if @profile then
-  begin
-    require 'ruby-prof'
-    RubyProf.start
-  rescue LoadError
-    print("Error: Please install the ruby-prof gem to enable profiling\n> gem install ruby-prof\n")
-    exit
-  end
-end
-
-@logger = Logger.new(STDOUT)
-@logger.level = find_arg(['-v', '--verbose']) ? Logger::DEBUG : Logger::INFO
-@logger.formatter = proc { |severity, datetime, progname, msg|
-  "#{severity}: #{msg}\n"
-}
-
-environment = find_arg(['local', 'dev', 'prod'])
-
-while ARGV.length > 0
-  command = ARGV.shift
-
-  if ["-h", "--help"].include?(ARGV.first)
-    @logger.formatter = proc { |severity, datetime, progname, msg|
-      "#{msg}\n"
-    }
-
-    @logger.info(eval("Help.#{command}"))
-    exit
-  end
-
-  #
-  # Roxy framework is a convenience utility for create MVC code
-  #
-  if (command == "create")
-    f = Roxy::Framework.new(:logger => @logger)
-    f.create# ARGV.join
-
-  #
-  # put things in ServerConfig class methods that don't depend on environment or server info
-  #
-  elsif (ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command))
-    ServerConfig.set_logger @logger
-    eval "ServerConfig.#{command}"
-
-  #
-  # ServerConfig methods require environment to be set in order to talk to a ML server
-  #
-  elsif (ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command))
-
-    if (environment == nil)
-      @logger.error "Missing environment for #{command}"
-      exit
-    end
-
-    @s = ServerConfig.new({
-      :environment => environment,
-      :config_file => File.expand_path("../../ml-config.xml", __FILE__),
-      :default_properties_file => File.expand_path("../../default.properties", __FILE__),
-      :properties_file => File.expand_path("../../build.properties", __FILE__),
-      :env_properties_file => File.expand_path("../../#{environment}.properties", __FILE__),
-      :logger => @logger
-    })
-
-    begin
-      case command
-        when 'load'
-          dir = ARGV[0]
-          db = ARGV[1]
-          remove_prefix = ""
-          if (ARGV.include?('-r'))
-            index = ARGV.index('-r') + 1
-            if (ARGV.size > index)
-              remove_prefix = ARGV[index]
-            else
-              @logger.error("invalid option")
-            end
-          elsif (ARGV.include?('--remove-prefix'))
-            # index = ARGV.index('-v') || ARGV.index('--verbose')
-            # ARGV.slice!(index)
-          end
-
-          if (dir && db)
-            @s.load_data dir, remove_prefix, db
-          else
-            puts "Error: Destination directory and Database are required"
-          end
-        else
-          @s.send(command)
-      end
-    rescue Net::HTTPServerException => e
-      case e.response
-      when Net::HTTPUnauthorized then
-        @logger.error("Invalid login credentials for #{environment} environment!!")
-      else
-        @logger.error(e)
-        @logger.error(e.response.body)
-      end
-    rescue Net::HTTPFatalError => e
-      @logger.error(e)
-      @logger.error(e.response.body)
-    rescue Exception => e
-      @logger.error(e.class)
-      @logger.error(e)
-      @logger.error(e.backtrace)
-    end
-  else
-    puts "Error: Command not recognized" unless ['-h', '--help'].include?(command)
-    puts <<-EOT
+def usage
+puts <<-EOT
 Usage: ml COMMAND [ARGS]
 
 Deployment Commands:
@@ -150,8 +41,159 @@ Roxy MVC Commands:
  create       Creates a controller or view or model
 
 All commands can be run with -h for more information.
-      EOT
-      exit(1)
+EOT
+  exit
+end
+
+def need_help?
+  ["-h", "--help"].include?(ARGV.first)
+end
+
+def help(command)
+  @logger.formatter = proc { |severity, datetime, progname, msg|
+    "#{msg}\n"
+  }
+
+  @logger.info(eval("Help.#{command}"))
+  exit
+end
+
+ARGV << '--help' if ARGV.empty?
+
+@profile = find_arg(['-p', '--profile'])
+if @profile then
+  begin
+    require 'ruby-prof'
+    RubyProf.start
+  rescue LoadError
+    print("Error: Please install the ruby-prof gem to enable profiling\n> gem install ruby-prof\n")
+    exit
+  end
+end
+
+@logger = Logger.new(STDOUT)
+@logger.level = find_arg(['-v', '--verbose']) ? Logger::DEBUG : Logger::INFO
+@logger.formatter = proc { |severity, datetime, progname, msg|
+  "#{severity}: #{msg}\n"
+}
+
+while ARGV.length > 0
+  command = ARGV.shift
+
+  if ["-h", "--help"].include?(command)
+    usage
+  #
+  # Roxy framework is a convenience utility for create MVC code
+  #
+  elsif (command == "create")
+    if need_help?
+      help command
+    else
+      f = Roxy::Framework.new(:logger => @logger)
+      f.create# ARGV.join
+    end
+  #
+  # put things in ServerConfig class methods that don't depend on environment or server info
+  #
+  elsif (ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command))
+    if need_help?
+      help command
+    else
+      ServerConfig.set_logger @logger
+      eval "ServerConfig.#{command}"
+    end
+
+  #
+  # ServerConfig methods require environment to be set in order to talk to a ML server
+  #
+  else
+
+    ARGV.unshift(command)
+
+    default_properties_file = File.expand_path("../../default.properties", __FILE__)
+    properties_file = File.expand_path("../../build.properties", __FILE__)
+
+    if !File.exist?(properties_file) then
+      @logger.error("You must run ml init to configure your application.")
+      exit
+    end
+
+    @properties = ServerConfig.load_properties(default_properties_file, "ml.")
+    @properties.merge!(ServerConfig.load_properties(properties_file, "ml.", @properties))
+
+    environments = @properties['ml.environments'].split(",") if @properties['ml.environments']
+    environments = ["local", "dev", "prod"] unless environments
+
+    environment = find_arg(environments)
+
+    env_properties_file = File.expand_path("../../#{environment}.properties", __FILE__)
+    if (File.exists?(env_properties_file))
+      @properties.merge!(ServerConfig.load_properties(env_properties_file, "ml.", @properties))
+    end
+    if (environment == nil)
+      @logger.error "Missing environment for #{command}"
+      exit
+    end
+
+    command = ARGV.shift
+
+    if need_help?
+      help command
+    elsif (ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command))
+
+      @s = ServerConfig.new({
+        :environment => environment,
+        :config_file => File.expand_path("../../ml-config.xml", __FILE__),
+        :properties => @properties,
+        :logger => @logger
+      })
+
+      begin
+        case command
+          when 'load'
+            dir = ARGV[0]
+            db = ARGV[1]
+            remove_prefix = ""
+            if (ARGV.include?('-r'))
+              index = ARGV.index('-r') + 1
+              if (ARGV.size > index)
+                remove_prefix = ARGV[index]
+              else
+                @logger.error("invalid option")
+              end
+            elsif (ARGV.include?('--remove-prefix'))
+              # index = ARGV.index('-v') || ARGV.index('--verbose')
+              # ARGV.slice!(index)
+            end
+
+            if (dir && db)
+              @s.load_data dir, remove_prefix, db
+            else
+              puts "Error: Destination directory and Database are required"
+            end
+          else
+            @s.send(command)
+        end
+      rescue Net::HTTPServerException => e
+        case e.response
+        when Net::HTTPUnauthorized then
+          @logger.error("Invalid login credentials for #{environment} environment!!")
+        else
+          @logger.error(e)
+          @logger.error(e.response.body)
+        end
+      rescue Net::HTTPFatalError => e
+        @logger.error(e)
+        @logger.error(e.response.body)
+      rescue Exception => e
+        @logger.error(e.class)
+        @logger.error(e)
+        @logger.error(e.backtrace)
+      end
+    else
+      puts "Error: Command not recognized" unless ['-h', '--help'].include?(command)
+      usage
+    end
   end
 end
 

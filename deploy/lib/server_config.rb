@@ -213,24 +213,20 @@ class ServerConfig < MLClient
   def initialize(options)
     @options = options
     @environment = options[:environment]
-    @pwd = Dir.pwd
 
-    if !File.exist?(options[:properties_file]) then
-      print("ERROR: You must run ml init to configure your application.\n")
-      exit
-    end
-
-    @properties = load_properties(options[:default_properties_file], "ml.")
-    @properties.merge!(load_properties(options[:properties_file], "ml.", @properties))
-    if (File.exists? options[:env_properties_file])
-      @properties.merge!(load_properties(options[:env_properties_file], "ml.", @properties))
-    end
+    @properties = options[:properties]
     if (!@properties["ml.server"]) then
       @properties["ml.server"] = @properties["ml.#{@environment}-server"]
     end
     @hostname = @properties["ml.server"]
     @bootstrap_port_four = @properties["ml.bootstrap-port-four"]
     @bootstrap_port_five = @properties["ml.bootstrap-port-five"]
+
+    super({
+      :user_name => @properties["ml.user"],
+      :password => @properties["ml.password"],
+      :logger => options[:logger]
+    })
 
     @version = version
 
@@ -241,17 +237,15 @@ class ServerConfig < MLClient
       @properties["ml.bootstrap_port"] = @bootstrap_port
     end
 
-    super({
-      :user_name => @properties["ml.user"],
-      :password => @properties["ml.password"],
-      :logger => options[:logger]
-    })
-
-    @logger.debug "pwd: #{@pwd}"
+    @logger.debug "pwd: #{ServerConfig.pwd}"
     @logger.debug "user: #{@ml_username}"
     @logger.debug "password: #{@ml_password}"
     @logger.debug "hostname: #{@hostname}"
     @logger.debug "port: #{@bootstrap_port}"
+  end
+
+  def self.pwd
+    return Dir.pwd
   end
 
   def get_properties
@@ -475,7 +469,7 @@ class ServerConfig < MLClient
   def recordloader
     properties_file = File.expand_path("../../#{ARGV.shift}", __FILE__)
 
-    properties = load_properties(properties_file, "", @properties)
+    properties = ServerConfig.load_properties(properties_file, "", @properties)
     properties.each do |k, v|
       @logger.info("#{k}=#{v}")
     end
@@ -492,7 +486,7 @@ class ServerConfig < MLClient
   def xqsync
     properties_file = File.expand_path("../../#{ARGV.shift}", __FILE__)
 
-    properties = load_properties(properties_file, "", @properties)
+    properties = ServerConfig.load_properties(properties_file, "", @properties)
     properties.each do |k, v|
       @logger.info("#{k}=#{v}")
     end
@@ -752,7 +746,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
     r
   end
 
-  def substitute_properties(source_properties, target_properties, sub_us, prefix)
+  def self.substitute_properties(source_properties, target_properties, sub_us, prefix)
     num_replaced = 0
 
     sub_us.each do |k, v|
@@ -773,7 +767,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
     return num_replaced
   end
 
-  def load_properties(properties_filename, prefix = "", existing_properties = {})
+  def self.load_properties(properties_filename, prefix = "", existing_properties = {})
     properties = {}
     sub_us = {}
     File.open(properties_filename, 'r') do |properties_file|
@@ -785,7 +779,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
             key = prefix + line[0..i - 1].strip
             value = line[i + 1..-1].strip
             if (value.match(/\$\{basedir\}/)) then
-              properties[key] = File.expand_path(value.sub("${basedir}", @pwd))
+              properties[key] = File.expand_path(value.sub("${basedir}", ServerConfig.pwd))
             elsif (value.match(/\$\{[^}]+\}/)) then
               sub_us[key] = value
             else
@@ -798,12 +792,12 @@ Before you can deploy CPF, you must define a configuration. Steps:
 
     num_replaced = 1
     while num_replaced > 0
-      num_replaced = substitute_properties properties, properties, sub_us, prefix
+      num_replaced = ServerConfig.substitute_properties properties, properties, sub_us, prefix
     end
 
     num_replaced = 1
     while num_replaced > 0
-      num_replaced = substitute_properties existing_properties, properties, sub_us, prefix
+      num_replaced = ServerConfig.substitute_properties existing_properties, properties, sub_us, prefix
     end
 
     properties
