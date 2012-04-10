@@ -1,4 +1,4 @@
-import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
 declare function local:case1()
 {

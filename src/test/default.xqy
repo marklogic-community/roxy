@@ -15,19 +15,19 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-(:import module namespace test="http://marklogic.com/ps/test" at "/test/unit-test.xqy";:)
+(:import module namespace test="http://marklogic.com/roxy/test" at "/test/unit-test.xqy";:)
 
 import module namespace cvt = "http://marklogic.com/cpf/convert"
       at "/MarkLogic/conversion/convert.xqy";
 
-import module namespace helper="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+import module namespace helper="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-nodoc-2007-01.xqy";
 
 declare namespace dir = "http://marklogic.com/xdmp/directory";
 declare namespace error = "http://marklogic.com/xdmp/error";
 declare namespace html = "http://www.w3.org/1999/xhtml";
-declare namespace t="http://marklogic.com/ps/test";
+declare namespace t="http://marklogic.com/roxy/test";
 
 declare variable $FS-PATH  as xs:string :=
     if(xdmp:platform() eq "winnt") then "\" else "/";

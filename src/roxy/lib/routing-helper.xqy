@@ -17,7 +17,9 @@ xquery version "1.0-ml";
 
 module namespace rh = 'http://marklogic.com/roxy/routing-helper';
 
-import module namespace req = "http://marklogic.com/framework/request" at "/roxy/lib/request.xqy";
+import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
+
+import module namespace u = "http://marklogic.com/roxy/util" at "/roxy/lib/util.xqy";
 
 declare namespace vh = "http://marklogic.com/roxy/view-helper";
 
@@ -31,7 +33,8 @@ declare function rh:render-view($view as xs:string, $format as xs:string, $data 
       xdmp:invoke($view-path, (xs:QName("vh:map"), $data))
     }
     catch($ex) {
-      if (($ex/error:name, $ex/error:code) = ("SVC-FILOPN", "XDMP-MODNOTFOUND")) then
+      if (($ex/error:name, $ex/error:code) = ("SVC-FILOPN", "XDMP-MODNOTFOUND") and
+          $ex/error:data/error:datum = u:build-uri(xdmp:modules-root(), $view-path)) then
         fn:error(xs:QName("MISSING-VIEW"), "")
       else
         xdmp:rethrow()
@@ -46,7 +49,8 @@ declare function rh:render-layout($layout as xs:string, $format as xs:string, $d
       xdmp:invoke($layout-path, (xs:QName("vh:map"), $data))
     }
     catch($ex) {
-      if (($ex/error:name, $ex/error:code) = ("SVC-FILOPN", "XDMP-MODNOTFOUND")) then
+      if (($ex/error:name, $ex/error:code) = ("SVC-FILOPN", "XDMP-MODNOTFOUND") and
+          $ex/error:data/error:datum = u:build-uri(xdmp:modules-root(), $layout-path)) then
         fn:error(xs:QName("MISSING-LAYOUT"), "")
       else
         xdmp:rethrow()

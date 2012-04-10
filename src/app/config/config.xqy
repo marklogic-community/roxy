@@ -15,11 +15,11 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-module namespace c = "http://marklogic.com/ns/config";
+module namespace c = "http://marklogic.com/roxy/config";
 
 (:
  : ***********************************************
- : Framework control options
+ : Roxy control options
  : ***********************************************
  :)
 

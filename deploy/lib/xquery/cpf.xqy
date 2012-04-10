@@ -15,9 +15,7 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-(: module namespace cpf = "http://marklogic.com/framework/cpf"; :)
-
-declare namespace cpf = "http://marklogic.com/framework/cpf";
+declare namespace cpf = "http://marklogic.com/roxy/cpf";
 
 import module namespace dom = "http://marklogic.com/cpf/domains" at "/MarkLogic/cpf/domains.xqy";
 import module namespace p="http://marklogic.com/cpf/pipelines" at "/MarkLogic/cpf/pipelines.xqy";
@@ -31,7 +29,7 @@ declare option xdmp:mapping "false";
  :
  : Sample Configuratione file:
 
-<config xmlns="http://marklogic.com/framework/cpf">
+<config xmlns="http://marklogic.com/roxy/cpf">
   <domains>
     <domain>
       <name>My Test Domain</name>

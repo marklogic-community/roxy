@@ -20,6 +20,19 @@ require File.expand_path('../Http', __FILE__)
 require File.expand_path('../xcc', __FILE__)
 require File.expand_path('../MLClient', __FILE__)
 
+class ExitException < Exception
+end
+
+class DanglingVarsException < Exception
+  def initialize(vars)
+    @vars = vars
+  end
+
+  def vars
+    return @vars
+  end
+end
+
 class Help
   def self.create
     %Q{
@@ -51,11 +64,11 @@ When creating a model:
 
   ex: ml create model search
     This will create a model named search in /app/models/search.xqy.
-    The namespace will be "http://marklogic.com/ns/models/search".
+    The namespace will be "http://marklogic.com/roxy/models/search".
 
   ex: ml create model search search-lib.xqy
     This will create a model named search.xqy in /app/models/search-lib.xqy.
-    The namespace will be "http://marklogic.com/ns/models/search".}
+    The namespace will be "http://marklogic.com/roxy/models/search".}
   end
 
   def self.info
@@ -294,8 +307,7 @@ class ServerConfig < MLClient
     begin
       version = get_version
     rescue Exception => e
-      @logger.error "Can't connect to #{@hostname}"
-      exit
+      raise ExitException.new "Can't connect to #{@hostname}"
     end
     version
   end
@@ -332,8 +344,7 @@ class ServerConfig < MLClient
       end
       @logger.info("... Bootstrap Complete")
     else
-      @logger.error "Bootstrap requires the target environment's hostname to be defined"
-      exit
+      raise ExitException "Bootstrap requires the target environment's hostname to be defined"
     end
   end
 
@@ -746,30 +757,41 @@ Before you can deploy CPF, you must define a configuration. Steps:
     r
   end
 
-  def self.substitute_properties(source_properties, target_properties, sub_us, prefix)
-    num_replaced = 0
-
-    sub_us.each do |k, v|
-      matches = v.scan(/\$\{([^}]+)\}/)
-      var = "#{prefix}#{matches[0][0]}"
-      sub = source_properties[var]
-      if (sub) then
-        new_val = v.sub(/\$\{[^}]+\}/, sub)
-        if (matches.length <= 1)
-          target_properties[k] = new_val
-          sub_us.delete(k)
+  def self.substitute_properties(properties, prefix = "")
+    needs_rescan = false
+    dangling_vars = {}
+    begin
+      properties.each do |k,v|
+        if (v.match(/\$\{basedir\}/)) then
+          properties[k] = File.expand_path(v.sub("${basedir}", ServerConfig.pwd))
         else
-          sub_us[k] = new_val
+          matches = v.scan(/\$\{([^}]+)\}/)
+          if (matches.count > 0) then
+            var = "#{prefix}#{matches[0][0]}"
+            sub = properties[var]
+            if (sub) then
+              new_val = v.sub(/\$\{[^}]+\}/, sub)
+              properties[k] = new_val
+              if (matches.length > 1)
+                needs_rescan = true
+              end
+            else
+              dangling_vars[k] = v
+            end
+          end
         end
-        num_replaced = num_replaced + 1
       end
+    end while (needs_rescan == true)
+
+    if (dangling_vars.count > 0)
+      raise DanglingVarsException.new(dangling_vars)
     end
-    return num_replaced
+
+    properties
   end
 
-  def self.load_properties(properties_filename, prefix = "", existing_properties = {})
+  def self.load_properties(properties_filename, prefix = "")
     properties = {}
-    sub_us = {}
     File.open(properties_filename, 'r') do |properties_file|
       properties_file.read.each_line do |line|
         line.strip!
@@ -778,26 +800,10 @@ Before you can deploy CPF, you must define a configuration. Steps:
           if (i)
             key = prefix + line[0..i - 1].strip
             value = line[i + 1..-1].strip
-            if (value.match(/\$\{basedir\}/)) then
-              properties[key] = File.expand_path(value.sub("${basedir}", ServerConfig.pwd))
-            elsif (value.match(/\$\{[^}]+\}/)) then
-              sub_us[key] = value
-            else
-              properties[key] = value
-            end
+            properties[key] = value
           end
         end
       end
-    end
-
-    num_replaced = 1
-    while num_replaced > 0
-      num_replaced = ServerConfig.substitute_properties properties, properties, sub_us, prefix
-    end
-
-    num_replaced = 1
-    while num_replaced > 0
-      num_replaced = ServerConfig.substitute_properties existing_properties, properties, sub_us, prefix
     end
 
     properties

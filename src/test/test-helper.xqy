@@ -15,12 +15,12 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-module namespace helper="http://marklogic.com/ps/test-helper";
+module namespace helper="http://marklogic.com/roxy/test-helper";
 
 import module namespace cvt = "http://marklogic.com/cpf/convert" at "/MarkLogic/conversion/convert.xqy";
 
-declare namespace t="http://marklogic.com/ps/test";
-declare namespace test="http://marklogic.com/ps/test-helper";
+declare namespace t="http://marklogic.com/roxy/test";
+declare namespace test="http://marklogic.com/roxy/test-helper";
 declare namespace ss="http://marklogic.com/xdmp/status/server";
 declare namespace xdmp-http="xdmp:http";
 

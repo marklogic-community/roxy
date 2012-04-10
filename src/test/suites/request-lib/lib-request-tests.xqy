@@ -1,9 +1,9 @@
 xquery version "1.0-ml";
 
-import module namespace c = "http://marklogic.com/ns/test-config" at "/test/test-config.xqy";
-import module namespace helper="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+import module namespace c = "http://marklogic.com/roxy/test-config" at "/test/test-config.xqy";
+import module namespace helper="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
-declare namespace test = "http://marklogic.com/ps/test";
+declare namespace test = "http://marklogic.com/roxy/test";
 
 declare option xdmp:mapping "false";
 

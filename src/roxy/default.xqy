@@ -16,8 +16,8 @@ limitations under the License.
 xquery version "1.0-ml";
 
 import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/roxy/lib/controller-helper.xqy";
-import module namespace config = "http://marklogic.com/ns/config" at "/app/config/config.xqy";
-import module namespace req = "http://marklogic.com/framework/request" at "/roxy/lib/request.xqy";
+import module namespace config = "http://marklogic.com/roxy/config" at "/app/config/config.xqy";
+import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
 import module namespace rh = "http://marklogic.com/roxy/routing-helper" at "/roxy/lib/routing-helper.xqy";
 
 declare option xdmp:mapping "false";
@@ -42,7 +42,7 @@ try
       c:', $func, '()')
   let $data := xdmp:eval($eval-str, (xs:QName("ch:map"), $map))
 
-  (: framework options :)
+  (: Roxy options :)
   let $options :=
     for $key in map:keys($map)
     where fn:starts-with($key, "ch:config-")

@@ -42,7 +42,6 @@ Roxy MVC Commands:
 
 All commands can be run with -h for more information.
 EOT
-  exit
 end
 
 def need_help?
@@ -55,7 +54,6 @@ def help(command)
   }
 
   @logger.info(eval("Help.#{command}"))
-  exit
 end
 
 ARGV << '--help' if ARGV.empty?
@@ -77,17 +75,20 @@ end
   "#{severity}: #{msg}\n"
 }
 
+begin
 while ARGV.length > 0
   command = ARGV.shift
 
   if ["-h", "--help"].include?(command)
     usage
+      break
   #
   # Roxy framework is a convenience utility for create MVC code
   #
   elsif (command == "create")
     if need_help?
       help command
+        break
     else
       f = Roxy::Framework.new(:logger => @logger)
       f.create# ARGV.join
@@ -98,6 +99,7 @@ while ARGV.length > 0
   elsif (ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command))
     if need_help?
       help command
+        break
     else
       ServerConfig.set_logger @logger
       eval "ServerConfig.#{command}"
@@ -114,12 +116,11 @@ while ARGV.length > 0
     properties_file = File.expand_path("../../build.properties", __FILE__)
 
     if !File.exist?(properties_file) then
-      @logger.error("You must run ml init to configure your application.")
-      exit
+        raise ExitException "You must run ml init to configure your application."
     end
 
     @properties = ServerConfig.load_properties(default_properties_file, "ml.")
-    @properties.merge!(ServerConfig.load_properties(properties_file, "ml.", @properties))
+      @properties.merge!(ServerConfig.load_properties(properties_file, "ml."))
 
     environments = @properties['ml.environments'].split(",") if @properties['ml.environments']
     environments = ["local", "dev", "prod"] unless environments
@@ -128,17 +129,20 @@ while ARGV.length > 0
 
     env_properties_file = File.expand_path("../../#{environment}.properties", __FILE__)
     if (File.exists?(env_properties_file))
-      @properties.merge!(ServerConfig.load_properties(env_properties_file, "ml.", @properties))
+        @properties.merge!(ServerConfig.load_properties(env_properties_file, "ml."))
     end
+
+      @properties = ServerConfig.substitute_properties(@properties, "ml.")
+
     if (environment == nil)
-      @logger.error "Missing environment for #{command}"
-      exit
+        raise ExitException "Missing environment for #{command}"
     end
 
     command = ARGV.shift
 
     if need_help?
       help command
+        break
     elsif (ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command))
 
       @s = ServerConfig.new({
@@ -148,7 +152,6 @@ while ARGV.length > 0
         :logger => @logger
       })
 
-      begin
         case command
           when 'load'
             dir = ARGV[0]
@@ -174,6 +177,13 @@ while ARGV.length > 0
           else
             @s.send(command)
         end
+      else
+        puts "Error: Command not recognized" unless ['-h', '--help'].include?(command)
+        usage
+        break
+      end
+    end
+  end
       rescue Net::HTTPServerException => e
         case e.response
         when Net::HTTPUnauthorized then
@@ -185,17 +195,17 @@ while ARGV.length > 0
       rescue Net::HTTPFatalError => e
         @logger.error(e)
         @logger.error(e.response.body)
+rescue DanglingVarsException => e
+  @logger.error "WARNING: The following configuration variables could not be validated:"
+  e.vars.each do |k,v|
+    @logger.error "#{k}=#{v}"
+  end
+rescue ExitException => e
+  @logger.error(e)
       rescue Exception => e
-        @logger.error(e.class)
         @logger.error(e)
         @logger.error(e.backtrace)
       end
-    else
-      puts "Error: Command not recognized" unless ['-h', '--help'].include?(command)
-      usage
-    end
-  end
-end
 
 if @profile then
   result = RubyProf.stop

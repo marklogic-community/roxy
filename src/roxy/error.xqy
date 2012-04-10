@@ -43,7 +43,7 @@ declare variable $MESSAGES :=
           module namespace c = "http://marklogic.com/roxy/controller/{fn:data($ex/error:data/error:datum[3])}";
 
           import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/roxy/lib/controller-helper.xqy";
-          import module namespace req = "http://marklogic.com/framework/request" at "/roxy/lib/request.xqy";
+          import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
 
           declare variable $map as map:map external;
 
@@ -80,7 +80,7 @@ declare variable $MESSAGES :=
           module namespace c = "http://marklogic.com/roxy/controller/your-controller";
 
           import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/roxy/lib/controller-helper.xqy";
-          import module namespace req = "http://marklogic.com/framework/request" at "/roxy/lib/request.xqy";
+          import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
           </pre>
           <pre class="important">
           declare variable $map as map:map external;

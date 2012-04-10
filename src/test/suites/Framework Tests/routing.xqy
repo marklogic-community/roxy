@@ -1,8 +1,8 @@
 xquery version "1.0-ml";
 
-import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
-import module namespace c = "http://marklogic.com/ns/test-config" at "/test/test-config.xqy";
+import module namespace c = "http://marklogic.com/roxy/test-config" at "/test/test-config.xqy";
 
 declare namespace html = "http://www.w3.org/1999/xhtml";
 
@@ -152,6 +152,23 @@ return
   test:assert-true(fn:contains(fn:string($response[2]//html:div[@class="error-message"]), "is expecting the parameter message"))
 ),
 
+(: verify that a bad import propagates the correct error :)
+let $response := xdmp:http-get(test:easy-url("/tester/layout-with-bad-import"), $options-non-xml)
+return
+(
+  test:assert-equal(500, fn:data($response[1]/*:code)),
+  test:assert-true(fn:contains($response[2], "SVC-FILOPN") or fn:contains($response[2], "XDMP-MODNOTFOUND"))
+),
+
+(: verify that a bad import propagates the correct error :)
+let $response := xdmp:http-get(test:easy-url("/tester/view-with-bad-import"), $options-non-xml)
+return
+(
+  test:assert-equal(500, fn:data($response[1]/*:code)),
+  test:assert-true(fn:contains($response[2], "SVC-FILOPN") or fn:contains($response[2], "XDMP-MODNOTFOUND"))
+),
+
+
 (: verify that public resources are accessible :)
 let $response := xdmp:http-get(test:easy-url("/css/app.less"), $options-non-xml)
 return
@@ -203,12 +220,11 @@ return
   test:assert-equal(404, fn:data($response[1]/*:code))
 ),
 
-
 let $response := xdmp:http-get(test:easy-url("/tester/update"), $options-non-xml)
 return
   test:assert-equal(200, fn:data($response[1]/*:code));
 
-import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 let $doc := xdmp:eval('fn:doc("/test-insert.xml")/*')
 return
   test:assert-equal(<test/>, $doc)

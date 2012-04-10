@@ -18,8 +18,8 @@ xquery version "1.0-ml";
 import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
 import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
 
-declare namespace setup = "http://marklogic.com/ps/setup";
-declare namespace display = "http://marklogic.com/ps/setup/display";
+declare namespace setup = "http://marklogic.com/roxy/setup";
+declare namespace display = "http://marklogic.com/roxy/setup/display";
 declare namespace xdmp="http://marklogic.com/xdmp";
 declare namespace xs="http://www.w3.org/2001/XMLSchema";
 declare namespace db="http://marklogic.com/xdmp/database";

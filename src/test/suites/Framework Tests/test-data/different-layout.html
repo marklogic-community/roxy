@@ -3,9 +3,9 @@ xquery version "1.0-ml";
 import module namespace vh = "http://marklogic.com/roxy/view-helper" at "/roxy/lib/view-helper.xqy";
 
 declare variable $view as item()* := vh:get("view");
-declare variable $title as xs:string? := (vh:get('title'), "New Framework Application")[1];
+declare variable $title as xs:string? := (vh:get('title'), "New Roxy Application")[1];
 
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:fw="http://framework-namespace">
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>{$title}</title>
     <link href="/css/themes/ui-lightness/jquery-ui.css" type="text/css" rel="stylesheet"/>

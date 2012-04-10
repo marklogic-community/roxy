@@ -1,4 +1,4 @@
-<config xmlns="http://marklogic.com/framework/cpf">
+<config xmlns="http://marklogic.com/roxy/cpf">
   <domains>
     <!-- one <domain> for each cpf domain -->
     <domain>

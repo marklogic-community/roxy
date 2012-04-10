@@ -15,7 +15,7 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-module namespace u = "http://marklogic.com/framework/util";
+module namespace u = "http://marklogic.com/roxy/util";
 
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-nodoc-2007-01.xqy";
 

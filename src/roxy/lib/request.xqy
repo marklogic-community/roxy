@@ -19,7 +19,7 @@ limitations under the License.
  :)
 xquery version "1.0-ml";
 
-module namespace req = "http://marklogic.com/framework/request";
+module namespace req = "http://marklogic.com/roxy/request";
 
 import module namespace r = "http://marklogic.com/roxy/reflection" at "/roxy/lib/reflection.xqy";
 

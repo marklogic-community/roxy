@@ -1,6 +1,6 @@
 xquery version "1.0-ml";
 
-import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
 import module namespace form = "http://marklogic.com/roxy/form-lib" at "/app/views/helpers/form-lib.xqy";
 

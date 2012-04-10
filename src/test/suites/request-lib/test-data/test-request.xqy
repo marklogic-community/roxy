@@ -21,9 +21,9 @@ module namespace c = "http://marklogic.com/roxy/controller/test-request";
 import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/roxy/lib/controller-helper.xqy";
 
 (: The request library provides awesome helper methods to abstract get-request-field :)
-import module namespace req = "http://marklogic.com/framework/request" at "/roxy/lib/request.xqy";
+import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
 
-import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
 declare option xdmp:mapping "false";
 

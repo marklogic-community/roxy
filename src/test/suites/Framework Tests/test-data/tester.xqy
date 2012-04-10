@@ -3,7 +3,7 @@ xquery version "1.0-ml";
 module namespace c = "http://marklogic.com/roxy/controller/tester";
 
 (: The request library provides awesome helper methods to abstract get-request-field :)
-import module namespace req = "http://marklogic.com/framework/request" at "/roxy/lib/request.xqy";
+import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
 
 (: the controller helper library provides methods to control which view and template get rendered :)
 import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/roxy/lib/controller-helper.xqy";
@@ -89,10 +89,22 @@ declare function c:view-that-returns-the-input()
   ch:add-value("title", "view-that-returns-the-input"),
   ch:use-layout("test-layout")
 };
+
 declare function c:update()
 {
   xdmp:document-insert("/test-insert.xml", <test/>),
   ch:use-layout(()),
   ch:use-view(()),
   ch:add-value("test", "done")
+};
+declare function c:layout-with-bad-import()
+{
+  ch:use-layout("layout-with-bad-import"),
+  ch:use-view(())
+};
+
+declare function c:view-with-bad-import()
+{
+  ch:use-layout(()),
+  ch:use-view("tester/view-with-bad-import")
 };

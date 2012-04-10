@@ -15,9 +15,9 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-module namespace m = "http://marklogic.com/ns/models/search";
+module namespace m = "http://marklogic.com/roxy/models/search";
 
-import module namespace c = "http://marklogic.com/ns/config" at "/app/config/config.xqy";
+import module namespace c = "http://marklogic.com/roxy/config" at "/app/config/config.xqy";
 
 import module namespace debug = "http://marklogic.com/debug" at "/MarkLogic/appservices/utils/debug.xqy";
 import module namespace search="http://marklogic.com/appservices/search" at "/MarkLogic/appservices/search/search.xqy";

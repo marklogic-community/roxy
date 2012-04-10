@@ -2,7 +2,7 @@ xquery version "1.0-ml";
 
 import module namespace pager = "http://marklogic.com/roxy/pager-lib" at "/app/views/helpers/pager-lib.xqy";
 
-import module namespace test="http://marklogic.com/ps/test-helper" at "/test/test-helper.xqy";
+import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
 declare namespace search = "http://marklogic.com/appservices/search";
 declare namespace xhtml = "http://www.w3.org/1999/xhtml";

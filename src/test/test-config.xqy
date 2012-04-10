@@ -15,7 +15,7 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-module namespace c = "http://marklogic.com/ns/test-config";
+module namespace c = "http://marklogic.com/roxy/test-config";
 
 (: configured at deploy time by Roxy deployer :)
 declare variable $c:USER := "@ml.user";
