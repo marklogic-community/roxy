@@ -116,7 +116,7 @@ while ARGV.length > 0
     properties_file = File.expand_path("../../build.properties", __FILE__)
 
     if !File.exist?(properties_file) then
-        raise ExitException "You must run ml init to configure your application."
+        raise ExitException.new "You must run ml init to configure your application."
     end
 
     @properties = ServerConfig.load_properties(default_properties_file, "ml.")
@@ -135,7 +135,7 @@ while ARGV.length > 0
       @properties = ServerConfig.substitute_properties(@properties, "ml.")
 
     if (environment == nil)
-        raise ExitException "Missing environment for #{command}"
+        raise ExitException.new "Missing environment for #{command}"
     end
 
     command = ARGV.shift

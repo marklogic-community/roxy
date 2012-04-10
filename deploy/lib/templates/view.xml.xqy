@@ -19,4 +19,4 @@ declare option xdmp:mapping "false";
   let $stuff := vh:get("stuff")
 :)
 
-(: your code here :)
+<your-xml-here/>

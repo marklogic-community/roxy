@@ -344,7 +344,7 @@ class ServerConfig < MLClient
       end
       @logger.info("... Bootstrap Complete")
     else
-      raise ExitException "Bootstrap requires the target environment's hostname to be defined"
+      raise ExitException.new "Bootstrap requires the target environment's hostname to be defined"
     end
   end
 

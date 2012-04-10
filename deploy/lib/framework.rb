@@ -113,8 +113,11 @@ module Roxy
 
       out_file = "#{dir}/#{view}.#{format}.xqy"
 
+      template_file = File.expand_path("../templates/view.#{format}.xqy", __FILE__)
+      template_file = File.expand_path("../templates/view.xqy", __FILE__) unless template_file
+
       if File.exists?(out_file) == false then
-        view_template = open(File.expand_path('../templates/view.xqy', __FILE__)).readlines.join
+        view_template = open(template_file).readlines.join
         view_template.gsub!("#location", out_file)
         view_template.gsub!("#controller", controller)
         view_template.gsub!("#view", view)

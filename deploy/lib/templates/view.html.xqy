@@ -19,4 +19,7 @@ declare option xdmp:mapping "false";
   let $stuff := vh:get("stuff")
 :)
 
-(: your code here :)
+<div xmlns="http://www.w3.org/1999/xhtml" class="#controller #view">
+  <p>This file lives at: #location</p>
+  <p>{fn:string(vh:get("message"))}</p>
+</div>
