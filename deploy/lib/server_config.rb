@@ -327,6 +327,19 @@ class ServerConfig < MLClient
     execute_query %Q{xdmp:restart((), "to reload new app config")}
   end
 
+  def plugin
+    # get src dir and package details
+    src_dir = 'src'
+    plugin_command = ARGV.shift
+    package = ARGV.shift
+    package_version = ARGV.shift
+    # need to switch between windows and unix script runner ?
+    # here is example with unix run bash script
+    runme = %Q{cd #{src_dir} && #{File.expand_path("../depx-0.1/depx", __FILE__)} #{plugin_command} #{package} #{package_version}}
+    @logger.info runme
+    `#{runme}`    
+  end
+  
   def config
     @logger.info get_config
   end
