@@ -285,3 +285,51 @@ declare private function req:cast-as-type(
     else
       ()
 };
+
+declare function req:rewrite($url, $path, $verb, $options) as xs:string
+{
+  let $matching-request :=
+    (
+      $options/*:request[fn:matches($path, @uri)]
+                        [if (*:http/@method) then $verb = *:http/@method
+                         else fn:true()]
+    )[1]
+  let $final-uri as xs:string? :=
+    if ($matching-request) then
+      if ($matching-request/@redirect) then
+      (
+        xdmp:redirect-response($matching-request/@redirect),
+        $matching-request/@redirect
+      )
+      else if ($matching-request/@endpoint) then
+        let $params :=
+          if ($matching-request/*:uri-param) then
+            fn:string-join((
+              for $param in $matching-request/*:uri-param
+              let $value as xs:string? :=
+                fn:replace($path, $matching-request/@uri, $param)
+              let $value as xs:string? :=
+                if ($value) then
+                  $value
+                else if ($param/@default) then
+                  $param/@default
+                else ()
+              return
+                if ($value) then
+                  fn:concat($param/@name, "=", $value)
+                else (),
+              fn:substring-after($url, "?")[. ne ""]),
+              "&amp;")
+          else ()
+        let $_ := xdmp:log(("params:", $params))
+        return
+          fn:concat(
+            fn:replace($path, $matching-request/@uri, $matching-request/@endpoint),
+            if ($params) then "?"
+            else (),
+            $params)
+      else ()
+    else ()
+  return
+    ($final-uri, $url)[1]
+};

@@ -27,7 +27,7 @@ declare variable $view-path as xs:string := fn:concat("/app/views/", $view, ".",
 declare variable $layout-path := fn:concat("/app/views/layouts/", $layout, ".", $format, ".xqy");
 declare variable $MESSAGES :=
   <messages>
-    <message code="MISSING-VIEW" title="Missing the view: {fn:data($ex/error:data/error:datum)}">
+    <message code="MISSING-VIEW" title="Missing the view: {$view}">
       <div class="error-message" xmlns="http://www.w3.org/1999/xhtml">
         Missing the view:<span class="highlight">{$view}.{$format}</span> at <span class="highlight">{$view-path}</span>
       </div>
@@ -117,6 +117,7 @@ declare function local:four-o-four()
 declare function local:error($title as xs:string?, $heading, $msg)
 {
   xdmp:set-response-code(500, 'Internal Server Error'),
+  xdmp:set-response-content-type("text/html"),
   <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
       <title>{($title, "Exception Caught")[1]}</title>
@@ -149,6 +150,5 @@ else if ($ex/error:name = "four-o-four" or 404 = xdmp:get-response-code()[1]) th
 else
   (
     xdmp:set-response-content-type("text/plain"),
-    xdmp:get-response-code(),
     $ex
   )

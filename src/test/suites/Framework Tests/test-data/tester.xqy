@@ -97,6 +97,15 @@ declare function c:update()
   ch:use-view(()),
   ch:add-value("test", "done")
 };
+
+declare function c:update2()
+{
+  xdmp:document-insert("/test-insert2.xml", <test/>),
+  ch:use-layout(()),
+  ch:use-view(()),
+  ch:add-value("test", "done")
+};
+
 declare function c:layout-with-bad-import()
 {
   ch:use-layout("layout-with-bad-import"),

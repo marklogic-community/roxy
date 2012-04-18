@@ -29,10 +29,24 @@ declare function u:module-file-exists($file as xs:string) as xs:boolean {
     let $root := if (fn:ends-with($root, "/")) then fn:substring($root, 1, fn:string-length($root) - 1) else $root
     return
     	xdmp:eval(
-    	  fn:concat('fn:doc-available("',$root, $file, '")'), (),
+    	  fn:concat('fn:doc-available("', $root, $file, '")'), (),
       		<options xmlns="xdmp:eval">
       			<database>{xdmp:modules-database()}</database>
       		</options>)
+};
+
+declare function u:function-exists(
+  $function as xs:QName,
+  $import-file as xs:string)
+{
+  xdmp:eval(
+    fn:concat('
+      import module namespace c="', fn:namespace-uri-from-QName($function), '" at "', $import-file, '";
+      fn:function-available("', $function, '")'),
+    (),
+    <options xmlns="xdmp:eval">
+      <isolation>same-statement</isolation>
+    </options>)
 };
 
 (:~

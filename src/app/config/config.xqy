@@ -37,12 +37,8 @@ declare variable $DEFAULT-LAYOUTS :=
 (: The default format to render results :)
 declare variable $DEFAULT-FORMAT := "html";
 
-(: Aliases allow you to customize URLS :)
-declare variable $ALIASES :=
-  <aliases/>;
-
-
-
+(: Custom routes for URL mapping :)
+declare variable $ROUTES := ();
 
 (:
  : ***********************************************

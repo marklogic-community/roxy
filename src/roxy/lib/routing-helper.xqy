@@ -30,7 +30,12 @@ declare function rh:render-view($view as xs:string, $format as xs:string, $data 
   let $view-path := fn:concat("/app/views/", $view, ".", $format, ".xqy")
   return
     try {
-      xdmp:invoke($view-path, (xs:QName("vh:map"), $data))
+      xdmp:invoke(
+        $view-path,
+        (xs:QName("vh:map"), $data),
+        <options xmlns="xdmp:eval">
+          <isolation>same-statement</isolation>
+        </options>)
     }
     catch($ex) {
       if (($ex/error:name, $ex/error:code) = ("SVC-FILOPN", "XDMP-MODNOTFOUND") and
@@ -46,7 +51,12 @@ declare function rh:render-layout($layout as xs:string, $format as xs:string, $d
   let $layout-path := fn:concat("/app/views/layouts/", $layout, ".", $format, ".xqy")
   return
     try {
-      xdmp:invoke($layout-path, (xs:QName("vh:map"), $data))
+      xdmp:invoke(
+        $layout-path,
+        (xs:QName("vh:map"), $data),
+        <options xmlns="xdmp:eval">
+          <isolation>same-statement</isolation>
+        </options>)
     }
     catch($ex) {
       if (($ex/error:name, $ex/error:code) = ("SVC-FILOPN", "XDMP-MODNOTFOUND") and
@@ -65,6 +75,6 @@ declare function rh:set-content-type($format)
   else if ($format eq "json") then
     xdmp:add-response-header("Content-Type", "application/json")
   else if ($format eq "text") then
-    xdmp:add-response-header("Content-Type", "plain/text")
+    xdmp:add-response-header("Content-Type", "text/plain")
   else ()
 };

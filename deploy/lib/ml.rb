@@ -81,7 +81,7 @@ while ARGV.length > 0
 
   if ["-h", "--help"].include?(command)
     usage
-      break
+    break
   #
   # Roxy framework is a convenience utility for create MVC code
   #

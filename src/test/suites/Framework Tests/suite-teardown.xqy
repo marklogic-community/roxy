@@ -17,4 +17,10 @@ try
 {
 	xdmp:document-delete("/test-insert.xml")
 }
+catch($ex){()},
+
+try
+{
+  xdmp:document-delete("/test-insert2.xml")
+}
 catch($ex){()}
