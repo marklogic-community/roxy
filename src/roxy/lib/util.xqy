@@ -50,63 +50,6 @@ declare function u:function-exists(
 };
 
 (:~
- : Loads a file from the modules database or filesystem
- : depending on if the appserver is pointed to a db or fs
- :
- : @param $file - the path to the file relative to the modules root
- :)
-declare function u:get-modules-file($file as xs:string)
-{
-  u:get-modules-file($file, ())
-};
-
-(:~
- : Loads a file from the modules database or filesystem
- : depending on if the appserver is pointed to a db or fs
- :
- : @param $file - the path to the file relative to the modules root
- :)
-declare function u:get-modules-file($file as xs:string, $default-namespace as xs:string?) {
-    if (xdmp:modules-database() eq 0) then
-      let $doc :=
-        xdmp:document-get(
-          u:build-uri(xdmp:modules-root(), $file),
-          <options xmlns="xdmp:document-get">
-            {
-              if ($default-namespace) then
-                <default-namespace>{$default-namespace}</default-namespace>
-              else ()
-            }
-            <format>text</format>
-          </options>)
-      return
-        try {
-          xdmp:unquote($doc)
-        }
-        catch($ex) {$doc}
-    else
-    (
-      xdmp:eval(
-        fn:concat('
-          let $doc := fn:doc("', $file, '")
-          return
-            if ($doc/*) then
-              $doc
-            else
-              try {
-                xdmp:unquote($doc)
-              }
-              catch($ex) {
-                $doc
-              }'),
-        (),
-        <options xmlns="xdmp:eval">
-          <database>{xdmp:modules-database()}</database>
-        </options>)
-    )
-};
-
-(:~
  : Builds a uri from a base and a suffix
  : Handles properly concatenating with slashes
  :
