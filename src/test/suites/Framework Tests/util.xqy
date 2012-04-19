@@ -8,4 +8,17 @@ import module namespace u = "http://marklogic.com/roxy/util" at "/roxy/lib/util.
 
 declare namespace html = "http://www.w3.org/1999/xhtml";
 
-test:assert-equal(fn:true(), u:module-file-exists("/test/suites/Framework Tests/util.xqy"))
+(: build-uri :)
+test:assert-equal("base/suffix", u:build-uri("base", "suffix")),
+test:assert-equal("base/suffix", u:build-uri("base", "/suffix")),
+test:assert-equal("base/suffix", u:build-uri("base/", "suffix")),
+test:assert-equal("base/suffix", u:build-uri("base/", "/suffix")),
+
+
+(: string-pad :)
+
+test:assert-equal("000", u:string-pad("0", 3)),
+
+(: lead-zero :)
+test:assert-equal("00001", u:lead-zero("1", 5)),
+test:assert-equal("123", u:lead-zero("123", 3))

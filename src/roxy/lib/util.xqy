@@ -21,34 +21,6 @@ import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/f
 
 declare option xdmp:mapping "false";
 
-declare function u:module-file-exists($file as xs:string) as xs:boolean {
-  if (xdmp:modules-database() eq 0) then
-  	xdmp:uri-is-file($file)
-  else
-    let $root := xdmp:modules-root()
-    let $root := if (fn:ends-with($root, "/")) then fn:substring($root, 1, fn:string-length($root) - 1) else $root
-    return
-    	xdmp:eval(
-    	  fn:concat('fn:doc-available("', $root, $file, '")'), (),
-      		<options xmlns="xdmp:eval">
-      			<database>{xdmp:modules-database()}</database>
-      		</options>)
-};
-
-declare function u:function-exists(
-  $function as xs:QName,
-  $import-file as xs:string)
-{
-  xdmp:eval(
-    fn:concat('
-      import module namespace c="', fn:namespace-uri-from-QName($function), '" at "', $import-file, '";
-      fn:function-available("', $function, '")'),
-    (),
-    <options xmlns="xdmp:eval">
-      <isolation>same-statement</isolation>
-    </options>)
-};
-
 (:~
  : Builds a uri from a base and a suffix
  : Handles properly concatenating with slashes
@@ -89,7 +61,8 @@ declare function u:lead-zero($int as xs:string, $size as xs:integer) as xs:strin
  : @param $time - the dateTime to convert
  : @return - the number of seconds since Jan 1, 1970
  :)
-declare function u:time-to-posix($time as xs:dateTime) as xs:decimal {
+declare function u:time-to-posix($time as xs:dateTime) as xs:decimal
+{
   ($time - xs:dateTime('1970-01-01T00:00:00Z')) div xs:dayTimeDuration('PT1S') * 1000
 };
 
@@ -135,7 +108,6 @@ declare function u:camel-case($string as xs:string)
  :)
 declare function u:distance-of-time($time as xs:dateTime)
 {
-(:  def distance_of_time_in_words(from_time, to_time = 0, include_seconds = false, options = {}) :)
   let $now := fn:current-dateTime()
   let $distance := $now - $time
 

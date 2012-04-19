@@ -15,6 +15,9 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
+import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
+import module namespace router = "http://marklogic.com/roxy/router" at "/roxy/router.xqy";
+
 declare namespace html = "http://www.w3.org/1999/xhtml";
 
 declare variable $error:errors as node()* external;
@@ -141,7 +144,10 @@ declare function local:error($title as xs:string?, $heading, $msg)
   </html>
 };
 
-if (($ex/error:name, $ex/error:code) = ("XDMP-UNDFUN") and fn:starts-with($ex/error:data/error:datum, "c:")) then
+if (($ex/error:code = "XDMP-UNDFUN" and $ex/error:data/error:datum = fn:concat($router:func, "()")) or
+    ($ex/error:code = ("SVC-FILOPN", "XDMP-MODNOTFOUND") and $ex/error:data/error:datum/fn:ends-with(., $router:controller-path))) then
+  local:four-o-four()
+else if (($ex/error:name, $ex/error:code) = ("XDMP-UNDFUN") and fn:starts-with($ex/error:data/error:datum, "c:")) then
   local:four-o-four()
 else if ($ex/error:name = $MESSAGES/message/@code) then
   local:error($MESSAGES/message[@code = $ex/error:name]/@title, fn:string($ex/error:message), $MESSAGES/message[@code = $ex/error:name]/node())

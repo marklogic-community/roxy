@@ -36,33 +36,12 @@ declare variable $default-layout as xs:string? := map:get($config:DEFAULT-LAYOUT
 
 declare function router:route()
 {
-	let $function-qname := 
-		xdmp:with-namespaces(
-			("c", fn:concat("http://marklogic.com/roxy/controller/", $controller)),
-			xs:QName(fn:concat("c:", $func)))
-
-	let $validate-function :=
-		if (u:module-file-exists($controller-path) and
-				u:function-exists($function-qname, $controller-path)) then ()
-		else
-			fn:error(xs:QName("four-o-four"))
-
-	(: run the function :)
-	let $data := xdmp:apply(xdmp:function($function-qname, $controller-path))
-
-(:	let $data :=
-	  try
-	  {
-	  	xdmp:apply(xdmp:function($function-qname, $controller-path))
-	  }
-	  catch($ex)
-	  {
-	    if (($ex/error:code = "XDMP-UNDFUN" and $ex/error:data/error:datum = fn:concat($func, "()")) or
-	        ($ex/error:code = ("SVC-FILOPN", "XDMP-MODNOTFOUND") and $ex/error:data/error:datum/fn:ends-with(., $controller-path))) then
-	      fn:error(xs:QName("four-o-four"))
-	    else
-	      xdmp:rethrow()
-	  }:)
+	(: run the controller. errors bubble up to the error module :)
+	let $data := 
+		xdmp:apply(
+			xdmp:function(
+				fn:QName(fn:concat("http://marklogic.com/roxy/controller/", $controller), $func),
+				$controller-path))
 
 	(: Roxy options :)
 	let $options :=
