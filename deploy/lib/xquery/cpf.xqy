@@ -83,9 +83,13 @@ declare function cpf:load-from-config($config as element(cpf:config))
     )
   let $context := cpf:evaluation-context(xdmp:database($domain/cpf:context/cpf:modules-database), $domain/cpf:context/cpf:root)
   let $permissions :=
+    <permissions>
+    {
     for $permission in $domain/cpf:permissions/cpf:permission
     return
       xdmp:permission($permission/cpf:role-name, $permission/cpf:capability)
+    }
+    </permissions>
   let $domain-id :=
     cpf:create-cpf-domain(
       $domain/cpf:name,
@@ -219,7 +223,7 @@ declare function cpf:create-cpf-domain(
   $domain-scope as element(dom:domain-scope),
   $context as element(dom:evaluation-context),
   $pipeline-ids as xs:unsignedLong*,
-  $permissions as element(sec:permission)*) as xs:unsignedLong
+  $permissions as element(permissions)) as xs:unsignedLong
 {
   let $domain-id := 
     xdmp:eval(
@@ -247,7 +251,7 @@ declare function cpf:create-cpf-domain(
            dom:set-domain-scope($domain-name, $domain-scope),
            dom:set-evaluation-context($domain-name, $context),
            dom:set-pipelines($domain-name, $pipeline-ids/id/xs:unsignedLong(.)),
-           dom:set-permissions($domain-name, $permissions)',
+           dom:set-permissions($domain-name, $permissions/*:permission)',
           (xs:QName("domain-name"), $domain-name,
            xs:QName("description"), $description,
            xs:QName("domain-scope"), $domain-scope,
@@ -277,7 +281,7 @@ declare function cpf:create-cpf-domain(
          declare variable $pipeline-ids external;
          declare variable $permissions external;
 
-         dom:create($domain-name, $description, $domain-scope, $context, $pipeline-ids/id/xs:unsignedLong(.), $permissions)',
+         dom:create($domain-name, $description, $domain-scope, $context, $pipeline-ids/id/xs:unsignedLong(.), $permissions/*:permission)',
         (xs:QName("domain-name"), $domain-name,
          xs:QName("description"), $description,
          xs:QName("domain-scope"), $domain-scope,
@@ -312,7 +316,7 @@ declare function cpf:update-config(
   $restart-user as xs:string,
   $evaluation-context as element(dom:evaluation-context),
   $default-domain as xs:unsignedLong,
-  $permissions as element(sec:permission)*
+  $permissions as element(permissions)
 )
 {
   xdmp:eval(
@@ -326,7 +330,7 @@ declare function cpf:update-config(
      let $config := dom:configuration-set-restart-user($restart-user)
      let $config := dom:configuration-set-evaluation-context($evaluation-context)
      let $config := dom:configuration-set-default-domain($default-domain)
-     let $config := dom:configuration-set-permissions($permissions)
+     let $config := dom:configuration-set-permissions($permissions/*:permission)
      let $config := dom:configuration-set-conversion-enabled(fn:false())
      return
        "Updated configuration"',
@@ -345,7 +349,7 @@ declare private function cpf:configuration-create(
   $restart-user as xs:string,
   $evaluation-context as element(dom:evaluation-context),
   $default-domain as xs:unsignedLong,
-  $permissions as element(sec:permission)*,
+  $permissions as element(permissions),
   $enable as xs:boolean)
 {
   xdmp:eval(
@@ -355,7 +359,7 @@ declare private function cpf:configuration-create(
      declare variable $default-domain external;
      declare variable $permissions external;
      
-     dom:configuration-create($restart-user, $evaluation-context, $default-domain, $permissions)',
+     dom:configuration-create($restart-user, $evaluation-context, $default-domain, $permissions/*:permission)',
     (xs:QName("restart-user"), $restart-user,
      xs:QName("evaluation-context"), $evaluation-context,
      xs:QName("default-domain"), $default-domain,
@@ -389,7 +393,7 @@ declare function cpf:create-cpf-configuration(
   $restart-user as xs:string,
 	$evaluation-context as element(dom:evaluation-context),
 	$default-domain as xs:unsignedLong,
-	$permissions as element(sec:permission)*)
+	$permissions as element(permissions))
 {
   let $config := cpf:configuration-get()
   return

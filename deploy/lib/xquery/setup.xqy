@@ -209,7 +209,7 @@ declare function setup:create-forest($forest-name as xs:string, $data-directory 
 				admin:save-configuration-without-restart($admin-config)
 
 			return
-				fn:concat("Forest ", $forest-name, " succesfully created", if ($data-directory) then (" at ", $data-directory)
+				fn:concat("Forest ", $forest-name, " succesfully created", if ($data-directory) then fn:concat(" at ", $data-directory)
  else (), "..", if ($restart-hosts) then " (note: restart required)" else ())
 
 	} catch ($e) {
