@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# Copyright (c) 2011-2012 Jim Fuller  
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# http://www.apache.org/licenses/LICENSE-2.0
+  
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# depx 0.1, app dep management
+#
+# see https://github.com/xquery/depx
+# see http://depx.org
+#
+# usage: depx [-c command (install|remove|list|refresh) ] [-p package ] [-v package version] [-a application directory]
+#
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
+DEPX_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+CURRENTDIR=`pwd`
+
+#default values
+#####################################################################
+COMMAND=$1 
+PACKAGE=$2
+VERSION=$3
+APP_DIR=$CURRENTDIR
+LIB_DIR=/lib/
+#####################################################################
+
+function usage(){
+    echo "depx 0.1, app dep management"
+    echo "Copyright (c) 2011, 2012 Jim Fuller"
+    echo "see https://github.com/xquery/depx"
+    echo ""
+    echo ""
+    echo "see http://depx.org to search/review packages for installation"
+    echo ""
+    echo ""
+    echo "usage: depx [-c command (install|remove|list|refresh) ] [-p package ] [-v package version] [-a application directory] "
+    echo ""
+    echo "or use simplified syntax supplying arguments in the correct sequence"
+    echo ""
+    echo "usage: depx command package version"
+    echo ""
+    echo ""
+    exit 1
+}
+
+while getopts 'c:p:v:a::l:h' OPTION
+do
+case $OPTION in
+    c) COMMAND="$OPTARG";;
+    p) PACKAGE="$OPTARG";;
+    v) VERSION="$OPTARG";;
+    a) APP_DIR="$OPTARG";;
+    a) LIB_DIR="$OPTARG";;
+    *)
+      usage
+      exit 1;
+  esac
+done
+
+if [ "$1" == "help" ]; then
+    usage
+    exit 1;
+fi
+
+echo "depx 0.1, app dep management "
+echo "Copyright (c) 2011, 2012 Jim Fuller"
+echo "see https://github.com/xquery/depx"
+echo ""
+echo " command: $COMMAND"
+echo " package: $PACKAGE"
+echo " version: $VERSION"
+echo " app dir: $APP_DIR"
+echo " lib dir: $LIB_DIR"
+echo ""
+echo "---------------------------------"
+echo "depx processing starting ..."
+echo "---------------------------------"
+echo ""
+
+# create lib directory if it does not exist
+if [ ! -d ".$LIB_DIR" ]; then
+mkdir .$LIB_DIR
+fi
+
+# run xproc pipeline
+java -jar $DEPX_DIR/deps/xmlcalabash/calabash.jar $DEPX_DIR/libs/xproc/depx.xpl command="$COMMAND" package="$PACKAGE" version=$VERSION app_dir=$APP_DIR app_dir_lib=$LIB_DIR
+
+echo ""
+echo "---------------------------------"
+echo "depx processing is done."
+echo "---------------------------------"
