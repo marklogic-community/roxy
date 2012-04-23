@@ -88,20 +88,71 @@
 -->
       <range-element-indexes>
         <!--
-      Sample Range index
+        Sample for:
+          <name xmlns="http://marklogic.com/ns/sample">bob<name>
+
         <range-element-index>
           <scalar-type>string</scalar-type>
-          <namespace-uri>http://marklogic.com/ns/social-media/media</namespace-uri>
-          <localname>social-network</localname>
+          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
+          <localname>name</localname>
           <collation>http://marklogic.com/collation/codepoint</collation>
           <range-value-positions>false</range-value-positions>
         </range-element-index>
 -->
       </range-element-indexes>
       <range-element-attribute-indexes>
+<!--
+        Sample for:
+          <person name="bob" xmlns="http://marklogic.com/ns/sample"/>
+
+        <range-element-attribute-index>
+          <scalar-type>string</scalar-type>
+          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>person</parent-localname>
+          <namespace-uri/>
+          <localname>name</localname>
+          <collation>http://marklogic.com/collation/codepoint</collation>
+          <range-value-positions>false</range-value-positions>
+        </range-element-attribute-index>
+-->
       </range-element-attribute-indexes>
       <geospatial-element-attribute-pair-indexes>
+<!--
+        Sample for:
+          <geo lat="37.237162" lon="-115.8099747" xmlns="http://marklogic.com/ns/sample"/>
+
+        <geospatial-element-attribute-pair-index>
+          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>geo</parent-localname>
+          <latitude-namespace-uri/>
+          <latitude-localname>lat</latitude-localname>
+          <longitude-namespace-uri/>
+          <longitude-localname>lon</longitude-localname>
+          <coordinate-system>wgs84</coordinate-system>
+          <range-value-positions>false</range-value-positions>
+        </geospatial-element-attribute-pair-index>
+-->
       </geospatial-element-attribute-pair-indexes>
+      <geospatial-element-pair-indexes>
+<!--
+        Sample for:
+          <geo xmlns="http://marklogic.com/ns/sample">
+            <lat>37.237162</lat>
+            <lon>-115.8099747</lon>
+          </geo>
+
+        <geospatial-element-pair-index>
+          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>geo</parent-localname>
+          <latitude-namespace-uri>http://marklogic.com/ns/sample</latitude-namespace-uri>
+          <latitude-localname>lat</latitude-localname>
+          <longitude-namespace-uri>http://marklogic.com/ns/sample</longitude-namespace-uri>
+          <longitude-localname>lon</longitude-localname>
+          <coordinate-system>wgs84</coordinate-system>
+          <range-value-positions>true</range-value-positions>
+        </geospatial-element-pair-index>
+-->
+      </geospatial-element-pair-indexes>
     </database>
     <!--Create Application Modules Database-->
     <database>
