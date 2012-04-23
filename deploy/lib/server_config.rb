@@ -36,15 +36,15 @@ end
 class Help
   def self.create
     %Q{
-Usage: ml create controller[/view] [format] [options]   or
+Usage: ml create controller[/function] [format] [options]   or
        ml create model model_name [file_name] [options]
 
 General options:
   -v, [--verbose]  # Verbose output
 
-When creating a controller and view:
-  controller/view is the name of the controller and view. The view is optional.
-  If a view is omitted then main is assumed.
+When creating a controller and function:
+  controller/function is the name of the controller and function.
+  The function is optional. If a function is omitted then main is assumed.
 
   Format can be (none | html | xml | json). If no format is provided then
   html is assumed. When "none" is provided no view is created.
@@ -352,7 +352,7 @@ class ServerConfig < MLClient
     output = `#{runme}`
     @@logger.info(output)
   end
-  
+
   def config
     @logger.info get_config
   end
