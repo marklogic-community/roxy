@@ -101,16 +101,6 @@ General options:
 Initializes the necessary config files for cpf}
   end
 
-  def self.version
-    %Q{
-Usage: ml {env} version [options]
-
-General options:
-  -v, [--verbose]  # Verbose output
-
-Returns the version of the MarkLogic server for the given environment}
-  end
-
   def self.restart
     %Q{
 Usage: ml {env} restart [options]
@@ -219,15 +209,33 @@ You may use variables like:
 
 INPUT_PACKAGE=${ml.data.dir}/}
   end
+
+  def self.plugin
+    %Q{
+Usage: ml {env} plugin [comand] [package] [version] [options]
+
+command:
+  (install|remove|list|refresh)
+
+package:
+  Name of a depx package
+
+version:
+  Package Version
+
+General options:
+  -v, [--verbose]  # Verbose output}
+  end
 end
 
 class ServerConfig < MLClient
 
   def initialize(options)
     @options = options
-    @environment = options[:environment]
 
     @properties = options[:properties]
+    @environment = @properties["environment"]
+
     if (!@properties["ml.server"]) then
       @properties["ml.server"] = @properties["ml.#{@environment}-server"]
     end
@@ -241,13 +249,17 @@ class ServerConfig < MLClient
       :logger => options[:logger]
     })
 
-    @version = version
+    @server_version = @properties["ml.server-version"]
 
-    if (@version == 4) then
-      @bootstrap_port = @bootstrap_port_four
+    if (@properties["ml.bootstrap-port"])
+      @bootstrap_port = @properties["ml.bootstrap-port"]
     else
-      @bootstrap_port = @bootstrap_port_five
-      @properties["ml.bootstrap_port"] = @bootstrap_port
+      if (@server_version == 4) then
+        @bootstrap_port = @bootstrap_port_four
+      else
+        @bootstrap_port = @bootstrap_port_five
+        @properties["ml.bootstrap-port"] = @bootstrap_port
+      end
     end
 
     @logger.debug "pwd: #{ServerConfig.pwd}"
@@ -303,18 +315,9 @@ class ServerConfig < MLClient
     end
   end
 
-  def version
-    begin
-      version = get_version
-    rescue Exception => e
-      raise ExitException.new "Can't connect to #{@hostname}"
-    end
-    version
-  end
-
   def execute_query(query, db_name = nil)
     r = nil
-    if @version == 4
+    if @server_version == 4
       r = execute_query_4 query, db_name
     else
       r = execute_query_5 query, db_name
@@ -327,6 +330,29 @@ class ServerConfig < MLClient
     execute_query %Q{xdmp:restart((), "to reload new app config")}
   end
 
+  def self.plugin
+    # get src dir and package details
+    properties = ServerConfig.properties
+    src_dir = properties["ml.xquery.dir"]
+    plugin_command = ARGV.shift if ARGV.count
+    package = ARGV.shift if ARGV.count
+    package_version = ARGV.shift if ARGV.count
+
+    runme = %Q{cd #{src_dir} && }
+    if (is_windows?) then
+      runme << File.expand_path("../depx-0.1/depx.bat", __FILE__)
+    else
+      runme << File.expand_path("../depx-0.1/depx", __FILE__)
+    end
+    runme << " #{plugin_command}" if plugin_command
+    runme << " #{package} " if package
+    runme << " #{package_version} " if package_version
+    @@logger.debug runme
+
+    output = `#{runme}`
+    @@logger.info(output)
+  end
+  
   def config
     @logger.info get_config
   end
@@ -659,25 +685,11 @@ Before you can deploy CPF, you must define a configuration. Steps:
     @config
   end
 
-  def get_version()
-    h = Net::HTTP.new(@hostname, @bootstrap_port_four)
-    response = h.request(Net::HTTP::Get.new("/use-cases/eval2.xqy"))
-    is_4_0 = (response.body.match("MarkLogic Application Services") == nil)
-    version = is_4_0 ? 4 : 5
-  end
-
   def execute_query_4(query, db_name)
-    if (!query.match("xquery version"))
-      query = %Q{
-        xquery version "1.0-ml";
-        #{query}
-      }
-    end
     r = go "http://#{@hostname}:#{@bootstrap_port}/use-cases/eval2.xqy", "post", {}, {
       :queryInput => query
     }
-    @logger.debug(r.body)
-    r
+    return r
   end
 
   def get_any_db_id
@@ -930,5 +942,30 @@ Before you can deploy CPF, you must define a configuration. Steps:
     end
 
     config
+  end
+
+  def self.properties
+    default_properties_file = File.expand_path("../../default.properties", __FILE__)
+    properties_file = File.expand_path("../../build.properties", __FILE__)
+    if !File.exist?(properties_file) then
+      raise ExitException.new "You must run ml init to configure your application."
+    end
+
+    properties = ServerConfig.load_properties(default_properties_file, "ml.")
+    properties.merge!(ServerConfig.load_properties(properties_file, "ml."))
+
+    environments = properties['ml.environments'].split(",") if properties['ml.environments']
+    environments = ["local", "dev", "prod"] unless environments
+
+    environment = find_arg(environments)
+
+    properties["environment"] = environment if environment
+
+    env_properties_file = File.expand_path("../../#{environment}.properties", __FILE__)
+    if (File.exists?(env_properties_file))
+      properties.merge!(ServerConfig.load_properties(env_properties_file, "ml."))
+    end
+
+    properties = ServerConfig.substitute_properties(properties, "ml.")
   end
 end

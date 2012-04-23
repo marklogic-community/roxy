@@ -32,7 +32,7 @@ This section describes the quickest way to get started using Roxy.
 1. Open a command prompt in the root folder of Roxy
 2. Run ml init to create sample configuration files
 
-  `> ml init`
+  `> ml init app-name`
 3. Modify deploy/build.properties with your application's settings.
 
   <code>

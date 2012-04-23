@@ -35,7 +35,6 @@ Deployment Commands:
  test           Runs xquery unit tests
  recordloader   Runs RecordLoader
  xqsync         Runs XQSync
- version        Returns the version of the MarkLogic Server
 
 Roxy MVC Commands:
  create       Creates a controller or view or model
@@ -45,7 +44,7 @@ EOT
 end
 
 def need_help?
-  ["-h", "--help"].include?(ARGV.first)
+  find_arg(['-h', '--help']) != nil
 end
 
 def help(command)
@@ -112,30 +111,9 @@ while ARGV.length > 0
 
     ARGV.unshift(command)
 
-    default_properties_file = File.expand_path("../../default.properties", __FILE__)
-    properties_file = File.expand_path("../../build.properties", __FILE__)
-
-    if !File.exist?(properties_file) then
-        raise ExitException.new "You must run ml init to configure your application."
-    end
-
-    @properties = ServerConfig.load_properties(default_properties_file, "ml.")
-      @properties.merge!(ServerConfig.load_properties(properties_file, "ml."))
-
-    environments = @properties['ml.environments'].split(",") if @properties['ml.environments']
-    environments = ["local", "dev", "prod"] unless environments
-
-    environment = find_arg(environments)
-
-    env_properties_file = File.expand_path("../../#{environment}.properties", __FILE__)
-    if (File.exists?(env_properties_file))
-        @properties.merge!(ServerConfig.load_properties(env_properties_file, "ml."))
-    end
-
-      @properties = ServerConfig.substitute_properties(@properties, "ml.")
-
-    if (environment == nil)
-        raise ExitException.new "Missing environment for #{command}"
+    @properties = ServerConfig.properties
+    if (@properties["environment"] == nil)
+      raise ExitException.new "Missing environment for #{command}"
     end
 
     command = ARGV.shift
@@ -146,7 +124,6 @@ while ARGV.length > 0
     elsif (ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command))
 
       @s = ServerConfig.new({
-        :environment => environment,
         :config_file => File.expand_path("../../ml-config.xml", __FILE__),
         :properties => @properties,
         :logger => @logger
@@ -187,7 +164,7 @@ while ARGV.length > 0
       rescue Net::HTTPServerException => e
         case e.response
         when Net::HTTPUnauthorized then
-          @logger.error("Invalid login credentials for #{environment} environment!!")
+          @logger.error("Invalid login credentials for #{@properties["environment"]} environment!!")
         else
           @logger.error(e)
           @logger.error(e.response.body)
