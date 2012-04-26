@@ -37,6 +37,7 @@ let $options :=
       <rest:uri-param name="func" default="main">$2</rest:uri-param>
       <rest:uri-param name="format">$3</rest:uri-param>
       <rest:http method="GET"/>
+      <rest:http method="HEAD"/>
     </rest:request>
     <rest:request uri="^/([\w\d_\-]*)/?([\w\d_\-]*)\.?(\w*)/?$" endpoint="/roxy/update-router.xqy">
       <rest:uri-param name="controller" default="{$config:DEFAULT-CONTROLLER}">$1</rest:uri-param>
@@ -44,6 +45,7 @@ let $options :=
       <rest:uri-param name="format">$3</rest:uri-param>
       <rest:http method="POST"/>
       <rest:http method="PUT"/>
+      <rest:http method="DELETE"/>
     </rest:request>
     <rest:request uri="^.+$"/>
   </rest:options>

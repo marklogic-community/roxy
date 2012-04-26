@@ -106,6 +106,13 @@ declare function c:update2()
   ch:add-value("test", "done")
 };
 
+declare function c:delete()
+{
+  xdmp:document-delete(req:get("uri")),
+  ch:use-layout(()),
+  ch:use-view(())
+};
+
 declare function c:layout-with-bad-import()
 {
   ch:use-layout("layout-with-bad-import"),
