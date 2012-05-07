@@ -186,32 +186,46 @@ declare function setup:create-forests($import-config as element(configuration)) 
 			setup:get-forest-name-from-forest-config($forest-config)
 		let $data-directory :=
 			setup:get-data-directory-from-forest-config($forest-config)
-
+		let $host-name :=
+			setup:get-hostname-from-forest-config($forest-config)
 		return
-			setup:create-forest($forest-name, $data-directory)
+			setup:create-forest($forest-name, $data-directory, $host-name)
 
 	} catch ($e) {
 		fn:concat("Forests creation failed: ", $e//err:format-string)
 	}
 };
 
-declare function setup:create-forest($forest-name as xs:string, $data-directory as xs:string?) as item()*
+declare function setup:create-forest(
+	$forest-name as xs:string,
+	$data-directory as xs:string?,
+	$host-name as xs:string?) as item()*
 {
+	xdmp:log( text { "setup:create-forest", $forest-name, $data-directory, $host-name }),
 	try {
+		let $host-id :=
+			if ($host-name) then xdmp:host($host-name)
+			else ()
+		return
 		if (xdmp:forests()[$forest-name = xdmp:forest-name(.)]) then
 			fn:concat("Forest ", $forest-name, " already exists, not recreated..")
 		else
+				let $host := ($host-id, $default-host)[1]
 			let $admin-config :=
 				admin:get-configuration()
 			let $admin-config :=
-				admin:forest-create($admin-config, $forest-name, $default-host, $data-directory)
+					admin:forest-create($admin-config, $forest-name, $host, $data-directory)
 			let $restart-hosts :=
 				admin:save-configuration-without-restart($admin-config)
 
 			return
-				fn:concat("Forest ", $forest-name, " succesfully created", if ($data-directory) then fn:concat(" at ", $data-directory)
- else (), "..", if ($restart-hosts) then " (note: restart required)" else ())
-
+					fn:string-join((
+						"Forest ", $forest-name, " succesfully created",
+						if ($data-directory) then (" at ", $data-directory)
+	 					else (),
+	 					if ($host) then (" on ", $host-name)
+	 					else (),
+	 					"..", if ($restart-hosts) then " (note: restart required)" else ()), "")
 	} catch ($e) {
 		fn:concat("Forest ", $forest-name, " creation failed: ", $e//err:format-string)
 	}
@@ -2251,6 +2265,11 @@ declare function setup:get-data-directory-from-forest-config($forest-config as e
 	fn:data(
 		$forest-config/as:data-directory[fn:string-length(.) > 0]
 	)
+};
+
+declare function setup:get-hostname-from-forest-config($forest-config as element(as:assignment)) as xs:string?
+{
+	fn:string($forest-config/as:host)[fn:string-length(.) > 0]
 };
 
 declare function setup:get-databases-from-config($import-config as element(configuration)) as element(db:database)*
