@@ -226,6 +226,13 @@ version:
 General options:
   -v, [--verbose]  # Verbose output}
   end
+
+  def self.index
+    %Q{
+Usage: ml index
+  ml will ask questions to help you build an index
+    }
+  end
 end
 
 class ServerConfig < MLClient
@@ -312,6 +319,117 @@ class ServerConfig < MLClient
       @@logger.error "initcpf has already been run. Use --force to rerun it.\n"
     else
       FileUtils.cp sample_config, target_config
+    end
+  end
+
+  def self.index
+    puts "What type of index do you want to build?
+  1 element range index
+  2 attribute range index"
+    # TODO:
+    # 3 field range index
+    # 4 geospatial index
+    type = gets.chomp.to_i
+    if type == 1
+      build_element_index
+    elsif type == 2
+      build_attribute_element_index
+    else
+      puts "Sorry, I don't know how to do that yet"
+    end
+  end
+
+  def self.request_type
+    scalar_types = %w[int unsignedInt long unsignedLong float double decimal dateTime
+      time date gYearMonth gYear gMonth gDay yearMonthDuration dayTimeDuration string anyURI]
+    puts "What will the scalar type of the index be [1-" + scalar_types.length.to_s + "]? "
+    i = 1
+    for t in scalar_types
+      puts "#{i} #{t}"
+      i += 1
+    end
+    scalar = gets.chomp.to_i
+    scalar_types[scalar - 1]
+  end
+
+  def self.request_collation
+    puts "What is the collation URI (leave blank for the root collation)?"
+    collation = gets.chomp
+    if collation == ""
+      collation = "http://marklogic.com/collation/"
+    end
+  end
+
+  def self.request_range_value_positions
+    puts "Turn on range value positions? [y/N]"
+    positions = gets.chomp.downcase
+    if positions == "y"
+      positions = "true"
+    else
+      positions = "false"
+    end
+  end
+
+  def self.inject_index(key, index)
+    config_path = File.expand_path("../../ml-config.xml", __FILE__)
+    existing = File.read(config_path) { |file| file.readlines.join }
+    existing = existing.gsub(key) { |match| "#{match}\n#{index}" }
+    File.open(config_path, "w") { |file| file.write(existing) }
+  end
+
+  def self.build_attribute_element_index
+    scalar_type = request_type
+    puts "What is the parent element's namespace URI?"
+    p_uri = gets.chomp
+    puts "What is the parent element's localname?"
+    p_localname = gets.chomp
+    puts "What is the attribute's namespace URI?"
+    uri = gets.chomp
+    puts "What is the attribute's localname?"
+    localname = gets.chomp
+    if scalar_type == "string" # string
+      collation = request_collation
+    end
+    positions = request_range_value_positions
+    index = "        <range-element-attribute-index>
+          <scalar-type>#{scalar_type}</scalar-type>
+          <parent-namespace-uri>#{p_uri}</parent-namespace-uri>
+          <parent-localname>#{p_localname}</parent-localname>
+          <namespace-uri>#{uri}</namespace-uri>
+          <localname>#{localname}</localname>
+          <collation>#{collation}</collation>
+          <range-value-positions>#{positions}</range-value-positions>
+        </range-element-attribute-index>"
+    puts "Add this index to deploy/ml-config.xml? [y/N]\n" + index
+    approve = gets.chomp.downcase
+    if approve == "y"
+      inject_index("<range-element-attribute-indexes>", index)
+      puts "Index added"
+    end
+  end
+
+  def self.build_element_index
+    scalar_type = request_type
+    puts "What is the element's namespace URI?"
+    uri = gets.chomp
+    puts "What is the element's localname?"
+    localname = gets.chomp
+    if scalar_type == "string" # string
+      collation = request_collation
+    end
+    positions = request_range_value_positions
+    index = "        <range-element-index>
+          <scalar-type>#{scalar_type}</scalar-type>
+          <namespace-uri>#{uri}</namespace-uri>
+          <localname>#{localname}</localname>
+          <collation>#{collation}</collation>
+          <range-value-positions>#{positions}</range-value-positions>
+        </range-element-index>"
+    puts "Add this index to deploy/ml-config.xml? [y/N]\n" + index
+    approve = gets.chomp.downcase
+    if approve == "y"
+      inject_index("<range-element-indexes>", index)
+      puts "Index added"
     end
   end
 

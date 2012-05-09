@@ -38,6 +38,7 @@ Deployment Commands:
 
 Roxy MVC Commands:
  create       Creates a controller or view or model
+ index        Adds an index to the configuration
 
 All commands can be run with -h for more information.
 EOT
