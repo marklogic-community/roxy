@@ -726,6 +726,14 @@ declare function setup:configure-database($database-config as element(db:databas
 
     let $admin-config := setup:add-geospatial-element-pair-indexes($admin-config, $database, $database-config)
 
+    (: remove any existing geospatial element  pair indexes :)
+    let $remove-existing-indexes :=
+      for $index in admin:database-get-geospatial-element-child-indexes($admin-config, $database)
+      return
+        xdmp:set($admin-config, admin:database-delete-geospatial-element-child-index($admin-config, $database, $index))
+
+    let $admin-config := setup:add-geospatial-element-child-indexes($admin-config, $database, $database-config)
+
 		(: remove any existing field (copied from default.xqy) :)
 		let $remove-existing-fields :=
 			for $field as xs:string in admin:database-get-fields($admin-config, $database)/db:field-name
@@ -846,6 +854,26 @@ declare function setup:add-geospatial-element-pair-indexes-R($admin-config as el
       try { admin:database-add-geospatial-element-pair-index($admin-config, $database, $index-config) }
       catch ($e) { $admin-config }
     return setup:add-geospatial-element-pair-indexes-R($admin-config, $database, fn:subsequence($index-configs, 2))
+};
+
+declare function setup:add-geospatial-element-child-indexes($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)
+{
+  
+  setup:add-geospatial-element-child-indexes-R(
+    $admin-config, 
+    $database, 
+    $database-config/db:geospatial-element-child-indexes/db:geospatial-element-child-index)
+};
+
+declare function setup:add-geospatial-element-child-indexes-R($admin-config as element(configuration), $database as xs:unsignedLong, $index-configs as element(db:geospatial-element-child-index)*) as element(configuration)
+{
+  if (fn:empty($index-configs)) then
+    $admin-config
+  else
+    let $admin-config :=
+      try { admin:database-add-geospatial-element-child-index($admin-config, $database, $index-configs[1]) }
+      catch ($e) { xdmp:log(fn:concat("Error building geo-element-child-index: ", xdmp:quote($e))), $admin-config }
+    return setup:add-geospatial-element-child-indexes-R($admin-config, $database, fn:subsequence($index-configs, 2))
 };
 
 declare function setup:add-word-lexicons($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)

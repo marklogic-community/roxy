@@ -153,6 +153,24 @@
         </geospatial-element-pair-index>
 -->
       </geospatial-element-pair-indexes>
+      <geospatial-element-child-indexes>
+<!--
+        Sample for:
+          <geo xmlns="http://marklogic.com/ns/sample">
+            <pos>37.237162,-115.8099747</pos>
+          </geo>
+
+        <geospatial-element-child-index>
+          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>geo</parent-localname>
+          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
+          <localname>pos</localname>
+          <coordinate-system>wgs84</coordinate-system>
+          <point-format>point</point-format>
+          <range-value-positions>false</range-value-positions>
+        </geospatial-element-child-index>
+-->
+      </geospatial-element-child-indexes>
     </database>
     <!--Create Application Modules Database-->
     <database>
