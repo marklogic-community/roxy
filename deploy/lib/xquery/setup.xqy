@@ -277,7 +277,7 @@ declare function setup:create-database($database-config as element(db:database))
         	$triggers-name)
 
 		return
-			fn:concat("Database ", $database-name, " with ", $forests-per-host, " forests succesfully created..")
+			fn:concat("Database ", $database-name, " with ", $forests-per-host, " forests per host succesfully created..")
 
 	} catch ($e) {
 		fn:concat("Database ", $database-name, " creation failed: ", $e//err:format-string)
@@ -2351,7 +2351,7 @@ declare function setup:get-forest-from-config($import-config as element(configur
 
 declare function setup:get-forests-per-host-from-database-config($database-config as element(db:database), $database-name as xs:string) as xs:positiveInteger?
 {
-	let $forests-per-host := fn:data($database-config//db:databases/db:database[. eq $database-name]/db:forests-per-host)
+	let $forests-per-host := fn:data($database-config/db:forests-per-host)
 	return
 	  if (fn:string-length($forests-per-host) > 0) then xs:positiveInteger($forests-per-host)
 	  else xs:positiveInteger("1") (: Default forests per host is 1 :)
