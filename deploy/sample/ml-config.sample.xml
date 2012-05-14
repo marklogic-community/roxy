@@ -62,6 +62,7 @@
       <forests>
         <forest-id name="@ml.content-db"/>
       </forests>
+      <forests-per-host>@ml.forests-per-host</forests-per-host>
       <uri-lexicon>true</uri-lexicon>
       <collection-lexicon>true</collection-lexicon>
       <directory-creation>manual</directory-creation>

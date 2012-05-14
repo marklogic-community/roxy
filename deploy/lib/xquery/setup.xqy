@@ -16,6 +16,7 @@ limitations under the License.
 xquery version "1.0-ml";
 
 import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+import module namespace info = "http://marklogic.com/appservices/infostudio" at "/MarkLogic/appservices/infostudio/info.xqy";
 import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
 
 declare namespace setup = "http://marklogic.com/roxy/setup";
@@ -55,9 +56,9 @@ declare function setup:do-setup($import-config as element(configuration)) as ite
     setup:create-roles($import-config),
     setup:create-users($import-config),
     setup:create-mimetypes($import-config),
-    setup:create-forests($import-config),
+    (: setup:create-forests($import-config), :)
     setup:create-databases($import-config),
-    setup:attach-forests($import-config),
+    (: setup:attach-forests($import-config), :)
     setup:apply-databases-settings($import-config),
     setup:configure-databases($import-config),
     setup:create-appservers($import-config),
@@ -253,21 +254,30 @@ declare function setup:create-database($database-config as element(db:database))
 {
 	let $database-name :=
 		setup:get-database-name-from-database-config($database-config)
+  let $triggers-name :=
+		setup:get-triggers-database-name-from-database-config($database-config)
+  let $forests-per-host :=
+		setup:get-forests-per-host-from-database-config($database-config, $database-name)
+  let $data-directory := ()
+		(: setup:get-data-directory-from-forest-config($forest-config) :)
 	return
 
 	try {
+	  let $create-database := 
 			if (xdmp:databases()[$database-name = xdmp:database-name(.)]) then
 				fn:concat("Database ", $database-name, " already exists, not recreated..")
 			else
-				let $admin-config :=
-					admin:get-configuration()
-				let $admin-config :=
-					admin:database-create($admin-config, $database-name, $default-security, $default-schemas)
-				let $restart-hosts :=
-					admin:save-configuration-without-restart($admin-config)
+			  info:database-create(
+        	$database-name,
+        	$forests-per-host,
+        	xdmp:group-name($default-group),
+        	$data-directory,
+        	xdmp:database-name($default-security),
+        	xdmp:database-name($default-schemas),
+        	$triggers-name)
 
-				return
-					fn:concat("Database ", $database-name, " succesfully created..", if ($restart-hosts) then " (note: restart required)" else ())
+		return
+			fn:concat("Database ", $database-name, " with ", $forests-per-host, " forests succesfully created..")
 
 	} catch ($e) {
 		fn:concat("Database ", $database-name, " creation failed: ", $e//err:format-string)
@@ -2322,6 +2332,13 @@ declare function setup:get-database-name-from-database-config($database-config a
 	)
 };
 
+declare function setup:get-triggers-database-name-from-database-config($database-config as element(db:database)) as xs:string?
+{
+  fn:data(
+    $database-config/db:triggers-database/@name[fn:string-length(.) > 0]
+  )
+};
+
 declare function setup:get-forest-refs-from-database-config($database-config as element(db:database)) as element(db:forest-id)*
 {
 	$database-config/db:forests/db:forest-id
@@ -2330,6 +2347,14 @@ declare function setup:get-forest-refs-from-database-config($database-config as 
 declare function setup:get-forest-from-config($import-config as element(configuration), $forest-ref as element(db:forest-id)) as element(as:assignment)?
 {
 	$import-config//as:assignment[as:forest-id eq $forest-ref]
+};
+
+declare function setup:get-forests-per-host-from-database-config($database-config as element(db:database), $database-name as xs:string) as xs:positiveInteger?
+{
+	let $forests-per-host := fn:data($database-config//db:databases/db:database[. eq $database-name]/db:forests-per-host)
+	return
+	  if (fn:string-length($forests-per-host) > 0) then xs:positiveInteger($forests-per-host)
+	  else xs:positiveInteger("1") (: Default forests per host is 1 :)
 };
 
 declare function setup:get-http-servers-from-config($import-config as element(configuration)) as element(gr:http-server)*
