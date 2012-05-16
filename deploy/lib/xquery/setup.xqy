@@ -80,7 +80,6 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   ),
 
   let $config := admin:get-configuration()
-  let $groupid := xdmp:group()
   return
   (
     for $x in $import-config/db:databases/db:database/db:database-name
@@ -91,7 +90,6 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   ),
 
   let $config := admin:get-configuration()
-  let $groupid := xdmp:group()
   return
   (
     for $x in $import-config/as:assignments/as:assignment/as:forest-name
@@ -102,7 +100,6 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   ),
 
   let $config := admin:get-configuration()
-  let $groupid := xdmp:group()
   return
   (
     for $x in $import-config/mt:mimetypes/mt:mimetype
@@ -118,7 +115,6 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
                declare variable $user as xs:string external;
                try { sec:remove-user($user) } catch ($e) {xdmp:log($e)}',
                (xs:QName("user"), $user), <options xmlns="xdmp:eval"><database>{xdmp:database("Security")}</database></options>),
-
 
   for $role in $import-config/sec:roles/sec:role/sec:role-name
   return

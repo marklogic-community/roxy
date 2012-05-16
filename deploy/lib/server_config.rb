@@ -854,7 +854,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
 
   def execute_query_5(query, db_name)
     if (db_name == nil) then
-      sid = get_sid(@properties["ml.app-name"])
+      sid = get_sid("Manage")
       if (sid != nil) then
         @logger.debug("using sid: #{sid}")
         r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
