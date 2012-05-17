@@ -774,13 +774,13 @@ Before you can deploy CPF, you must define a configuration. Steps:
         cpf_config.gsub!("@#{k}", v)
       end
       cpf_code = open(File.expand_path('../xquery/cpf.xqy', __FILE__)).readlines.join
-      r = execute_query %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}
+      r = execute_query %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}, @properties["ml.content-db"]
     end
   end
 
   def clean_cpf
     cpf_code = open(File.expand_path('../xquery/cpf.xqy', __FILE__)).readlines.join
-    r = execute_query %Q{#{cpf_code} cpf:clean-cpf()}
+    r = execute_query %Q{#{cpf_code} cpf:clean-cpf()}, @properties["ml.content-db"]
   end
 
   def xcc
