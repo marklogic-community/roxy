@@ -32,6 +32,7 @@ let $options :=
     </rest:request>
     <rest:request uri="^/test$" redirect="/test/" />
     <rest:request uri="^/(css|js|images)/(.*)" endpoint="/public/$1/$2"/>
+    <rest:request uri="^/favicon.ico$" endpoint="/public/favicon.ico"/>
     <rest:request uri="^/([\w\d_\-]*)/?([\w\d_\-]*)\.?(\w*)/?$" endpoint="/roxy/query-router.xqy">
       <rest:uri-param name="controller" default="{$config:DEFAULT-CONTROLLER}">$1</rest:uri-param>
       <rest:uri-param name="func" default="main">$2</rest:uri-param>
