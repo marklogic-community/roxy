@@ -70,18 +70,22 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   let $groupid := xdmp:group()
   return
   (
-    for $x in ($import-config/gr:http-servers/gr:http-server/gr:http-server-name, $import-config/gr:xdbc-servers/gr:xdbc-server/gr:xdbc-server-name)
+    for $as-name in ($import-config/gr:http-servers/gr:http-server/gr:http-server-name, $import-config/gr:xdbc-servers/gr:xdbc-server/gr:xdbc-server-name)
     return
-      try{
-        xdmp:set($config, admin:appserver-delete($config, admin:appserver-get-id($config, $groupid, $x)))
-      } catch($ex){xdmp:log($ex)}
+      try {
+        if (admin:appserver-exists($config, $groupid, $as-name)) then
+          xdmp:set($config, admin:appserver-delete($config, admin:appserver-get-id($config, $groupid, $as-name)))
+        else ()
+      } catch($ex) {
+        xdmp:log($ex)
+      }
     ,
     admin:save-configuration-without-restart($config)
   ),
 
-  for $db-name in $import-config/db:databases/db:database/db:database-name
+  for $db-config in $import-config/db:databases/db:database
   return
-      try { setup:delete-database-and-forests($db-name) } catch ($e) {xdmp:log($e)},
+      try { setup:delete-database-and-forests($db-config) } catch ($e) {xdmp:log($e)},
 
   (: Even though we delete forests that are attached to the database above, we will delete 
    : forests named in the config file. When named forests are in use, we'll be able to 
@@ -141,21 +145,51 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
  :: to it. 
  ::)
 
-declare function setup:delete-database-and-forests($db-name as xs:string)
+declare function setup:delete-database-and-forests($database-config as element(db:database))
 {
+  let $db-name := $database-config/db:database-name
   let $config := admin:get-configuration()
-  let $db-id := admin:database-get-id($config, $db-name)
-  let $forest-ids := admin:database-get-attached-forests($config, $db-id)
-  let $detach := (
-    for $id in $forest-ids
-    return
-      xdmp:set($config, admin:database-detach-forest($config, $db-id, $id)),
-    admin:save-configuration-without-restart($config)
-  )
+  return 
+    if (admin:database-exists($config, $db-name)) then 
+      let $db-id := admin:database-get-id($config, $db-name)
+      let $forest-ids := admin:database-get-attached-forests($config, $db-id)
+      let $detach := (
+        for $id in $forest-ids
+        return
+          xdmp:set($config, admin:database-detach-forest($config, $db-id, $id)),
+        admin:save-configuration-without-restart($config)
+      )
+      let $config := admin:get-configuration()
+      let $forest-ids :=
+        if (fn:exists($forest-ids)) then
+          $forest-ids
+        else
+          (: For the case where the database exists but the forests are detached :)
+          setup:find-forest-ids($database-config)
+      let $config := admin:forest-delete($config, $forest-ids, fn:true())
+      let $config := admin:database-delete($config, $db-id)
+      return admin:save-configuration-without-restart($config)
+    else
+      (: The database does not exist. Check for the forests anyway :)
+      let $forest-ids := setup:find-forest-ids($database-config)
+      let $config := admin:forest-delete($config, $forest-ids, fn:true())
+      return admin:save-configuration-without-restart($config)
+};
+
+declare function setup:find-forest-ids($database-config as element(db:database)) as xs:unsignedLong*
+{
+  let $group-id := xdmp:group()
   let $config := admin:get-configuration()
-  let $config := admin:forest-delete($config, $forest-ids, fn:true())
-  let $config := admin:database-delete($config, $db-id)
-  return admin:save-configuration-without-restart($config)
+  let $hosts := admin:group-get-host-ids($config, $group-id)
+  let $data-directory := $database-config/db:forests/db:data-directory
+  for $host at $i in $hosts 
+  for $j in (1 to $database-config/db:forests-per-host)
+  let $name := fn:string-join(
+    ($database-config/db:database-name, xdmp:host-name($host), xs:string($j)), "-")
+  return
+    if (admin:forest-exists($config, $name)) then
+      admin:forest-get-id($config, $name)
+    else ()
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -204,12 +238,13 @@ declare function setup:create-forests($import-config as element(configuration)) 
       setup:get-databases-from-config($import-config)
     let $database-name :=
       setup:get-database-name-from-database-config($db-config)
+    let $forests-per-host := $db-config/db:forests-per-host
     let $forest-config := setup:get-database-forest-configs($import-config, $database-name)
     return 
-      if (fn:exists($forest-config)) then
-        setup:create-forests-from-config($db-config, $database-name, $forest-config)
+      if (fn:exists($forests-per-host)) then
+        setup:create-forests-from-count($db-config, $database-name, $forests-per-host)
       else
-        setup:create-forests-from-count($db-config, $database-name)
+        setup:create-forests-from-config($import-config, $db-config, $database-name)
 
 
 (:
@@ -231,22 +266,39 @@ declare function setup:create-forests($import-config as element(configuration)) 
   }
 };
 
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: 
+ ::)
 declare function setup:create-forests-from-config(
-  $db-config as element(db:database), 
-  $database-name as xs:string, 
-  $forest-config as element(as:assignment)*) as item()*
-{
-  () (: TBD :)
-};
-
-declare function setup:create-forests-from-count(
+  $import-config as element(configuration),
   $db-config as element(db:database), 
   $database-name as xs:string) as item()*
+{
+  xdmp:log(fn:concat("Roxy building ", $database-name, " forests by configuration")),
+  let $forest-configs := setup:get-database-forest-configs($import-config, $database-name)
+  for $forest-config in $forest-configs
+  let $forest-name :=
+    setup:get-forest-name-from-forest-config($forest-config)
+  let $data-directory :=
+    setup:get-data-directory-from-forest-config($forest-config)
+  let $host-name :=
+    setup:get-hostname-from-forest-config($forest-config)
+  let $log := xdmp:log(fn:concat("forest; name=", $forest-name, ", data=", $data-directory, ", host=", $host-name))
+  return
+    setup:create-forest-by-host-name($forest-name, $data-directory, $host-name)
+};
+
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: 
+ ::)
+declare function setup:create-forests-from-count(
+  $db-config as element(db:database), 
+  $database-name as xs:string,
+  $forests-per-host as xs:int) as item()*
 {
   let $group-id := xdmp:group()
   let $config := admin:get-configuration()
   let $hosts := admin:group-get-host-ids($config, $group-id)
-  let $forests-per-host := setup:get-forests-per-host-from-database-config($db-config)
   let $data-directory := $db-config/db:forests/db:data-directory
   for $host at $i in $hosts 
   for $j in (1 to $forests-per-host)
@@ -266,14 +318,14 @@ declare function setup:get-database-forest-configs(
   $import-config as element(configuration), 
   $database-name as xs:string) as element(as:assignment)*
 {
-  ()
+  let $names := $import-config/db:databases/db:database[db:database-name = $database-name]/db:forests/db:forest-id/@name
+  return $import-config/as:assignments/as:assignment[as:forest-name = $names]
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  :: 
  ::)
 declare function setup:create-forest-by-host-name(
-  $database-name as xs:string,
   $forest-name as xs:string,
   $data-directory as xs:string?,
   $host-name as xs:string?) as item()*
@@ -281,6 +333,7 @@ declare function setup:create-forest-by-host-name(
   let $host-id :=
     if ($host-name) then xdmp:host($host-name)
     else ()
+  let $log := xdmp:log(fn:concat("create-forest-by-host-name; host-id=", $host-id))
   return
     setup:create-forest($forest-name, $data-directory, $host-id)
 };
@@ -293,7 +346,7 @@ declare function setup:create-forest(
   $data-directory as xs:string?,
   $host-id as xs:unsignedLong?) as item()*
 {
-  xdmp:log( text { "setup:create-forest", $forest-name, $data-directory, xdmp:host-name($host-id) }),
+  (: xdmp:log( text { "setup:create-forest", $forest-name, $data-directory, xdmp:host-name($host-id) }), :)
   try {
     if (xdmp:forests()[$forest-name = xdmp:forest-name(.)]) then
       fn:concat("Forest ", $forest-name, " already exists, not recreated..")
@@ -309,7 +362,7 @@ declare function setup:create-forest(
             "Forest ", $forest-name, " succesfully created",
             if ($data-directory) then (" at ", $data-directory)
             else (),
-            if ($host) then (" on ", xdmp:host-name($host-id))
+            if ($host) then (" on ", xdmp:host-name($host))
             else (),
             "..", if ($restart-hosts) then " (note: restart required)" else ()), "")
   } catch ($e) {
@@ -368,41 +421,58 @@ declare function setup:create-database($database-config as element(db:database))
 declare function setup:attach-forests($import-config as element(configuration)) as item()*
 {
   try {
+    (:
     for $database-config in
       setup:get-databases-from-config($import-config)
 
     return
       setup:attach-forests-to-database($database-config)
+    :)
+
+    for $db-config in
+      setup:get-databases-from-config($import-config)
+    let $database-name :=
+      setup:get-database-name-from-database-config($db-config)
+    let $forests-per-host := $db-config/db:forests-per-host
+    let $forest-config := setup:get-database-forest-configs($import-config, $database-name)
+    return 
+      if (fn:exists($forests-per-host)) then
+        setup:attach-forests-by-count($db-config)
+      else
+        setup:attach-forests-by-config($import-config, $db-config, $database-name)
+
+
 
   } catch ($e) {
     fn:concat("Attaching forests failed: ", $e//err:format-string)
   }
 };
 
-declare function setup:attach-forests-to-database($db-config as element(db:database)) as item()*
+declare function setup:attach-forests-by-config(
+  $import-config as element(configuration), 
+  $database-config as element(db:database),
+  $database-name as xs:string) as item()*
+{
+  for $forest-ref in setup:get-forest-refs-from-database-config($database-config)
+  return
+    setup:attach-database-forest($database-name, $forest-ref/@name)
+};
+
+declare function setup:attach-forests-by-count($db-config as element(db:database)) as item()*
 {
   let $database-name :=
     setup:get-database-name-from-database-config($db-config)
   return
 
   try {
-    (:
-    for $forest-ref in
-      setup:get-forest-refs-from-database-config($database-config)
-
-    let $forest-name :=
-      fn:data($forest-ref/@name)
-    :)
     let $group-id := xdmp:group()
     let $config := admin:get-configuration()
     let $hosts := admin:group-get-host-ids($config, $group-id)
     let $forests-per-host := setup:get-forests-per-host-from-database-config($db-config)
-    let $data-directory := ()
-      (: setup:get-data-directory-from-forest-config($forest-config) :)
     for $host at $i in $hosts 
     for $j in (1 to $forests-per-host)
     let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
-    let $log := xdmp:log(fn:concat("Create forest ", $forest-name, " on host ", $host))
+    let $log := xdmp:log(fn:concat("Attach forest ", $forest-name, " on host ", $host))
 
     return
       setup:attach-database-forest($database-name, $forest-name)
