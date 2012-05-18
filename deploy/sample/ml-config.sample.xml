@@ -57,6 +57,7 @@
     @ml.test-content-db-xml
     <database>
       <database-name>@ml.content-db</database-name>
+      <forests-per-host>@ml.content-forests-per-host</forests-per-host>
       @ml.schemas-mapping
       @ml.triggers-mapping
       <forests>

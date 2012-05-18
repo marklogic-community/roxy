@@ -79,22 +79,25 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
     admin:save-configuration-without-restart($config)
   ),
 
-  let $config := admin:get-configuration()
+  for $db-name in $import-config/db:databases/db:database/db:database-name
   return
-  (
-    for $x in $import-config/db:databases/db:database/db:database-name
-    return
-        try { xdmp:set($config, admin:database-delete($config, admin:database-get-id($config, $x))) } catch ($e) {xdmp:log($e)}
-    ,
-    admin:save-configuration-without-restart($config)
-  ),
+      try { setup:delete-database-and-forests($db-name) } catch ($e) {xdmp:log($e)},
 
+  (: Even though we delete forests that are attached to the database above, we will delete 
+   : forests named in the config file. When named forests are in use, we'll be able to 
+   : delete them even if they aren't attached to the database for whatever reason. :)
   let $config := admin:get-configuration()
   return
   (
-    for $x in $import-config/as:assignments/as:assignment/as:forest-name
+    for $forest-name in $import-config/as:assignments/as:assignment/as:forest-name
     return
-        try { xdmp:set($config, admin:forest-delete($config, admin:forest-get-id($config, $x), fn:true())) } catch ($e) {xdmp:log($e)}
+      if (admin:forest-exists($config, $forest-name)) then
+        try { 
+          xdmp:set($config, admin:forest-delete($config, admin:forest-get-id($config, $forest-name), fn:true())) 
+        } catch ($e) {
+          xdmp:log($e)
+        }
+      else ()
     ,
     admin:save-configuration($config)
   ),
@@ -134,38 +137,60 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: Delete a database and any forests that are attached 
+ :: to it. 
+ ::)
+
+declare function setup:delete-database-and-forests($db-name as xs:string)
+{
+  let $config := admin:get-configuration()
+  let $db-id := admin:database-get-id($config, $db-name)
+  let $forest-ids := admin:database-get-attached-forests($config, $db-id)
+  let $detach := (
+    for $id in $forest-ids
+    return
+      xdmp:set($config, admin:database-detach-forest($config, $db-id, $id)),
+    admin:save-configuration-without-restart($config)
+  )
+  let $config := admin:get-configuration()
+  let $config := admin:forest-delete($config, $forest-ids, fn:true())
+  let $config := admin:database-delete($config, $db-id)
+  return admin:save-configuration-without-restart($config)
+};
+
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  :: Creation of mimetypes
  ::)
 
 declare function setup:create-mimetypes($import-config as element(configuration)) as item()*
 {
-	try {
-		for $mimetype-config in setup:get-mimetypes-from-config($import-config)
-		return
-			setup:create-mimetype($mimetype-config/mt:name, $mimetype-config/mt:extension, $mimetype-config/mt:format)
-	} catch ($e) {
-		fn:concat("Mimetype creation failed: ", $e//err:format-string)
-	}
+  try {
+    for $mimetype-config in setup:get-mimetypes-from-config($import-config)
+    return
+      setup:create-mimetype($mimetype-config/mt:name, $mimetype-config/mt:extension, $mimetype-config/mt:format)
+  } catch ($e) {
+    fn:concat("Mimetype creation failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:create-mimetype($name as xs:string, $extension as xs:string, $format as xs:string) as item()*
 {
-	try {
-		let $admin-config := admin:get-configuration()
-	  return
+  try {
+    let $admin-config := admin:get-configuration()
+    return
 
-		if (admin:mimetypes-get($admin-config)[mt:name = $name]) then
-			fn:concat("Mimetype ", $name, " already exists, not recreated..")
-		else
-			let $admin-config :=
-				admin:mimetypes-add($admin-config, admin:mimetype($name, $extension, $format))
-			let $restart-hosts :=
-				admin:save-configuration-without-restart($admin-config)
-			return
-				fn:concat("Mimetype ", $name, " succesfully created", if ($restart-hosts) then " (note: restart required)" else ())
-	} catch ($e) {
-		fn:concat("Mimetype ", $name, " creation failed: ", $e//err:format-string)
-	}
+    if (admin:mimetypes-get($admin-config)[mt:name = $name]) then
+      fn:concat("Mimetype ", $name, " already exists, not recreated..")
+    else
+      let $admin-config :=
+        admin:mimetypes-add($admin-config, admin:mimetype($name, $extension, $format))
+      let $restart-hosts :=
+        admin:save-configuration-without-restart($admin-config)
+      return
+        fn:concat("Mimetype ", $name, " succesfully created", if ($restart-hosts) then " (note: restart required)" else ())
+  } catch ($e) {
+    fn:concat("Mimetype ", $name, " creation failed: ", $e//err:format-string)
+  }
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -174,57 +199,122 @@ declare function setup:create-mimetype($name as xs:string, $extension as xs:stri
 
 declare function setup:create-forests($import-config as element(configuration)) as item()*
 {
-	try {
-		for $forest-config in
-			setup:get-forests-from-config($import-config)
+  try {
+    for $db-config in
+      setup:get-databases-from-config($import-config)
+    let $database-name :=
+      setup:get-database-name-from-database-config($db-config)
+    let $forest-config := setup:get-database-forest-configs($import-config, $database-name)
+    return 
+      if (fn:exists($forest-config)) then
+        setup:create-forests-from-config($db-config, $database-name, $forest-config)
+      else
+        setup:create-forests-from-count($db-config, $database-name)
 
-		let $forest-name :=
-			setup:get-forest-name-from-forest-config($forest-config)
-		let $data-directory :=
-			setup:get-data-directory-from-forest-config($forest-config)
-		let $host-name :=
-			setup:get-hostname-from-forest-config($forest-config)
-		return
-			setup:create-forest($forest-name, $data-directory, $host-name)
 
-	} catch ($e) {
-		fn:concat("Forests creation failed: ", $e//err:format-string)
-	}
+(:
+    for $forest-config in
+      setup:get-forests-from-config($import-config)
+
+    let $forest-name :=
+      setup:get-forest-name-from-forest-config($forest-config)
+    let $data-directory :=
+      setup:get-data-directory-from-forest-config($forest-config)
+    let $host-name :=
+      setup:get-hostname-from-forest-config($forest-config)
+    return
+      setup:create-forest-by-host-name($forest-name, $data-directory, $host-name)
+:)
+
+  } catch ($e) {
+    fn:concat("Forests creation failed: ", $e//err:format-string)
+  }
 };
 
-declare function setup:create-forest(
-	$forest-name as xs:string,
-	$data-directory as xs:string?,
-	$host-name as xs:string?) as item()*
+declare function setup:create-forests-from-config(
+  $db-config as element(db:database), 
+  $database-name as xs:string, 
+  $forest-config as element(as:assignment)*) as item()*
 {
-	xdmp:log( text { "setup:create-forest", $forest-name, $data-directory, $host-name }),
-	try {
-		let $host-id :=
-			if ($host-name) then xdmp:host($host-name)
-			else ()
-		return
-		if (xdmp:forests()[$forest-name = xdmp:forest-name(.)]) then
-			fn:concat("Forest ", $forest-name, " already exists, not recreated..")
-		else
-				let $host := ($host-id, $default-host)[1]
-			let $admin-config :=
-				admin:get-configuration()
-			let $admin-config :=
-					admin:forest-create($admin-config, $forest-name, $host, $data-directory)
-			let $restart-hosts :=
-				admin:save-configuration-without-restart($admin-config)
+  () (: TBD :)
+};
 
-			return
-					fn:string-join((
-						"Forest ", $forest-name, " succesfully created",
-						if ($data-directory) then (" at ", $data-directory)
-	 					else (),
-	 					if ($host) then (" on ", $host-name)
-	 					else (),
-	 					"..", if ($restart-hosts) then " (note: restart required)" else ()), "")
-	} catch ($e) {
-		fn:concat("Forest ", $forest-name, " creation failed: ", $e//err:format-string)
-	}
+declare function setup:create-forests-from-count(
+  $db-config as element(db:database), 
+  $database-name as xs:string) as item()*
+{
+  let $group-id := xdmp:group()
+  let $config := admin:get-configuration()
+  let $hosts := admin:group-get-host-ids($config, $group-id)
+  let $forests-per-host := setup:get-forests-per-host-from-database-config($db-config)
+  let $data-directory := $db-config/db:forests/db:data-directory
+  for $host at $i in $hosts 
+  for $j in (1 to $forests-per-host)
+  let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
+  let $log := xdmp:log(fn:concat("Create forest ", $forest-name, " on host ", $host))
+  return setup:create-forest(
+    $forest-name,
+    $data-directory,
+    $host
+  )
+};
+
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: 
+ ::)
+declare function setup:get-database-forest-configs(
+  $import-config as element(configuration), 
+  $database-name as xs:string) as element(as:assignment)*
+{
+  ()
+};
+
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: 
+ ::)
+declare function setup:create-forest-by-host-name(
+  $database-name as xs:string,
+  $forest-name as xs:string,
+  $data-directory as xs:string?,
+  $host-name as xs:string?) as item()*
+{
+  let $host-id :=
+    if ($host-name) then xdmp:host($host-name)
+    else ()
+  return
+    setup:create-forest($forest-name, $data-directory, $host-id)
+};
+
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: 
+ ::)
+declare function setup:create-forest(
+  $forest-name as xs:string,
+  $data-directory as xs:string?,
+  $host-id as xs:unsignedLong?) as item()*
+{
+  xdmp:log( text { "setup:create-forest", $forest-name, $data-directory, xdmp:host-name($host-id) }),
+  try {
+    if (xdmp:forests()[$forest-name = xdmp:forest-name(.)]) then
+      fn:concat("Forest ", $forest-name, " already exists, not recreated..")
+    else
+      let $host := ($host-id, $default-host)[1]
+      let $admin-config := admin:get-configuration()
+      let $admin-config :=
+        admin:forest-create($admin-config, $forest-name, $host, $data-directory)
+      let $restart-hosts :=
+        admin:save-configuration-without-restart($admin-config)
+      return
+          fn:string-join((
+            "Forest ", $forest-name, " succesfully created",
+            if ($data-directory) then (" at ", $data-directory)
+            else (),
+            if ($host) then (" on ", xdmp:host-name($host-id))
+            else (),
+            "..", if ($restart-hosts) then " (note: restart required)" else ()), "")
+  } catch ($e) {
+    fn:concat("Forest ", $forest-name, " creation failed: ", $e//err:format-string)
+  }
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -233,41 +323,42 @@ declare function setup:create-forest(
 
 declare function setup:create-databases($import-config as element(configuration)) as item()*
 {
-	try {
-		for $database-config in
-			setup:get-databases-from-config($import-config)
+  try {
+    for $database-config in
+      setup:get-databases-from-config($import-config)
 
-		return
-			setup:create-database($database-config)
+    return
+      setup:create-database($database-config)
 
-	} catch ($e) {
-		fn:concat("Databases creation failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Databases creation failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:create-database($database-config as element(db:database)) as item()*
 {
-	let $database-name :=
-		setup:get-database-name-from-database-config($database-config)
-	return
+  xdmp:log("create-database-with-forests"),
+  let $database-name :=
+    setup:get-database-name-from-database-config($database-config)
+  return
 
-	try {
-			if (xdmp:databases()[$database-name = xdmp:database-name(.)]) then
-				fn:concat("Database ", $database-name, " already exists, not recreated..")
-			else
-				let $admin-config :=
-					admin:get-configuration()
-				let $admin-config :=
-					admin:database-create($admin-config, $database-name, $default-security, $default-schemas)
-				let $restart-hosts :=
-					admin:save-configuration-without-restart($admin-config)
+  try {
+      if (xdmp:databases()[$database-name = xdmp:database-name(.)]) then
+        fn:concat("Database ", $database-name, " already exists, not recreated..")
+      else
+        let $admin-config :=
+          admin:get-configuration()
+        let $admin-config :=
+          admin:database-create($admin-config, $database-name, $default-security, $default-schemas)
+        let $restart-hosts :=
+          admin:save-configuration-without-restart($admin-config)
 
-				return
-					fn:concat("Database ", $database-name, " succesfully created..", if ($restart-hosts) then " (note: restart required)" else ())
+        return
+          fn:concat("Database ", $database-name, " succesfully created..", if ($restart-hosts) then " (note: restart required)" else ())
 
-	} catch ($e) {
-		fn:concat("Database ", $database-name, " creation failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Database ", $database-name, " creation failed: ", $e//err:format-string)
+  }
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -276,70 +367,82 @@ declare function setup:create-database($database-config as element(db:database))
 
 declare function setup:attach-forests($import-config as element(configuration)) as item()*
 {
-	try {
-		for $database-config in
-			setup:get-databases-from-config($import-config)
+  try {
+    for $database-config in
+      setup:get-databases-from-config($import-config)
 
-		return
-			setup:attach-forests-to-database($database-config)
+    return
+      setup:attach-forests-to-database($database-config)
 
-	} catch ($e) {
-		fn:concat("Attaching forests failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Attaching forests failed: ", $e//err:format-string)
+  }
 };
 
-declare function setup:attach-forests-to-database($database-config as element(db:database)) as item()*
+declare function setup:attach-forests-to-database($db-config as element(db:database)) as item()*
 {
-	let $database-name :=
-		setup:get-database-name-from-database-config($database-config)
-	return
+  let $database-name :=
+    setup:get-database-name-from-database-config($db-config)
+  return
 
-	try {
-		for $forest-ref in
-			setup:get-forest-refs-from-database-config($database-config)
+  try {
+    (:
+    for $forest-ref in
+      setup:get-forest-refs-from-database-config($database-config)
 
-		let $forest-name :=
-			fn:data($forest-ref/@name)
+    let $forest-name :=
+      fn:data($forest-ref/@name)
+    :)
+    let $group-id := xdmp:group()
+    let $config := admin:get-configuration()
+    let $hosts := admin:group-get-host-ids($config, $group-id)
+    let $forests-per-host := setup:get-forests-per-host-from-database-config($db-config)
+    let $data-directory := ()
+      (: setup:get-data-directory-from-forest-config($forest-config) :)
+    for $host at $i in $hosts 
+    for $j in (1 to $forests-per-host)
+    let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
+    let $log := xdmp:log(fn:concat("Create forest ", $forest-name, " on host ", $host))
 
-		return
-			setup:attach-database-forest($database-name, $forest-name)
+    return
+      setup:attach-database-forest($database-name, $forest-name)
 
-	} catch ($e) {
-		fn:concat("Attaching forests to database ", $database-name, " failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Attaching forests to database ", $database-name, " failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:attach-database-forest($database-name as xs:string, $forest-name as xs:string) as item()*
 {
-	try {
-		if (fn:not(xdmp:databases()[$database-name = xdmp:database-name(.)])) then
-			fn:concat("Database ", $database-name, " does not exist, forest ", $forest-name, " not attached. Database creation might have failed..")
-		else if (fn:not(xdmp:forests()[$forest-name = xdmp:forest-name(.)])) then
-			fn:concat("Forest ", $forest-name, " does not exist, not attached to database ", $database-name, ". Forest creation might have failed or is missing in the import..")
-		else if (xdmp:database-forests(xdmp:database($database-name))[$forest-name = xdmp:forest-name(.)]) then
-			let $admin-config :=
-				admin:get-configuration()
-			let $admin-config :=
-				admin:database-detach-forest($admin-config, xdmp:database($database-name), xdmp:forest($forest-name))
-			let $admin-config :=
-				admin:database-attach-forest($admin-config, xdmp:database($database-name), xdmp:forest($forest-name))
-			let $restart-hosts :=
-				admin:save-configuration-without-restart($admin-config)
-			return
-				fn:concat("Forest ", $forest-name, " succesfully reattached to database ", $database-name, "..", if ($restart-hosts) then " (note: restart required)" else ())
-		else
-			let $admin-config :=
-				admin:get-configuration()
-			let $admin-config :=
-				admin:database-attach-forest($admin-config, xdmp:database($database-name), xdmp:forest($forest-name))
-			let $restart-hosts :=
-				admin:save-configuration-without-restart($admin-config)
-			return
-				fn:concat("Forest ", $forest-name, " succesfully attached to database ", $database-name, "..", if ($restart-hosts) then " (note: restart required)" else ())
+  try {
+    if (fn:not(xdmp:databases()[$database-name = xdmp:database-name(.)])) then
+      fn:concat("Database ", $database-name, " does not exist, forest ", $forest-name, " not attached. Database creation might have failed..")
+    else if (fn:not(xdmp:forests()[$forest-name = xdmp:forest-name(.)])) then
+      fn:concat("Forest ", $forest-name, " does not exist, not attached to database ", $database-name, ". Forest creation might have failed or is missing in the import..")
+    else if (xdmp:database-forests(xdmp:database($database-name))[$forest-name = xdmp:forest-name(.)]) then
+      let $admin-config :=
+        admin:get-configuration()
+      let $admin-config :=
+        admin:database-detach-forest($admin-config, xdmp:database($database-name), xdmp:forest($forest-name))
+      let $admin-config :=
+        admin:database-attach-forest($admin-config, xdmp:database($database-name), xdmp:forest($forest-name))
+      let $restart-hosts :=
+        admin:save-configuration-without-restart($admin-config)
+      return
+        fn:concat("Forest ", $forest-name, " succesfully reattached to database ", $database-name, "..", if ($restart-hosts) then " (note: restart required)" else ())
+    else
+      let $admin-config :=
+        admin:get-configuration()
+      let $admin-config :=
+        admin:database-attach-forest($admin-config, xdmp:database($database-name), xdmp:forest($forest-name))
+      let $restart-hosts :=
+        admin:save-configuration-without-restart($admin-config)
+      return
+        fn:concat("Forest ", $forest-name, " succesfully attached to database ", $database-name, "..", if ($restart-hosts) then " (note: restart required)" else ())
 
-	} catch ($e) {
-		fn:concat("Attaching forest ", $forest-name, " to database ", $database-name, " failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Attaching forest ", $forest-name, " to database ", $database-name, " failed: ", $e//err:format-string)
+  }
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -348,289 +451,289 @@ declare function setup:attach-database-forest($database-name as xs:string, $fore
 
 declare function setup:apply-databases-settings($import-config as element(configuration)) as item()*
 {
-	try {
-		for $database-config in
-			setup:get-databases-from-config($import-config)
+  try {
+    for $database-config in
+      setup:get-databases-from-config($import-config)
 
-		return
-			setup:apply-database-settings($database-config)
+    return
+      setup:apply-database-settings($database-config)
 
-	} catch ($e) {
-		fn:concat("Applying database settings failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Applying database settings failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:apply-database-settings($database-config as element(db:database)) as item()*
 {
-	let $database-name :=
-		setup:get-database-name-from-database-config($database-config)
+  let $database-name :=
+    setup:get-database-name-from-database-config($database-config)
 
-	return
+  return
 
-	try {
-		let $admin-config := admin:get-configuration()
-		let $database := xdmp:database($database-name)
+  try {
+    let $admin-config := admin:get-configuration()
+    let $database := xdmp:database($database-name)
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "language")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-language($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "language")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-language($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "stemmed-searches")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-stemmed-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "stemmed-searches")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-stemmed-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "word-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-word-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "word-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-word-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "word-positions")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-word-positions($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "word-positions")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-word-positions($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-phrase-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-fast-phrase-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-phrase-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-fast-phrase-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-reverse-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-fast-reverse-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-reverse-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-fast-reverse-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-case-sensitive-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-fast-case-sensitive-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-case-sensitive-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-fast-case-sensitive-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-diacritic-sensitive-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-fast-diacritic-sensitive-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-diacritic-sensitive-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-fast-diacritic-sensitive-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-element-word-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-fast-element-word-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-element-word-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-fast-element-word-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "element-word-positions")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-element-word-positions($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "element-word-positions")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-element-word-positions($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-element-phrase-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-fast-element-phrase-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-element-phrase-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-fast-element-phrase-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "element-value-positions")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-element-value-positions($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "element-value-positions")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-element-value-positions($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "attribute-value-positions")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-attribute-value-positions($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "attribute-value-positions")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-attribute-value-positions($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "three-character-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-three-character-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "three-character-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-three-character-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "three-character-word-positions")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-three-character-word-positions($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "three-character-word-positions")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-three-character-word-positions($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-element-character-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-fast-element-character-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-element-character-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-fast-element-character-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "trailing-wildcard-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-trailing-wildcard-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "trailing-wildcard-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-trailing-wildcard-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "trailing-wildcard-word-positions")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-trailing-wildcard-word-positions($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "trailing-wildcard-word-positions")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-trailing-wildcard-word-positions($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-element-trailing-wildcard-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-fast-element-trailing-wildcard-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "fast-element-trailing-wildcard-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-fast-element-trailing-wildcard-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "two-character-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-two-character-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "two-character-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-two-character-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "one-character-searches")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-one-character-searches($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "one-character-searches")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-one-character-searches($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "uri-lexicon")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-uri-lexicon($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "uri-lexicon")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-uri-lexicon($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "collection-lexicon")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-collection-lexicon($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "collection-lexicon")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-collection-lexicon($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "reindexer-enable")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-reindexer-enable($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "reindexer-enable")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-reindexer-enable($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "reindexer-throttle")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-reindexer-throttle($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "reindexer-throttle")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-reindexer-throttle($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "reindexer-timestamp")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-reindexer-timestamp($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "reindexer-timestamp")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-reindexer-timestamp($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "directory-creation")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-directory-creation($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "directory-creation")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-directory-creation($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "maintain-last-modified")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-maintain-last-modified($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "maintain-last-modified")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-maintain-last-modified($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "maintain-directory-last-modified")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-maintain-directory-last-modified($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "maintain-directory-last-modified")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-maintain-directory-last-modified($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "inherit-permissions")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-inherit-permissions($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "inherit-permissions")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-inherit-permissions($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "inherit-collections")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-inherit-collections($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "inherit-collections")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-inherit-collections($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-boolean($database-config, "inherit-quality")
-		let $admin-config :=
-			if (fn:exists($value)) then
-				admin:database-set-inherit-quality($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-boolean($database-config, "inherit-quality")
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:database-set-inherit-quality($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "format-compatibility")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-format-compatibility($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "format-compatibility")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-format-compatibility($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "index-detection")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-index-detection($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "index-detection")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-index-detection($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "expunge-locks")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-expunge-locks($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "expunge-locks")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-expunge-locks($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $value := setup:get-setting-from-database-config-as-string($database-config, "tf-normalization")
-		let $admin-config :=
-			if ($value) then
-				admin:database-set-tf-normalization($admin-config, $database, $value)
-			else
-				$admin-config
+    let $value := setup:get-setting-from-database-config-as-string($database-config, "tf-normalization")
+    let $admin-config :=
+      if ($value) then
+        admin:database-set-tf-normalization($admin-config, $database, $value)
+      else
+        $admin-config
 
-		let $restart-hosts :=
-			admin:save-configuration-without-restart($admin-config)
-		return
-			fn:concat("Database ", $database-name, " settings applied succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
+    let $restart-hosts :=
+      admin:save-configuration-without-restart($admin-config)
+    return
+      fn:concat("Database ", $database-name, " settings applied succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
 
-	} catch ($e) {
-		fn:concat("Applying settings to database ", $database-name, " failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Applying settings to database ", $database-name, " failed: ", $e//err:format-string)
+  }
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -639,64 +742,64 @@ declare function setup:apply-database-settings($database-config as element(db:da
 
 declare function setup:configure-databases($import-config as element(configuration)) as item()*
 {
-	try {
-		for $database-config in
-			setup:get-databases-from-config($import-config)
+  try {
+    for $database-config in
+      setup:get-databases-from-config($import-config)
 
-		return
-			setup:configure-database($database-config)
+    return
+      setup:configure-database($database-config)
 
-	} catch ($e) {
-		fn:concat("Configuring databases failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Configuring databases failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:configure-database($database-config as element(db:database)) as item()*
 {
-	let $database-name :=
-		setup:get-database-name-from-database-config($database-config)
+  let $database-name :=
+    setup:get-database-name-from-database-config($database-config)
 
-	return
+  return
 
-	try {
-		let $admin-config :=
-			admin:get-configuration()
+  try {
+    let $admin-config :=
+      admin:get-configuration()
 
-		let $database :=
-			xdmp:database($database-name)
+    let $database :=
+      xdmp:database($database-name)
 
-		let $admin-config :=
-			setup:add-word-lexicons($admin-config, $database, $database-config)
+    let $admin-config :=
+      setup:add-word-lexicons($admin-config, $database, $database-config)
 
     let $admin-config :=
       setup:add-fragment-roots($admin-config, $database, $database-config)
-		(:
-		  <fragment-roots />
-		  <fragment-parents />
-		  <element-word-query-throughs />
-		  <phrase-throughs />
-		  <phrase-arounds />
-		  <range-element-attribute-indexes />
-		  <element-word-lexicons />
-		  <element-attribute-word-lexicons />
-		  <geospatial-element-indexes />
-		  <geospatial-element-child-indexes />
-		  <geospatial-element-pair-indexes />
-		  <geospatial-element-attribute-pair-indexes />
+    (:
+      <fragment-roots />
+      <fragment-parents />
+      <element-word-query-throughs />
+      <phrase-throughs />
+      <phrase-arounds />
+      <range-element-attribute-indexes />
+      <element-word-lexicons />
+      <element-attribute-word-lexicons />
+      <geospatial-element-indexes />
+      <geospatial-element-child-indexes />
+      <geospatial-element-pair-indexes />
+      <geospatial-element-attribute-pair-indexes />
 
-		:)
+    :)
 
-		let $admin-config := setup:set-schema-database($admin-config, $database-config, $database)
-		let $admin-config := setup:set-security-database($admin-config, $database-config, $database)
-		let $admin-config := setup:set-triggers-database($admin-config, $database-config, $database)
+    let $admin-config := setup:set-schema-database($admin-config, $database-config, $database)
+    let $admin-config := setup:set-security-database($admin-config, $database-config, $database)
+    let $admin-config := setup:set-triggers-database($admin-config, $database-config, $database)
 
-		(: remove any existing range index (copied from default.xqy) :)
-		let $remove-existing-indexes :=
-			for $index in admin:database-get-range-element-indexes($admin-config, $database)
-			return
-				xdmp:set($admin-config, admin:database-delete-range-element-index($admin-config, $database, $index))
+    (: remove any existing range index (copied from default.xqy) :)
+    let $remove-existing-indexes :=
+      for $index in admin:database-get-range-element-indexes($admin-config, $database)
+      return
+        xdmp:set($admin-config, admin:database-delete-range-element-index($admin-config, $database, $index))
 
-		let $admin-config := setup:add-range-element-indexes($admin-config, $database, $database-config)
+    let $admin-config := setup:add-range-element-indexes($admin-config, $database, $database-config)
 
     (: remove any existing range element attribute index :)
     let $remove-existing-indexes :=
@@ -730,23 +833,23 @@ declare function setup:configure-database($database-config as element(db:databas
 
     let $admin-config := setup:add-geospatial-element-child-indexes($admin-config, $database, $database-config)
 
-		(: remove any existing field (copied from default.xqy) :)
-		let $remove-existing-fields :=
-			for $field as xs:string in admin:database-get-fields($admin-config, $database)/db:field-name
-			return
-				xdmp:set($admin-config, admin:database-delete-field($admin-config, $database, $field))
+    (: remove any existing field (copied from default.xqy) :)
+    let $remove-existing-fields :=
+      for $field as xs:string in admin:database-get-fields($admin-config, $database)/db:field-name
+      return
+        xdmp:set($admin-config, admin:database-delete-field($admin-config, $database, $field))
 
-		let $admin-config := setup:add-fields($admin-config, $database, $database-config)
+    let $admin-config := setup:add-fields($admin-config, $database, $database-config)
 
-		let $restart-hosts :=
-			admin:save-configuration-without-restart($admin-config)
+    let $restart-hosts :=
+      admin:save-configuration-without-restart($admin-config)
 
-		return
-			fn:concat("Database ", $database-name, " configured succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
+    return
+      fn:concat("Database ", $database-name, " configured succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
 
-	} catch ($e) {
-		fn:concat("Database ", $database-name, " configuration failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Database ", $database-name, " configuration failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:add-fields($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)
@@ -757,10 +860,10 @@ declare function setup:add-fields($admin-config as element(configuration), $data
      if ($fields[db:field-name = ""]) then ()
      else
       <field xmlns="http://marklogic.com/xdmp/database">
-    	  <field-name/>
-      	<include-root>true</include-root>
-      	<included-elements/>
-      	<excluded-elements/>
+        <field-name/>
+        <include-root>true</include-root>
+        <included-elements/>
+        <excluded-elements/>
       </field>
       )
   return setup:add-fields-R($admin-config, $database, $field-configs)
@@ -891,8 +994,8 @@ declare function setup:add-word-lexicons-R($admin-config as element(configuratio
 declare function setup:safe-database-add-word-lexicon($admin-config as element(configuration), $database as xs:unsignedLong, $collation as xs:string) as element(configuration)
 {
   try {
-	let $lexspec := admin:database-word-lexicon($collation)
-	return admin:database-add-word-lexicon($admin-config, $database, $lexspec)
+  let $lexspec := admin:database-word-lexicon($collation)
+  return admin:database-add-word-lexicon($admin-config, $database, $lexspec)
   } catch ($e) {$admin-config}
 };
 
@@ -959,9 +1062,9 @@ declare function setup:safe-database-field-includes($admin-config as element(con
 :)
 declare function setup:set-triggers-database($admin-config as element(configuration), $database-config as element(db:database), $database as xs:unsignedLong) as element(configuration)
 {
-	let $triggers-database-id := if ($database-config/db:triggers-database/@name) then xdmp:database($database-config/db:triggers-database/@name) else 0
-	return
-		admin:database-set-triggers-database($admin-config, $database, $triggers-database-id)
+  let $triggers-database-id := if ($database-config/db:triggers-database/@name) then xdmp:database($database-config/db:triggers-database/@name) else 0
+  return
+    admin:database-set-triggers-database($admin-config, $database, $triggers-database-id)
 };
 
 
@@ -971,9 +1074,9 @@ declare function setup:set-triggers-database($admin-config as element(configurat
 :)
 declare function setup:set-schema-database($admin-config as element(configuration), $database-config as element(db:database), $database as xs:unsignedLong) as element(configuration)
 {
-	let $schema-database-id := if ($database-config/db:schema-database/@name) then xdmp:database($database-config/db:schema-database/@name) else $default-schemas
-	return
-		admin:database-set-schema-database($admin-config, $database, $schema-database-id)
+  let $schema-database-id := if ($database-config/db:schema-database/@name) then xdmp:database($database-config/db:schema-database/@name) else $default-schemas
+  return
+    admin:database-set-schema-database($admin-config, $database, $schema-database-id)
 };
 
 
@@ -983,9 +1086,9 @@ declare function setup:set-schema-database($admin-config as element(configuratio
 :)
 declare function setup:set-security-database($admin-config as element(configuration), $database-config as element(db:database), $database as xs:unsignedLong) as element(configuration)
 {
-	let $security-database-id := if ($database-config/db:security-database/@name) then xdmp:database($database-config/db:security-database/@name) else $default-security
-	return
-		admin:database-set-security-database($admin-config, $database, $security-database-id)
+  let $security-database-id := if ($database-config/db:security-database/@name) then xdmp:database($database-config/db:security-database/@name) else $default-security
+  return
+    admin:database-set-security-database($admin-config, $database, $security-database-id)
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -994,114 +1097,115 @@ declare function setup:set-security-database($admin-config as element(configurat
 
 declare function setup:create-appservers($import-config as element(configuration)) as item()*
 {
-	try {
-		for $http-config in
-			setup:get-http-servers-from-config($import-config)
-		return
-			setup:create-appserver($http-config),
+  try {
+    for $http-config in
+      setup:get-http-servers-from-config($import-config)
+    return
+      setup:create-appserver($http-config),
 
-		for $xdbc-config in
-			setup:get-xdbc-servers-from-config($import-config)
-		return
-			setup:create-xdbcserver($xdbc-config)
+    for $xdbc-config in
+      setup:get-xdbc-servers-from-config($import-config)
+    return
+      setup:create-xdbcserver($xdbc-config)
 
-	} catch ($e) {
-		fn:concat("App servers creation failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("App servers creation failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:create-appserver($server-config as element(gr:http-server)) as item()*
 {
-	let $server-name :=
-		setup:get-server-name-from-http-config($server-config)
-	return
+  let $server-name :=
+    setup:get-server-name-from-http-config($server-config)
+  return
 
-	try {
-		if (xdmp:servers()[$server-name = xdmp:server-name(.)]) then
-			fn:concat("HTTP Server ", $server-name, " already exists, not recreated..")
-		else
-			let $admin-config :=
-				admin:get-configuration()
+  try {
+    if (xdmp:servers()[$server-name = xdmp:server-name(.)]) then
+      fn:concat("HTTP Server ", $server-name, " already exists, not recreated..")
+    else
+      let $log := xdmp:log(fn:concat("building app server ", $server-name))
+      let $admin-config :=
+        admin:get-configuration()
 
-			let $root := $server-config/gr:root[fn:string-length(.) > 0]
-			let $root :=
-				if ($root) then $root else "/"
-			let $port :=
-				xs:unsignedLong($server-config/gr:port)
-			let $is-webdav :=
-				xs:boolean($server-config/gr:webDAV)
-			let $database-id :=
-				if ($server-config/gr:database/@name) then
-					xdmp:database($server-config/gr:database/@name)
-				else
-					0
-			let $modules-id :=
-    		if ($server-config/gr:modules/@name eq "filesystem") then
-    	    0
-  			else if ($server-config/gr:modules/@name) then
-  				xdmp:database($server-config/gr:modules/@name)
-  			else
-  				0
+      let $root := $server-config/gr:root[fn:string-length(.) > 0]
+      let $root :=
+        if ($root) then $root else "/"
+      let $port :=
+        xs:unsignedLong($server-config/gr:port)
+      let $is-webdav :=
+        xs:boolean($server-config/gr:webDAV)
+      let $database-id :=
+        if ($server-config/gr:database/@name) then
+          xdmp:database($server-config/gr:database/@name)
+        else
+          0
+      let $modules-id :=
+        if ($server-config/gr:modules/@name eq "filesystem") then
+          0
+        else if ($server-config/gr:modules/@name) then
+          xdmp:database($server-config/gr:modules/@name)
+        else
+          0
 
-			let $admin-config :=
-				if ($is-webdav) then
-					(: Note: database id is stored as modules is for webdav servers :)
-					admin:webdav-server-create($admin-config, $default-group, $server-name, $root, $port, $modules-id)
-				else
-					admin:http-server-create($admin-config, $default-group, $server-name, $root, $port, $modules-id, $database-id)
-			let $restart-hosts :=
-				admin:save-configuration-without-restart($admin-config)
+      let $admin-config :=
+        if ($is-webdav) then
+          (: Note: database id is stored as modules is for webdav servers :)
+          admin:webdav-server-create($admin-config, $default-group, $server-name, $root, $port, $modules-id)
+        else
+          admin:http-server-create($admin-config, $default-group, $server-name, $root, $port, $modules-id, $database-id)
+      let $restart-hosts :=
+        admin:save-configuration-without-restart($admin-config)
 
-			return
-				fn:concat("HTTP Server ", $server-name, " succesfully created..", if ($restart-hosts) then " (note: restart required)" else ())
+      return
+        fn:concat("HTTP Server ", $server-name, " succesfully created..", if ($restart-hosts) then " (note: restart required)" else ())
 
-	} catch ($e) {
-		fn:concat("HTTP Server ", $server-name, " creation failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("HTTP Server ", $server-name, " creation failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:create-xdbcserver($server-config as element(gr:xdbc-server)) as item()*
 {
-	let $server-name :=
-		setup:get-server-name-from-xdbc-config($server-config)
-	return
+  let $server-name :=
+    setup:get-server-name-from-xdbc-config($server-config)
+  return
 
-	try {
-		if (xdmp:servers()[$server-name = xdmp:server-name(.)]) then
-			fn:concat("XDBC Server ", $server-name, " already exists, not recreated..")
-		else
-			let $admin-config :=
-				admin:get-configuration()
+  try {
+    if (xdmp:servers()[$server-name = xdmp:server-name(.)]) then
+      fn:concat("XDBC Server ", $server-name, " already exists, not recreated..")
+    else
+      let $admin-config :=
+        admin:get-configuration()
 
-			let $root := $server-config/gr:root[fn:string-length(.) > 0]
-			let $root :=
-				if ($root) then $root else "/"
-			let $port :=
-				xs:unsignedLong($server-config/gr:port)
-			let $database-id :=
-				if ($server-config/gr:database/@name) then
-					xdmp:database($server-config/gr:database/@name)
-				else
-					0
-			let $modules-id :=
-    		if ($server-config/gr:modules/@name eq "filesystem") then
-    	    0
-  			else if ($server-config/gr:modules/@name) then
-  				xdmp:database($server-config/gr:modules/@name)
-  			else
-  				0
+      let $root := $server-config/gr:root[fn:string-length(.) > 0]
+      let $root :=
+        if ($root) then $root else "/"
+      let $port :=
+        xs:unsignedLong($server-config/gr:port)
+      let $database-id :=
+        if ($server-config/gr:database/@name) then
+          xdmp:database($server-config/gr:database/@name)
+        else
+          0
+      let $modules-id :=
+        if ($server-config/gr:modules/@name eq "filesystem") then
+          0
+        else if ($server-config/gr:modules/@name) then
+          xdmp:database($server-config/gr:modules/@name)
+        else
+          0
 
-			let $admin-config :=
-				admin:xdbc-server-create($admin-config, $default-group, $server-name, $root, $port, $modules-id, $database-id)
-			let $restart-hosts :=
-				admin:save-configuration-without-restart($admin-config)
+      let $admin-config :=
+        admin:xdbc-server-create($admin-config, $default-group, $server-name, $root, $port, $modules-id, $database-id)
+      let $restart-hosts :=
+        admin:save-configuration-without-restart($admin-config)
 
-			return
-				fn:concat("XDBC Server ", $server-name, " succesfully created..", if ($restart-hosts) then " (note: restart required)" else ())
+      return
+        fn:concat("XDBC Server ", $server-name, " succesfully created..", if ($restart-hosts) then " (note: restart required)" else ())
 
-	} catch ($e) {
-		fn:concat("XDBC Server ", $server-name, " creation failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("XDBC Server ", $server-name, " creation failed: ", $e//err:format-string)
+  }
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1110,33 +1214,33 @@ declare function setup:create-xdbcserver($server-config as element(gr:xdbc-serve
 
 declare function setup:apply-appservers-settings($import-config as element(configuration)) as item()*
 {
-	try {
-		for $http-config in
-			setup:get-http-servers-from-config($import-config)
-		return
-			setup:configure-http-server($http-config),
+  try {
+    for $http-config in
+      setup:get-http-servers-from-config($import-config)
+    return
+      setup:configure-http-server($http-config),
 
-		for $xdbc-config in
-			setup:get-xdbc-servers-from-config($import-config)
-		return
-			setup:configure-xdbc-server($xdbc-config),
+    for $xdbc-config in
+      setup:get-xdbc-servers-from-config($import-config)
+    return
+      setup:configure-xdbc-server($xdbc-config),
 
-		for $task-config in
-		  setup:get-task-servers-from-config($import-config)
-		return
-		  setup:configure-task-server($task-config)
+    for $task-config in
+      setup:get-task-servers-from-config($import-config)
+    return
+      setup:configure-task-server($task-config)
 
-	} catch ($e) {
-		fn:concat("Applying servers settings failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Applying servers settings failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:configure-http-server($server-config as element(gr:http-server)) as item()*
 {
-	let $server-name := setup:get-server-name-from-http-config($server-config)
-	let $server-id := xdmp:server($server-name)
-	let $admin-config := setup:configure-server($server-config, $server-id)
-	return
+  let $server-name := setup:get-server-name-from-http-config($server-config)
+  let $server-id := xdmp:server($server-name)
+  let $admin-config := setup:configure-server($server-config, $server-id)
+  return
     xdmp:eval('
     import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
     import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
@@ -1148,103 +1252,103 @@ declare function setup:configure-http-server($server-config as element(gr:http-s
     declare variable $admin-config as element() external;
     declare variable $server-id external;
     declare variable $default-user external;
-  	try {
-  		let $default-user := if ($server-config/gr:default-user/@name) then xdmp:user($server-config/gr:default-user/@name) else $default-user
-  		let $is-webdav :=
-  			xs:boolean($server-config/gr:webDAV)
+    try {
+      let $default-user := if ($server-config/gr:default-user/@name) then xdmp:user($server-config/gr:default-user/@name) else $default-user
+      let $is-webdav :=
+        xs:boolean($server-config/gr:webDAV)
 
-  		(: reconnect databases in case the appserver already existed :)
-  		let $database-id :=
-  			if ($server-config/gr:database/@name) then
-  				xdmp:database($server-config/gr:database/@name)
-  			else
-  				0
-  		let $_ := xdmp:log(text {"Modules db name:", $server-config/gr:modules/@name})
-  		let $modules-id :=
-  		  if ($server-config/gr:modules/@name eq "filesystem") then
-  		    0
-  			else if ($server-config/gr:modules/@name) then
-  				xdmp:database($server-config/gr:modules/@name)
-  			else
-  				0
-  		let $root := $server-config/gr:root[fn:string-length(.) > 0]
-  		let $root :=
-  			if ($root) then $root else "/"
+      (: reconnect databases in case the appserver already existed :)
+      let $database-id :=
+        if ($server-config/gr:database/@name) then
+          xdmp:database($server-config/gr:database/@name)
+        else
+          0
+      let $_ := xdmp:log(text {"Modules db name:", $server-config/gr:modules/@name})
+      let $modules-id :=
+        if ($server-config/gr:modules/@name eq "filesystem") then
+          0
+        else if ($server-config/gr:modules/@name) then
+          xdmp:database($server-config/gr:modules/@name)
+        else
+          0
+      let $root := $server-config/gr:root[fn:string-length(.) > 0]
+      let $root :=
+        if ($root) then $root else "/"
 
-  		let $admin-config :=
-  			if ($is-webdav) then
-  				admin:appserver-set-database($admin-config, $server-id, $modules-id)
-  			else
-  				admin:appserver-set-database($admin-config, $server-id, $database-id)
-  		let $admin-config :=
-  			if ($is-webdav) then
-  				$admin-config
-  			else
-  				admin:appserver-set-modules-database($admin-config, $server-id, $modules-id)
+      let $admin-config :=
+        if ($is-webdav) then
+          admin:appserver-set-database($admin-config, $server-id, $modules-id)
+        else
+          admin:appserver-set-database($admin-config, $server-id, $database-id)
+      let $admin-config :=
+        if ($is-webdav) then
+          $admin-config
+        else
+          admin:appserver-set-modules-database($admin-config, $server-id, $modules-id)
 
-  		let $admin-config := admin:appserver-set-root($admin-config, $server-id, $root)
+      let $admin-config := admin:appserver-set-root($admin-config, $server-id, $root)
 
-  		let $value := $server-config/gr:session-timeout[fn:string-length(.) > 0]
-  		let $admin-config :=
-  			if ($value) then
-  				admin:appserver-set-session-timeout($admin-config, $server-id, $value)
-  			else
-  				$admin-config
+      let $value := $server-config/gr:session-timeout[fn:string-length(.) > 0]
+      let $admin-config :=
+        if ($value) then
+          admin:appserver-set-session-timeout($admin-config, $server-id, $value)
+        else
+          $admin-config
 
-  		let $value := $server-config/gr:static-expires[fn:string-length(.) > 0]
-  		let $admin-config :=
-  			if ($value) then
-  				admin:appserver-set-static-expires($admin-config, $server-id, $value)
-  			else
-  				$admin-config
+      let $value := $server-config/gr:static-expires[fn:string-length(.) > 0]
+      let $admin-config :=
+        if ($value) then
+          admin:appserver-set-static-expires($admin-config, $server-id, $value)
+        else
+          $admin-config
 
-  		let $admin-config := admin:appserver-set-default-user($admin-config, $server-id, $default-user)
+      let $admin-config := admin:appserver-set-default-user($admin-config, $server-id, $default-user)
 
-  		let $admin-config :=
-  			if ($is-webdav) then
-  				let $value := $server-config/gr:compute-content-length[fn:string-length(.) > 0]
-  				return
-  					if ($value) then
-  						admin:appserver-set-compute-content-length($admin-config, $server-id, $value)
-  					else
-  						$admin-config
-  			else
-  				let $value := $server-config/gr:error-handler[fn:string-length(.) > 0]
-  				let $admin-config :=
-  					if ($value) then
-  						admin:appserver-set-error-handler($admin-config, $server-id, $value)
-  					else
-  						$admin-config
+      let $admin-config :=
+        if ($is-webdav) then
+          let $value := $server-config/gr:compute-content-length[fn:string-length(.) > 0]
+          return
+            if ($value) then
+              admin:appserver-set-compute-content-length($admin-config, $server-id, $value)
+            else
+              $admin-config
+        else
+          let $value := $server-config/gr:error-handler[fn:string-length(.) > 0]
+          let $admin-config :=
+            if ($value) then
+              admin:appserver-set-error-handler($admin-config, $server-id, $value)
+            else
+              $admin-config
 
-  				let $value := $server-config/gr:url-rewriter[fn:string-length(.) > 0]
-  				let $admin-config :=
-  					if ($value) then
-  						admin:appserver-set-url-rewriter($admin-config, $server-id, $value)
-  					else
-  						$admin-config
+          let $value := $server-config/gr:url-rewriter[fn:string-length(.) > 0]
+          let $admin-config :=
+            if ($value) then
+              admin:appserver-set-url-rewriter($admin-config, $server-id, $value)
+            else
+              $admin-config
 
-  				return $admin-config
+          return $admin-config
 
-  		(: TODO ?
-  		<ssl-certificate-template>0</ssl-certificate-template>
-  		<ssl-allow-sslv3>true</ssl-allow-sslv3>
-  		<ssl-allow-tls>true</ssl-allow-tls>
-  		<ssl-hostname />
-  		<ssl-ciphers>ALL:!LOW:@STRENGTH</ssl-ciphers>
-  		<ssl-require-client-certificate>true</ssl-require-client-certificate>
-  		<ssl-client-certificate-authorities />
-  		:)
+      (: TODO ?
+      <ssl-certificate-template>0</ssl-certificate-template>
+      <ssl-allow-sslv3>true</ssl-allow-sslv3>
+      <ssl-allow-tls>true</ssl-allow-tls>
+      <ssl-hostname />
+      <ssl-ciphers>ALL:!LOW:@STRENGTH</ssl-ciphers>
+      <ssl-require-client-certificate>true</ssl-require-client-certificate>
+      <ssl-client-certificate-authorities />
+      :)
 
-  		let $restart-hosts :=
-  			admin:save-configuration-without-restart($admin-config)
-  		return
-  			fn:concat("HTTP Server ", $server-name, " settings applied succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
+      let $restart-hosts :=
+        admin:save-configuration-without-restart($admin-config)
+      return
+        fn:concat("HTTP Server ", $server-name, " settings applied succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
 
-  	} catch ($e) {
-  		fn:concat("Applying settings to HTTP Server ", $server-name, " failed: ", $e//err:format-string)
-  	}',
-  	(xs:QName("server-config"), $server-config,
-  	 xs:QName("server-name"), $server-name,
+    } catch ($e) {
+      fn:concat("Applying settings to HTTP Server ", $server-name, " failed: ", $e//err:format-string)
+    }',
+    (xs:QName("server-config"), $server-config,
+     xs:QName("server-name"), $server-name,
      xs:QName("admin-config"), $admin-config,
      xs:QName("server-id"), $server-id,
      xs:QName("default-user"), $default-user))
@@ -1252,281 +1356,281 @@ declare function setup:configure-http-server($server-config as element(gr:http-s
 
 declare function setup:configure-xdbc-server($server-config as element(gr:xdbc-server)) as item()*
 {
-	let $server-name :=
-		setup:get-server-name-from-xdbc-config($server-config)
-	return
+  let $server-name :=
+    setup:get-server-name-from-xdbc-config($server-config)
+  return
 
-	try {
-		let $server-id := xdmp:server($server-name)
-		let $admin-config := setup:configure-server($server-config, $server-id)
+  try {
+    let $server-id := xdmp:server($server-name)
+    let $admin-config := setup:configure-server($server-config, $server-id)
 
-		(: reconnect databases in case the appserver already existed :)
-		let $database-id :=
-			if ($server-config/gr:database/@name) then
-				xdmp:database($server-config/gr:database/@name)
-			else
-				0
-		let $modules-id :=
-  		if ($server-config/gr:modules/@name eq "filesystem") then
-  	    0
-			else if ($server-config/gr:modules/@name) then
-				xdmp:database($server-config/gr:modules/@name)
-			else
-				0
-		let $admin-config :=
-			admin:appserver-set-database($admin-config, $server-id, $database-id)
-		let $admin-config :=
-			admin:appserver-set-modules-database($admin-config, $server-id, $modules-id)
+    (: reconnect databases in case the appserver already existed :)
+    let $database-id :=
+      if ($server-config/gr:database/@name) then
+        xdmp:database($server-config/gr:database/@name)
+      else
+        0
+    let $modules-id :=
+      if ($server-config/gr:modules/@name eq "filesystem") then
+        0
+      else if ($server-config/gr:modules/@name) then
+        xdmp:database($server-config/gr:modules/@name)
+      else
+        0
+    let $admin-config :=
+      admin:appserver-set-database($admin-config, $server-id, $database-id)
+    let $admin-config :=
+      admin:appserver-set-modules-database($admin-config, $server-id, $modules-id)
 
-		let $restart-hosts :=
-			admin:save-configuration-without-restart($admin-config)
+    let $restart-hosts :=
+      admin:save-configuration-without-restart($admin-config)
 
-		return
-			fn:concat("XDBC Server ", $server-name, " settings applied succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
+    return
+      fn:concat("XDBC Server ", $server-name, " settings applied succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
 
-	} catch ($e) {
-		fn:concat("Applying settings to XDBC Server ", $server-name, " failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    fn:concat("Applying settings to XDBC Server ", $server-name, " failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:configure-task-server($server-config as element(gr:task-server)) as item()*
 {
-	try {
-		let $admin-config := admin:get-configuration()
+  try {
+    let $admin-config := admin:get-configuration()
 
-		let $value as xs:boolean? := $server-config/gr:debug-allow
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-debug-allow($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value as xs:boolean? := $server-config/gr:debug-allow
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-debug-allow($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-		let $value := $server-config/gr:debug-threads
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-debug-threads($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value := $server-config/gr:debug-threads
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-debug-threads($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value := $server-config/gr:default-time-limit
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-default-time-limit($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value := $server-config/gr:default-time-limit
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-default-time-limit($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value as xs:boolean? := $server-config/gr:log-errors
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-log-errors($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value as xs:boolean? := $server-config/gr:log-errors
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-log-errors($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value := $server-config/gr:max-time-limit
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-max-time-limit($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value := $server-config/gr:max-time-limit
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-max-time-limit($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value := $server-config/gr:post-commit-trigger-depth
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-post-commit-trigger-depth($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value := $server-config/gr:post-commit-trigger-depth
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-post-commit-trigger-depth($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value := $server-config/gr:pre-commit-trigger-depth
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-pre-commit-trigger-depth($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value := $server-config/gr:pre-commit-trigger-depth
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-pre-commit-trigger-depth($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value := $server-config/gr:pre-commit-trigger-limit
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-pre-commit-trigger-limit($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value := $server-config/gr:pre-commit-trigger-limit
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-pre-commit-trigger-limit($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value as xs:boolean? := $server-config/gr:profile-allow
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-profile-allow($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value as xs:boolean? := $server-config/gr:profile-allow
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-profile-allow($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value := $server-config/gr:queue-size
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-queue-size($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value := $server-config/gr:queue-size
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-queue-size($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-  	let $value := $server-config/gr:threads
-  	let $admin-config :=
-  		if (fn:exists($value)) then
-  		  admin:taskserver-set-threads($admin-config, $default-group, $value)
-  		else
-  			$admin-config
+    let $value := $server-config/gr:threads
+    let $admin-config :=
+      if (fn:exists($value)) then
+        admin:taskserver-set-threads($admin-config, $default-group, $value)
+      else
+        $admin-config
 
-		let $restart-hosts :=
-			admin:save-configuration-without-restart($admin-config)
+    let $restart-hosts :=
+      admin:save-configuration-without-restart($admin-config)
 
-		return
-			fn:concat("Task Server settings applied succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
+    return
+      fn:concat("Task Server settings applied succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
 
-	} catch ($e) {
-	  xdmp:log($e),
-		fn:concat("Applying settings to Task Server failed: ", $e//err:format-string)
-	}
+  } catch ($e) {
+    xdmp:log($e),
+    fn:concat("Applying settings to Task Server failed: ", $e//err:format-string)
+  }
 };
 
 declare function setup:configure-server($server-config as element(), $server-id as xs:unsignedLong) as element(configuration)
 {
-	let $admin-config :=
-		admin:get-configuration()
-	let $last-login-id := if ($server-config/gr:last-login/@name) then xdmp:database($server-config/gr:last-login/@name) else 0
+  let $admin-config :=
+    admin:get-configuration()
+  let $last-login-id := if ($server-config/gr:last-login/@name) then xdmp:database($server-config/gr:last-login/@name) else 0
 
-	let $admin-config := admin:appserver-set-last-login($admin-config, $server-id, $last-login-id)
+  let $admin-config := admin:appserver-set-last-login($admin-config, $server-id, $last-login-id)
 
-	let $value := $server-config/gr:display-last-login[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-display-last-login($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:display-last-login[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-display-last-login($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:backlog[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-backlog($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:backlog[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-backlog($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:threads[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-threads($admin-config, $server-id, $server-config/gr:threads)
-		else
-			$admin-config
+  let $value := $server-config/gr:threads[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-threads($admin-config, $server-id, $server-config/gr:threads)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:request-timeout[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-request-timeout($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:request-timeout[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-request-timeout($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:keep-alive-timeout[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-keep-alive-timeout($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:keep-alive-timeout[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-keep-alive-timeout($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:max-time-limit[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-max-time-limit($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:max-time-limit[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-max-time-limit($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:default-time-limit[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-default-time-limit($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:default-time-limit[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-default-time-limit($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:pre-commit-trigger-depth[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-pre-commit-trigger-depth($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:pre-commit-trigger-depth[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-pre-commit-trigger-depth($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:pre-commit-trigger-limit[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-pre-commit-trigger-limit($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:pre-commit-trigger-limit[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-pre-commit-trigger-limit($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:collation[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-collation($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:collation[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-collation($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:authentication[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-authentication($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:authentication[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-authentication($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	(: be carefull: privilege should be a lookup! :)
-	(:
+  (: be carefull: privilege should be a lookup! :)
+  (:
 
-	let $value := $server-config/gr:privilege[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-privilege($admin-config, $server-id, $value)
-		else
-			$admin-config
-	:)
+  let $value := $server-config/gr:privilege[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-privilege($admin-config, $server-id, $value)
+    else
+      $admin-config
+  :)
 
-	let $value := $server-config/gr:concurrent-request-limit[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-concurrent-request-limit($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:concurrent-request-limit[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-concurrent-request-limit($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:log-errors[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-log-errors($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:log-errors[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-log-errors($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:debug-allow[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-debug-allow($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:debug-allow[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-debug-allow($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:profile-allow[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-profile-allow($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:profile-allow[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-profile-allow($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:default-xquery-version[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-default-xquery-version($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:default-xquery-version[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-default-xquery-version($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:output-sgml-character-entities[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-output-sgml-character-entities($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:output-sgml-character-entities[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-output-sgml-character-entities($admin-config, $server-id, $value)
+    else
+      $admin-config
 
-	let $value := $server-config/gr:output-encoding[fn:string-length(.) > 0]
-	let $admin-config :=
-		if ($value) then
-			admin:appserver-set-output-encoding($admin-config, $server-id, $value)
-		else
-			$admin-config
+  let $value := $server-config/gr:output-encoding[fn:string-length(.) > 0]
+  let $admin-config :=
+    if ($value) then
+      admin:appserver-set-output-encoding($admin-config, $server-id, $value)
+    else
+      $admin-config
 
   let $namespaces := $server-config/gr:namespaces/gr:namespace
   let $admin-config :=
@@ -1546,19 +1650,19 @@ declare function setup:configure-server($server-config as element(), $server-id 
       return (: Then add in any namespace whose prefix isn't already defined :)
         admin:appserver-add-namespace($config, $server-id,
           for $ns in $namespaces
-	return
+  return
             if ($old-ns[gr:prefix = $ns/gr:prefix][gr:namespace-uri = $ns/gr:namespace-uri]) then ()
             else
               admin:group-namespace($ns/gr:prefix, $ns/gr:namespace-uri)
         )
     else
-		$admin-config
+    $admin-config
 
 
-	(: TODO: schemas, request-blackouts :)
+  (: TODO: schemas, request-blackouts :)
 
-	return
-		$admin-config
+  return
+    $admin-config
 };
 
 declare function setup:create-privileges($import-config as element(configuration))
@@ -1842,94 +1946,94 @@ declare function setup:get-configuration($databases as xs:string*,
                                          $role-ids as xs:unsignedLong*,
                                          $mimetypes as xs:string*) as element()
 {
-	<configuration>
-		{setup:get-app-servers($app-servers)}
-		{setup:get-forests($forests)}
-		{setup:get-databases($databases)}
-		{setup:get-users($user-ids)}
-		{setup:get-roles($role-ids)}
-		{setup:get-mimetypes($mimetypes)}
-	</configuration>
+  <configuration>
+    {setup:get-app-servers($app-servers)}
+    {setup:get-forests($forests)}
+    {setup:get-databases($databases)}
+    {setup:get-users($user-ids)}
+    {setup:get-roles($role-ids)}
+    {setup:get-mimetypes($mimetypes)}
+  </configuration>
 };
 
 declare function setup:get-app-servers($names as xs:string*) as element()*
 {
-	let $groups := setup:read-config-file("groups.xml")/gr:groups/gr:group
-	return (
-		let $http-servers := $groups/gr:http-servers/gr:http-server[gr:http-server-name = $names]
-		where $http-servers
-		return
-			<http-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
-					xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-					xmlns="http://marklogic.com/xdmp/group">
-				{
-					for $http-server in $http-servers
-					return
-						setup:resolve-ids-to-names(
-							setup:strip-default-properties-from-http-server(
-								$http-server
-							)
-						)
-				}
-			</http-servers>
-		,
-		let $xdbc-servers := $groups/gr:xdbc-servers/gr:xdbc-server[gr:xdbc-server-name = $names]
-		where $xdbc-servers
-		return
-			<xdbc-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
-					xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-					xmlns="http://marklogic.com/xdmp/group">
-				{
-					for $xdbc-server in $xdbc-servers
-					return
-						setup:resolve-ids-to-names(
-							setup:strip-default-properties-from-xdbc-server(
-								$xdbc-server
-							)
-						)
-				}
-			</xdbc-servers>
-	)
+  let $groups := setup:read-config-file("groups.xml")/gr:groups/gr:group
+  return (
+    let $http-servers := $groups/gr:http-servers/gr:http-server[gr:http-server-name = $names]
+    where $http-servers
+    return
+      <http-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns="http://marklogic.com/xdmp/group">
+        {
+          for $http-server in $http-servers
+          return
+            setup:resolve-ids-to-names(
+              setup:strip-default-properties-from-http-server(
+                $http-server
+              )
+            )
+        }
+      </http-servers>
+    ,
+    let $xdbc-servers := $groups/gr:xdbc-servers/gr:xdbc-server[gr:xdbc-server-name = $names]
+    where $xdbc-servers
+    return
+      <xdbc-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns="http://marklogic.com/xdmp/group">
+        {
+          for $xdbc-server in $xdbc-servers
+          return
+            setup:resolve-ids-to-names(
+              setup:strip-default-properties-from-xdbc-server(
+                $xdbc-server
+              )
+            )
+        }
+      </xdbc-servers>
+  )
 };
 
 declare function setup:get-forests($names as xs:string*) as element(as:assignments) {
-	let $forests := setup:read-config-file("assignments.xml")/as:assignments
-	let $forests := $forests/as:assignment[as:forest-name = $names]
-	where $forests
-	return
-		<assignments xsi:schemaLocation="http://marklogic.com/xdmp/assignments assignments.xsd"
-					 xmlns="http://marklogic.com/xdmp/assignments"
-					 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-			{
-				for $forest in $forests
-				return
-					setup:resolve-ids-to-names(
-						setup:strip-default-properties-from-forest(
-							$forest
-						)
-					)
-			}
-		</assignments>
+  let $forests := setup:read-config-file("assignments.xml")/as:assignments
+  let $forests := $forests/as:assignment[as:forest-name = $names]
+  where $forests
+  return
+    <assignments xsi:schemaLocation="http://marklogic.com/xdmp/assignments assignments.xsd"
+           xmlns="http://marklogic.com/xdmp/assignments"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      {
+        for $forest in $forests
+        return
+          setup:resolve-ids-to-names(
+            setup:strip-default-properties-from-forest(
+              $forest
+            )
+          )
+      }
+    </assignments>
 };
 
 declare function setup:get-databases($names as xs:string*) as element(db:databases) {
-	let $databases := setup:read-config-file("databases.xml")/db:databases
-	let $databases := $databases/db:database[db:database-name = $names]
-	where $databases
-	return
-		<databases xsi:schemaLocation="http://marklogic.com/xdmp/database database.xsd"
-				   xmlns="http://marklogic.com/xdmp/database"
-				   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-			{
-				for $database in $databases
-				return
-					setup:resolve-ids-to-names(
-						setup:strip-default-properties-from-database(
-							$database
-						)
-					)
-			}
-		</databases>
+  let $databases := setup:read-config-file("databases.xml")/db:databases
+  let $databases := $databases/db:database[db:database-name = $names]
+  where $databases
+  return
+    <databases xsi:schemaLocation="http://marklogic.com/xdmp/database database.xsd"
+           xmlns="http://marklogic.com/xdmp/database"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      {
+        for $database in $databases
+        return
+          setup:resolve-ids-to-names(
+            setup:strip-default-properties-from-database(
+              $database
+            )
+          )
+      }
+    </databases>
 };
 
 declare function setup:get-role-name($id as xs:unsignedLong) as xs:string? {
@@ -2049,15 +2153,15 @@ declare function setup:get-roles($ids as xs:unsignedLong*) as element(sec:roles)
 };
 
 declare function setup:get-mimetypes($names as xs:string*) as element(mt:mimetypes)? {
-	let $mimes := setup:read-config-file("mimetypes.xml")/mt:mimetypes
-	let $mimes := $mimes/mt:mimetype[mt:name = $names]
-	where $mimes
-	return
-		<mimetypes xsi:schemaLocation="http://marklogic.com/xdmp/mimetypes mimetypes.xsd"
-				   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-				   xmlns="http://marklogic.com/xdmp/mimetypes">
-			{setup:resolve-ids-to-names($mimes)}
-		</mimetypes>
+  let $mimes := setup:read-config-file("mimetypes.xml")/mt:mimetypes
+  let $mimes := $mimes/mt:mimetype[mt:name = $names]
+  where $mimes
+  return
+    <mimetypes xsi:schemaLocation="http://marklogic.com/xdmp/mimetypes mimetypes.xsd"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns="http://marklogic.com/xdmp/mimetypes">
+      {setup:resolve-ids-to-names($mimes)}
+    </mimetypes>
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2065,88 +2169,88 @@ declare function setup:get-mimetypes($names as xs:string*) as element(mt:mimetyp
  ::)
 
 declare function setup:resolve-database-id-to-name($node as element()) as element()? {
-	if (fn:data($node) ne 0) then
-		element {fn:node-name($node)} {
-			attribute {xs:QName("name")} { xdmp:database-name(fn:data($node)) }
-		}
-	else ()
+  if (fn:data($node) ne 0) then
+    element {fn:node-name($node)} {
+      attribute {xs:QName("name")} { xdmp:database-name(fn:data($node)) }
+    }
+  else ()
 };
 
 declare function setup:resolve-forest-id-to-name($node as element()) as element()? {
-	if (fn:data($node) ne 0) then
-		element {fn:node-name($node)} {
-			attribute {xs:QName("name")} { xdmp:forest-name(fn:data($node)) }
-		}
-	else ()
+  if (fn:data($node) ne 0) then
+    element {fn:node-name($node)} {
+      attribute {xs:QName("name")} { xdmp:forest-name(fn:data($node)) }
+    }
+  else ()
 };
 
 declare function setup:resolve-host-id-to-name($node as element()) as element()? {
-	if (fn:data($node) ne 0) then
-		element {fn:node-name($node)} {
-			attribute {xs:QName("name")} { xdmp:host-name(fn:data($node)) }
-		}
-	else ()
+  if (fn:data($node) ne 0) then
+    element {fn:node-name($node)} {
+      attribute {xs:QName("name")} { xdmp:host-name(fn:data($node)) }
+    }
+  else ()
 };
 
 declare function setup:resolve-user-id-to-name($node as element()) as element()? {
-	if (fn:data($node) ne 0) then
-		element {fn:node-name($node)} {
-			attribute {xs:QName("name")} { setup:user-name(fn:data($node)) }
-		}
-	else ()
+  if (fn:data($node) ne 0) then
+    element {fn:node-name($node)} {
+      attribute {xs:QName("name")} { setup:user-name(fn:data($node)) }
+    }
+  else ()
 };
 
 declare function setup:resolve-ids-to-names($nodes as item()*) as item()* {
-	for $node in $nodes
-	return
-		typeswitch ($node)
+  for $node in $nodes
+  return
+    typeswitch ($node)
 
-		(: App Server specific :)
-			case element(gr:modules) return
-				setup:resolve-database-id-to-name($node)
+    (: App Server specific :)
+      case element(gr:modules) return
+        setup:resolve-database-id-to-name($node)
 
-			case element(gr:database) return
-				setup:resolve-database-id-to-name($node)
+      case element(gr:database) return
+        setup:resolve-database-id-to-name($node)
 
-			case element(gr:last-login) return
-				setup:resolve-database-id-to-name($node)
+      case element(gr:last-login) return
+        setup:resolve-database-id-to-name($node)
 
-			case element(gr:default-user) return
-				setup:resolve-user-id-to-name($node)
+      case element(gr:default-user) return
+        setup:resolve-user-id-to-name($node)
 
-		(: Database specific :)
-			case element(db:security-database) return
-				setup:resolve-database-id-to-name($node)
+    (: Database specific :)
+      case element(db:security-database) return
+        setup:resolve-database-id-to-name($node)
 
-			case element(db:schema-database) return
-				setup:resolve-database-id-to-name($node)
+      case element(db:schema-database) return
+        setup:resolve-database-id-to-name($node)
 
-			case element(db:triggers-database) return
-				setup:resolve-database-id-to-name($node)
+      case element(db:triggers-database) return
+        setup:resolve-database-id-to-name($node)
 
-			case element(db:forest-id) return
-				setup:resolve-forest-id-to-name($node)
+      case element(db:forest-id) return
+        setup:resolve-forest-id-to-name($node)
 
-		(: Forest specific :)
-			case element(as:host) return
-				setup:resolve-host-id-to-name($node)
+    (: Forest specific :)
+      case element(as:host) return
+        setup:resolve-host-id-to-name($node)
 
-		(: Default :)
-			case element() return
-				if ($node/node()) then
-					element {fn:node-name($node)} {
-						$node/@*,
-						setup:resolve-ids-to-names($node/node())
-					}
-				else ()
+    (: Default :)
+      case element() return
+        if ($node/node()) then
+          element {fn:node-name($node)} {
+            $node/@*,
+            setup:resolve-ids-to-names($node/node())
+          }
+        else ()
 
-			case document-node() return
-				document {
-					setup:resolve-ids-to-names($node/node())
-				}
+      case document-node() return
+        document {
+          setup:resolve-ids-to-names($node/node())
+        }
 
-			default return
-				$node
+      default return
+        $node
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2155,112 +2259,112 @@ declare function setup:resolve-ids-to-names($nodes as item()*) as item()* {
 
 declare function setup:default-http-server() as element(gr:http-server)
 {
-	(: Just pretend to create, do not save! :)
-	let $admin-config := admin:get-configuration()
-	let $admin-config :=
-		admin:http-server-create($admin-config, $default-group, "default", "/", 19999, $default-modules, $default-database)
-	return
-		$admin-config//gr:http-servers/gr:http-server[gr:http-server-name eq "default"]
+  (: Just pretend to create, do not save! :)
+  let $admin-config := admin:get-configuration()
+  let $admin-config :=
+    admin:http-server-create($admin-config, $default-group, "default", "/", 19999, $default-modules, $default-database)
+  return
+    $admin-config//gr:http-servers/gr:http-server[gr:http-server-name eq "default"]
 };
 
 declare function setup:strip-default-properties-from-http-server($node as element(gr:http-server)) as element(gr:http-server) {
-	element { fn:node-name($node) } {
-		$node/@*,
+  element { fn:node-name($node) } {
+    $node/@*,
 
-		let $default-properties :=
-			setup:default-http-server()/*
+    let $default-properties :=
+      setup:default-http-server()/*
 
-		for $property in $node/*
-		where
-			fn:not($default-properties[fn:deep-equal(., $property)])
-		and
-			fn:not(xs:boolean($node/gr:webDAV) and $property/self::gr:compute-content-length)
-		and
-			fn:not($property/self::gr:http-server-id)
-		return
-			$property
-	}
+    for $property in $node/*
+    where
+      fn:not($default-properties[fn:deep-equal(., $property)])
+    and
+      fn:not(xs:boolean($node/gr:webDAV) and $property/self::gr:compute-content-length)
+    and
+      fn:not($property/self::gr:http-server-id)
+    return
+      $property
+  }
 };
 
 declare function setup:default-xdbc-server() as element(gr:xdbc-server)
 {
-	(: Just pretend to create, do not save! :)
-	let $admin-config := admin:get-configuration()
-	let $admin-config :=
-		admin:xdbc-server-create($admin-config, $default-group, "default", "/", 19999, $default-modules, $default-database)
-	return
-		$admin-config//gr:xdbc-servers/gr:xdbc-server[gr:xdbc-server-name eq "default"]
+  (: Just pretend to create, do not save! :)
+  let $admin-config := admin:get-configuration()
+  let $admin-config :=
+    admin:xdbc-server-create($admin-config, $default-group, "default", "/", 19999, $default-modules, $default-database)
+  return
+    $admin-config//gr:xdbc-servers/gr:xdbc-server[gr:xdbc-server-name eq "default"]
 };
 
 declare function setup:strip-default-properties-from-xdbc-server($node as element(gr:xdbc-server)) as element(gr:xdbc-server) {
-	element { fn:node-name($node) } {
-		$node/@*,
+  element { fn:node-name($node) } {
+    $node/@*,
 
-		let $default-properties :=
-			setup:default-xdbc-server()/*
+    let $default-properties :=
+      setup:default-xdbc-server()/*
 
-		for $property in $node/*
-		where
-			fn:not($default-properties[fn:deep-equal(., $property)])
-		and
-			fn:not($property/self::gr:xdbc-server-id)
-		return
-			$property
-	}
+    for $property in $node/*
+    where
+      fn:not($default-properties[fn:deep-equal(., $property)])
+    and
+      fn:not($property/self::gr:xdbc-server-id)
+    return
+      $property
+  }
 };
 
 declare function setup:default-database() as element(db:database)
 {
-	(: Just pretend to create, do not save! :)
-	let $admin-config := admin:get-configuration()
-	let $admin-config :=
-		admin:database-create($admin-config, "default", $default-security, $default-schemas)
-	return
-		$admin-config//db:databases/db:database[db:database-name eq "default"]
+  (: Just pretend to create, do not save! :)
+  let $admin-config := admin:get-configuration()
+  let $admin-config :=
+    admin:database-create($admin-config, "default", $default-security, $default-schemas)
+  return
+    $admin-config//db:databases/db:database[db:database-name eq "default"]
 };
 
 declare function setup:strip-default-properties-from-database($node as element(db:database)) as element(db:database) {
-	element { fn:node-name($node) } {
-		$node/@*,
+  element { fn:node-name($node) } {
+    $node/@*,
 
-		let $default-properties :=
-			setup:default-database()/*
+    let $default-properties :=
+      setup:default-database()/*
 
-		for $property in $node/*
-		where
-			fn:not($default-properties[fn:deep-equal(., $property)])
-		and
-			fn:not($property/self::db:database-id)
-		return
-			$property
-	}
+    for $property in $node/*
+    where
+      fn:not($default-properties[fn:deep-equal(., $property)])
+    and
+      fn:not($property/self::db:database-id)
+    return
+      $property
+  }
 };
 
 declare function setup:default-forest() as element(as:assignment)
 {
-	(: Just pretend to create, do not save! :)
-	let $admin-config := admin:get-configuration()
-	let $admin-config :=
-		admin:forest-create($admin-config, "default", $default-host, ())
-	return
-		$admin-config//as:assignments/as:assignment[as:forest-name eq "default"]
+  (: Just pretend to create, do not save! :)
+  let $admin-config := admin:get-configuration()
+  let $admin-config :=
+    admin:forest-create($admin-config, "default", $default-host, ())
+  return
+    $admin-config//as:assignments/as:assignment[as:forest-name eq "default"]
 };
 
 declare function setup:strip-default-properties-from-forest($node as element(as:assignment)) as element(as:assignment) {
-	element { fn:node-name($node) } {
-		$node/@*,
+  element { fn:node-name($node) } {
+    $node/@*,
 
-		let $default-properties :=
-			setup:default-forest()/*
+    let $default-properties :=
+      setup:default-forest()/*
 
-		for $property in $node/*
-		where
-			fn:not($default-properties[fn:deep-equal(., $property)])
-		and
-			fn:not($property/self::as:forest-id)
-		return
-			$property
-	}
+    for $property in $node/*
+    where
+      fn:not($default-properties[fn:deep-equal(., $property)])
+    and
+      fn:not($property/self::as:forest-id)
+    return
+      $property
+  }
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2269,31 +2373,31 @@ declare function setup:strip-default-properties-from-forest($node as element(as:
 
 declare function setup:get-mimetypes-from-config($import-config as element(configuration)) as element(mt:mimetype)*
 {
-	$import-config//mt:mimetypes/mt:mimetype
+  $import-config//mt:mimetypes/mt:mimetype
 };
 
 declare function setup:get-forests-from-config($import-config as element(configuration)) as element(as:assignment)*
 {
-	$import-config//as:assignments/as:assignment
+  $import-config//as:assignments/as:assignment
 };
 
 declare function setup:get-forest-name-from-forest-config($forest-config as element(as:assignment)) as xs:string?
 {
-	fn:data(
-		$forest-config/as:forest-name[fn:string-length(.) > 0]
-	)
+  fn:data(
+    $forest-config/as:forest-name[fn:string-length(.) > 0]
+  )
 };
 
 declare function setup:get-data-directory-from-forest-config($forest-config as element(as:assignment)) as xs:string?
 {
-	fn:data(
-		$forest-config/as:data-directory[fn:string-length(.) > 0]
-	)
+  fn:data(
+    $forest-config/as:data-directory[fn:string-length(.) > 0]
+  )
 };
 
 declare function setup:get-hostname-from-forest-config($forest-config as element(as:assignment)) as xs:string?
 {
-	fn:string($forest-config/as:host)[fn:string-length(.) > 0]
+  fn:string($forest-config/as:host)[fn:string-length(.) > 0]
 };
 
 declare function setup:get-databases-from-config($import-config as element(configuration)) as element(db:database)*
@@ -2313,36 +2417,44 @@ declare function setup:get-databases-from-config($import-config as element(confi
 
 declare function setup:get-database-name-from-database-config($database-config as element(db:database)) as xs:string?
 {
-	fn:data(
-		$database-config/db:database-name[fn:string-length(.) > 0]
-	)
+  fn:data(
+    $database-config/db:database-name[fn:string-length(.) > 0]
+  )
 };
 
 declare function setup:get-forest-refs-from-database-config($database-config as element(db:database)) as element(db:forest-id)*
 {
-	$database-config/db:forests/db:forest-id
+  $database-config/db:forests/db:forest-id
 };
 
 declare function setup:get-forest-from-config($import-config as element(configuration), $forest-ref as element(db:forest-id)) as element(as:assignment)?
 {
-	$import-config//as:assignment[as:forest-id eq $forest-ref]
+  $import-config//as:assignment[as:forest-id eq $forest-ref]
+};
+
+declare function setup:get-forests-per-host-from-database-config($database-config as element(db:database)) as xs:positiveInteger?
+{
+  let $forests-per-host := fn:data($database-config/db:forests-per-host)
+  return
+    if (fn:string-length($forests-per-host) > 0) then xs:positiveInteger($forests-per-host)
+    else xs:positiveInteger("1") (: Default forests per host is 1 :)
 };
 
 declare function setup:get-http-servers-from-config($import-config as element(configuration)) as element(gr:http-server)*
 {
-	$import-config//gr:http-servers/gr:http-server
+  $import-config//gr:http-servers/gr:http-server
 };
 
 declare function setup:get-server-name-from-http-config($server-config as element(gr:http-server)) as xs:string?
 {
-	fn:data(
-		$server-config/gr:http-server-name[fn:string-length(.) > 0]
-	)
+  fn:data(
+    $server-config/gr:http-server-name[fn:string-length(.) > 0]
+  )
 };
 
 declare function setup:get-xdbc-servers-from-config($import-config as element(configuration)) as element(gr:xdbc-server)*
 {
-	$import-config//gr:xdbc-servers/gr:xdbc-server
+  $import-config//gr:xdbc-servers/gr:xdbc-server
 };
 
 declare function setup:get-task-servers-from-config($import-config as element(configuration)) as element(gr:task-server)*
@@ -2352,56 +2464,56 @@ declare function setup:get-task-servers-from-config($import-config as element(co
 
 declare function setup:get-server-name-from-xdbc-config($server-config as element(gr:xdbc-server)) as xs:string?
 {
-	fn:data(
-		$server-config/gr:xdbc-server-name[fn:string-length(.) > 0]
-	)
+  fn:data(
+    $server-config/gr:xdbc-server-name[fn:string-length(.) > 0]
+  )
 };
 
 declare function setup:get-servers-from-config($import-config as element(configuration)) as item()*
 {
-	for $server in
-		$import-config//gr:http-servers/gr:http-server
-	return (
-		$server/gr:http-server-name,
+  for $server in
+    $import-config//gr:http-servers/gr:http-server
+  return (
+    $server/gr:http-server-name,
 
-		if (xs:boolean($server/gr:webDAV)) then
-			"WebDAV"
-		else
-			"HTTP",
+    if (xs:boolean($server/gr:webDAV)) then
+      "WebDAV"
+    else
+      "HTTP",
 
-		fn:data($server/gr:port)
+    fn:data($server/gr:port)
     ),
 
-	for $server in
-		$import-config//gr:xdbc-servers/gr:xdbc-server
-	return (
-		$server/gr:xdbc-server-name,
+  for $server in
+    $import-config//gr:xdbc-servers/gr:xdbc-server
+  return (
+    $server/gr:xdbc-server-name,
 
-		"XDBC",
+    "XDBC",
 
-		fn:data($server/gr:port)
-	)
+    fn:data($server/gr:port)
+  )
 };
 
 declare function setup:get-setting-from-database-config($database-config as element(db:database), $setting-name as xs:string) as element()?
 {
-	xdmp:value(fn:concat("$database-config//*:", $setting-name))
+  xdmp:value(fn:concat("$database-config//*:", $setting-name))
 };
 
 declare function setup:get-setting-from-database-config-as-string($database-config as element(db:database), $setting-name as xs:string) as xs:string?
 {
-	let $setting := setup:get-setting-from-database-config($database-config, $setting-name)
-	where $setting
-	return
-		fn:string($setting)
+  let $setting := setup:get-setting-from-database-config($database-config, $setting-name)
+  where $setting
+  return
+    fn:string($setting)
 };
 
 declare function setup:get-setting-from-database-config-as-boolean($database-config as element(db:database), $setting-name as xs:string) as xs:boolean?
 {
-	let $str := setup:get-setting-from-database-config-as-string($database-config, $setting-name)
-	where $str
-	return
-		setup:to-boolean($str)
+  let $str := setup:get-setting-from-database-config-as-string($database-config, $setting-name)
+  where $str
+  return
+    setup:to-boolean($str)
 };
 
 declare function setup:get-privileges-from-config($import-config as element(configuration)) as element(sec:privilege)*
@@ -2426,395 +2538,395 @@ declare function setup:get-users-from-config($import-config as element(configura
 
 declare function setup:read-config-file($filename as xs:string) as document-node()
 {
-	xdmp:security-assert("http://marklogic.com/xdmp/privileges/admin-module-read", "execute"),
-	xdmp:read-cluster-config-file($filename)
+  xdmp:security-assert("http://marklogic.com/xdmp/privileges/admin-module-read", "execute"),
+  xdmp:read-cluster-config-file($filename)
 };
 
 declare function setup:to-boolean($value as xs:string) as xs:boolean
 {
-	fn:boolean(fn:lower-case($value) = ("1", "y", "yes", "true"))
+  fn:boolean(fn:lower-case($value) = ("1", "y", "yes", "true"))
 };
 
 declare function setup:user-name($user-id as xs:unsignedLong?) as xs:string {
-	let $user-id :=
-		if ($user-id) then
-			$user-id
-		else
-			fn:data(xdmp:get-request-user())
-	return
-		xdmp:eval(
-			'
-				xquery version "1.0-ml";
-				import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+  let $user-id :=
+    if ($user-id) then
+      $user-id
+    else
+      fn:data(xdmp:get-request-user())
+  return
+    xdmp:eval(
+      '
+        xquery version "1.0-ml";
+        import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
 
-				declare variable $user-id as xs:unsignedLong external;
-				sec:get-user-names($user-id)
-			',
-			(xs:QName("user-id"), $user-id),
-			<options xmlns="xdmp:eval"><database>{$default-security}</database></options>
-		)
+        declare variable $user-id as xs:unsignedLong external;
+        sec:get-user-names($user-id)
+      ',
+      (xs:QName("user-id"), $user-id),
+      <options xmlns="xdmp:eval"><database>{$default-security}</database></options>
+    )
 };
 
 declare function display:template($title, $main-content, $left-content)
 {
-	<html xmlns="http://www.w3.org/1999/xhtml">
-		<head>
+  <html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
       <title>Cluster Configurator -- {$title}</title>
-			<style>
-			body {{
-      	margin:0;
-      	padding:0;
-      	border:0;			/* This removes the border around the viewport in old versions of IE */
-      	width:100%;
-      	background:#fff;
-      	min-width:600px;    	/* Minimum width of layout - remove line if not required */
-      					/* The min-width property does not work in old versions of Internet Explorer */
-      	font-size:90%;
-      	font-family:  Verdana, Arial, Helvetica, sans-serif;
+      <style>
+      body {{
+        margin:0;
+        padding:0;
+        border:0;     /* This removes the border around the viewport in old versions of IE */
+        width:100%;
+        background:#fff;
+        min-width:600px;      /* Minimum width of layout - remove line if not required */
+                /* The min-width property does not work in old versions of Internet Explorer */
+        font-size:90%;
+        font-family:  Verdana, Arial, Helvetica, sans-serif;
       }}
       a {{
-      	color:#369;
+        color:#369;
       }}
       a:hover {{
-      	color:#fff;
-      	background:#369;
-      	text-decoration:none;
+        color:#fff;
+        background:#369;
+        text-decoration:none;
       }}
       h1, h2, h3 {{
-      	margin:.8em 0 .2em 0;
-      	padding:0;
-      	font-weight: normal;
+        margin:.8em 0 .2em 0;
+        padding:0;
+        font-weight: normal;
       }}
       p {{
-      	margin:.4em 0 .8em 0;
-      	padding:0;
+        margin:.4em 0 .8em 0;
+        padding:0;
       }}
       img {{
-      	margin:10px 0 5px;
+        margin:10px 0 5px;
       }}
 
       form {{
-      	border:0;
-      	margin:0;
-      	padding:0;
+        border:0;
+        margin:0;
+        padding:0;
       }}
 
       #lefttree ul {{
-      	list-style-type:disc;
-      	margin-left:0.5em;
-      	padding-left:0.5em;
+        list-style-type:disc;
+        margin-left:0.5em;
+        padding-left:0.5em;
 
       }}
 
       #lefttree li {{
-      	list-style-type:disc;
-      	font-size:8pt;
-      	padding-bottom:0.3em;
+        list-style-type:disc;
+        font-size:8pt;
+        padding-bottom:0.3em;
       }}
 
       /* Header styles */
       #header {{
-      	clear:both;
-      	float:left;
-      	width:100%;
-      	background: #1E90FF;
+        clear:both;
+        float:left;
+        width:100%;
+        background: #1E90FF;
       }}
       #header {{
-      	border-bottom:1px solid #000;
+        border-bottom:1px solid #000;
       }}
       #header p,
       #header h1,
       #header h2 {{
-      	padding:.4em 15px 0 15px;
-      	margin:0;
+        padding:.4em 15px 0 15px;
+        margin:0;
       }}
       #header h2 {{
-      	font-size:85%;
+        font-size:85%;
       }}
       #header ul {{
-      	font-size:100%;
-      	clear:left;
-      	float:left;
-      	width:100%;
-      	list-style:none;
-      	margin:10px 0 0 0;
-      	padding:0;
+        font-size:100%;
+        clear:left;
+        float:left;
+        width:100%;
+        list-style:none;
+        margin:10px 0 0 0;
+        padding:0;
       }}
       #header ul li {{
-      	display:inline;
-      	list-style:none;
-      	margin:0;
-      	padding:0;
+        display:inline;
+        list-style:none;
+        margin:0;
+        padding:0;
       }}
       #header ul li a {{
-      	display:block;
-      	float:left;
-      	margin:0 0 0 1px;
-      	padding:3px 10px;
-      	text-align:center;
-      	background:#eee;
-      	color:#000;
-      	text-decoration:none;
-      	position:relative;
-      	left:15px;
-      	line-height:1.3em;
+        display:block;
+        float:left;
+        margin:0 0 0 1px;
+        padding:3px 10px;
+        text-align:center;
+        background:#eee;
+        color:#000;
+        text-decoration:none;
+        position:relative;
+        left:15px;
+        line-height:1.3em;
       }}
       #header ul li a:hover {{
-      	background:#369;
-      	color:#fff;
+        background:#369;
+        color:#fff;
       }}
       #header ul li a.active,
       #header ul li a.active:hover {{
-      	color:#fff;
-      	background:#000;
-      	font-weight:bold;
+        color:#fff;
+        background:#000;
+        font-weight:bold;
       }}
       #header ul li a span {{
-      	display:block;
+        display:block;
       }}
 
 
       #buttonbar ul {{
-      	clear:left;
-      	float:left;
-      	width:100%;
-      	list-style:none;
-      	margin:10px 0 0 0;
-      	padding:0;
+        clear:left;
+        float:left;
+        width:100%;
+        list-style:none;
+        margin:10px 0 0 0;
+        padding:0;
       }}
       #buttonbar ul li {{
-      	display:inline;
-      	list-style:none;
-      	margin:0;
-      	padding:0;
+        display:inline;
+        list-style:none;
+        margin:0;
+        padding:0;
       }}
       #buttonbar ul li a {{
-      	display:block;
-      	float:left;
-      	margin:0 0 0 1px;
-      	padding:3px 10px;
-      	text-align:center;
-      	background:#ADD8E6;
-      	color:#000;
-      	text-decoration:none;
-      	position:relative;
-      	left:15px;
-      	line-height:1.3em;
+        display:block;
+        float:left;
+        margin:0 0 0 1px;
+        padding:3px 10px;
+        text-align:center;
+        background:#ADD8E6;
+        color:#000;
+        text-decoration:none;
+        position:relative;
+        left:15px;
+        line-height:1.3em;
       }}
       #buttonbar ul li a:hover {{
-      	background:#369;
-      	color:#fff;
+        background:#369;
+        color:#fff;
       }}
       #buttonbar ul li a.active,
       #buttonbar ul li a.active:hover {{
-      	color:#fff;
-      	background:black;
-      	font-weight:bold;
+        color:#fff;
+        background:black;
+        font-weight:bold;
       }}
       #buttonbar ul li a span {{
-      	display:block;
+        display:block;
       }}
 
 
       /* 'widths' sub menu */
       #layoutdims {{
-      	clear:both;
-      	background:#eee;
-      	border-top:4px solid #000;
-      	margin:0;
-      	padding:6px 15px !important;
-      	text-align:right;
+        clear:both;
+        background:#eee;
+        border-top:4px solid #000;
+        margin:0;
+        padding:6px 15px !important;
+        text-align:right;
       }}
       /* column container */
       .colmask {{
-      	position:relative;	/* This fixes the IE7 overflow hidden bug */
-      	clear:both;
-      	float:left;
-      	width:100%;			/* width of whole page */
-      	overflow:hidden;		/* This chops off any overhanging divs */
+        position:relative;  /* This fixes the IE7 overflow hidden bug */
+        clear:both;
+        float:left;
+        width:100%;     /* width of whole page */
+        overflow:hidden;    /* This chops off any overhanging divs */
       }}
       /* common column settings */
       .colright,
       .colmid,
       .colleft {{
-      	float:left;
-      	width:100%;
-      	position:relative;
+        float:left;
+        width:100%;
+        position:relative;
       }}
       .col1,
       .col2,
       .col3 {{
-      	float:left;
-      	position:relative;
-      	padding:0 0 1em 0;
-      	overflow:hidden;
+        float:left;
+        position:relative;
+        padding:0 0 1em 0;
+        overflow:hidden;
       }}
       /* 2 Column (left menu) settings */
       .leftmenu {{
-      	background:#fff;		/* right column background colour */
+        background:#fff;    /* right column background colour */
       }}
       .leftmenu .colleft {{
-      	right:75%;			/* right column width */
-      	background:#ADD8E6;	/* left column background colour */
+        right:75%;      /* right column width */
+        background:#ADD8E6; /* left column background colour */
       }}
       .leftmenu .col1 {{
-      	width:71%;			/* right column content width */
-      	left:102%;			/* 100% plus left column left padding */
+        width:71%;      /* right column content width */
+        left:102%;      /* 100% plus left column left padding */
       }}
       .leftmenu .col2 {{
-      	width:21%;			/* left column content width (column width minus left and right padding) */
-      	left:6%;			/* (right column left and right padding) plus (left column left padding) */
+        width:21%;      /* left column content width (column width minus left and right padding) */
+        left:6%;      /* (right column left and right padding) plus (left column left padding) */
       }}
 
 
       /* Footer styles */
       #footer {{
-      	clear:both;
-      	float:left;
-      	width:100%;
-      	border-top:1px solid #000;
+        clear:both;
+        float:left;
+        width:100%;
+        border-top:1px solid #000;
       }}
       #footer p {{
-      	padding:10px;
-      	margin:0;
+        padding:10px;
+        margin:0;
       }}
 
 
       td, th {{
-      	vertical-align: top;
-      	padding: 10px;
+        vertical-align: top;
+        padding: 10px;
       }}
 
       table#domainsummary
       {{
-      	font-size:80%;
-      	border-width:1px 1px 1px 1px;
-      	border-style:solid solid solid solid;
-      	border-collapse:collapse;
-      	border-color:1E90FF;
+        font-size:80%;
+        border-width:1px 1px 1px 1px;
+        border-style:solid solid solid solid;
+        border-collapse:collapse;
+        border-color:1E90FF;
       }}
 
       table#domainsummary th,td
       {{
-      	border-width:1px 1px 1px 1px;
-      	border-style:solid solid solid solid;
-      	border-collapse:collapse;
-      	border-color:1E90FF;
+        border-width:1px 1px 1px 1px;
+        border-style:solid solid solid solid;
+        border-collapse:collapse;
+        border-color:1E90FF;
       }}
     </style>
-		</head>
-		<body>
+    </head>
+    <body>
 
-		<div id="header">
-			<!-- <p>Text above heading</p> -->
+    <div id="header">
+      <!-- <p>Text above heading</p> -->
       <h1>Cluster Configurator</h1>
-			<h2>{$title}</h2>
-			<p></p>
-			<!-- <p id="layoutdims">Right aligned bar</p>-->
-		</div>
-		<div class="colmask leftmenu">
-			<div class="colleft">
-				<div class="col1">
-					<!-- Column 1 start -->
-					{
-						$main-content
-					}
-					<!-- Column 1 end -->
-				</div>
-				<div class="col2">
-					<!-- Column 2 start -->
-					{
-						$left-content
-					}
-					<!-- Column 2 end -->
-				</div>
-			</div>
-		</div>
-		<div id="footer">
-			<p>&copy; Copyright 2010 Mark Logic Corporation.  All rights reserved.</p>
-		</div>
-		</body>
-	</html>
+      <h2>{$title}</h2>
+      <p></p>
+      <!-- <p id="layoutdims">Right aligned bar</p>-->
+    </div>
+    <div class="colmask leftmenu">
+      <div class="colleft">
+        <div class="col1">
+          <!-- Column 1 start -->
+          {
+            $main-content
+          }
+          <!-- Column 1 end -->
+        </div>
+        <div class="col2">
+          <!-- Column 2 start -->
+          {
+            $left-content
+          }
+          <!-- Column 2 end -->
+        </div>
+      </div>
+    </div>
+    <div id="footer">
+      <p>&copy; Copyright 2010 Mark Logic Corporation.  All rights reserved.</p>
+    </div>
+    </body>
+  </html>
 };
 
 declare function display:tab-bar($labels, $links, $index)
 {
-	(
-	<span id="buttonbar" xmlns="http://www.w3.org/1999/xhtml">
-		<ul>
-		{
-			for $label at $i in $labels
-			return
-				<li>
-				{
-						element a
-						{
-							if ($i = $index) then
-								attribute class {"active"}
-							else
-								(),
-							attribute href {$links[$i]},
-							$label
-						}
-				}
-				</li>
-		}
-		</ul>
-	</span>,
-	<p xmlns="http://www.w3.org/1999/xhtml"><br/>&nbsp;<br/></p>
-	)
+  (
+  <span id="buttonbar" xmlns="http://www.w3.org/1999/xhtml">
+    <ul>
+    {
+      for $label at $i in $labels
+      return
+        <li>
+        {
+            element a
+            {
+              if ($i = $index) then
+                attribute class {"active"}
+              else
+                (),
+              attribute href {$links[$i]},
+              $label
+            }
+        }
+        </li>
+    }
+    </ul>
+  </span>,
+  <p xmlns="http://www.w3.org/1999/xhtml"><br/>&nbsp;<br/></p>
+  )
 };
 
 declare function display:dropdown($name, $options, $selected, $disabled)
 {
-	element select
-	{
-		attribute id {$name},
-		attribute name {$name},
+  element select
+  {
+    attribute id {$name},
+    attribute name {$name},
 
-		if ($disabled) then
-			attribute disabled {"disabled"}
-		else
-			()
-		,
+    if ($disabled) then
+      attribute disabled {"disabled"}
+    else
+      ()
+    ,
 
-		for $option in $options
-		return
-		element option
-		{
-			attribute value {$option},
-			if ($selected eq $option) then
-				attribute selected {"selected"}
-			else
-				(),
-			$option
-		}
-	}
+    for $option in $options
+    return
+    element option
+    {
+      attribute value {$option},
+      if ($selected eq $option) then
+        attribute selected {"selected"}
+      else
+        (),
+      $option
+    }
+  }
 };
 
 declare function display:radio($name, $value, $selected)
 {
-	element input
-	{
-		attribute type {"radio"},
-		attribute name {$name},
-		attribute value {$value},
+  element input
+  {
+    attribute type {"radio"},
+    attribute name {$name},
+    attribute value {$value},
 
-		if ($value eq $selected) then
-			attribute checked {"checked"}
-		else
-			()
-	}
+    if ($value eq $selected) then
+      attribute checked {"checked"}
+    else
+      ()
+  }
 };
 
 declare function display:vertical-spacer($n)
 {
-	<p>
-	{
-		for $i in (1 to $n)
-		return ("&nbsp;", <br />)
-	}
-	</p>
+  <p>
+  {
+    for $i in (1 to $n)
+    return ("&nbsp;", <br />)
+  }
+  </p>
 };
 
 declare function display:left-links()
