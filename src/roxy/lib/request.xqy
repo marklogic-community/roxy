@@ -23,6 +23,8 @@ module namespace req = "http://marklogic.com/roxy/request";
 
 import module namespace r = "http://marklogic.com/roxy/reflection" at "/roxy/lib/reflection.xqy";
 
+declare namespace rest = "http://marklogic.com/appservices/rest";
+
 declare option xdmp:mapping "false";
 
 (: Builds a map containing request field names and their values :)
@@ -34,7 +36,11 @@ declare variable $req:request as map:map :=
     let $current := map:get($map, $name)
     let $vals :=
       for $val in xdmp:get-request-field($name)
-      return xdmp:url-decode($val)
+    return
+        if ($val instance of xs:anySimpleType) then
+          xdmp:url-decode($val)
+        else
+          $val
     return
       if (fn:exists($current)) then
         map:put($map, $name, ($current, $vals))
@@ -286,8 +292,77 @@ declare private function req:cast-as-type(
       ()
 };
 
-declare function req:rewrite($url, $path, $verb, $options) as xs:string
+declare function req:expand-resources($nodes)
 {
+  for $n in $nodes
+  return
+    typeswitch ($n)
+      case element(rest:request) return
+        if ($n/@resource) then
+          let $res as xs:string := $n/@resource
+          return
+          (
+            <rest:request uri="{fn:concat('^/', $res, '\.?(\w*)$')}" endpoint="/roxy/query-router.xqy">
+              <rest:uri-param name="controller">{$res}</rest:uri-param>
+              <rest:uri-param name="func">index</rest:uri-param>
+              <rest:uri-param name="format">$1</rest:uri-param>
+              <rest:http method="GET"/>
+            </rest:request>,
+            <rest:request uri="{fn:concat('^/', $res, '/new\.?(\w*)$')}" endpoint="/roxy/query-router.xqy">
+              <rest:uri-param name="controller">{$res}</rest:uri-param>
+              <rest:uri-param name="func">new</rest:uri-param>
+              <rest:uri-param name="format">$1</rest:uri-param>
+              <rest:http method="GET"/>
+            </rest:request>,
+            <rest:request uri="{fn:concat('^/', $res, '/([\w\d_\-]*)\.?(\w*)$')}" endpoint="/roxy/update-router.xqy">
+              <rest:uri-param name="controller">{$res}</rest:uri-param>
+              <rest:uri-param name="func">create</rest:uri-param>
+              <rest:uri-param name="format">$2</rest:uri-param>
+              <rest:uri-param name="id">$1</rest:uri-param>
+              <rest:http method="POST"/>
+            </rest:request>,
+            <rest:request uri="{fn:concat('^/', $res, '/([\w\d_\-]*)\.?(\w*)$')}" endpoint="/roxy/query-router.xqy">
+              <rest:uri-param name="controller">{$res}</rest:uri-param>
+              <rest:uri-param name="func">show</rest:uri-param>
+              <rest:uri-param name="format">$2</rest:uri-param>
+              <rest:uri-param name="id">$1</rest:uri-param>
+              <rest:http method="GET"/>
+            </rest:request>,
+            <rest:request uri="{fn:concat('^/', $res, '/([\w\d_\-]*)/edit\.?(\w*)$')}" endpoint="/roxy/query-router.xqy">
+              <rest:uri-param name="controller">{$res}</rest:uri-param>
+              <rest:uri-param name="func">edit</rest:uri-param>
+              <rest:uri-param name="format">$2</rest:uri-param>
+              <rest:uri-param name="id">$1</rest:uri-param>
+              <rest:http method="GET"/>
+            </rest:request>,
+            <rest:request uri="{fn:concat('^/', $res, '/([\w\d_\-]*)\.?(\w*)$')}" endpoint="/roxy/update-router.xqy">
+              <rest:uri-param name="controller">{$res}</rest:uri-param>
+              <rest:uri-param name="func">update</rest:uri-param>
+              <rest:uri-param name="format">$2</rest:uri-param>
+              <rest:uri-param name="id">$1</rest:uri-param>
+              <rest:http method="PUT"/>
+            </rest:request>,
+            <rest:request uri="{fn:concat('^/', $res, '/([\w\d_\-]*)\.?(\w*)$')}" endpoint="/roxy/update-router.xqy">
+              <rest:uri-param name="controller">{$res}</rest:uri-param>
+              <rest:uri-param name="func">destroy</rest:uri-param>
+              <rest:uri-param name="format">$2</rest:uri-param>
+              <rest:uri-param name="id">$1</rest:uri-param>
+              <rest:http method="DELETE"/>
+            </rest:request>
+          )
+        else
+          $n
+      case element() return
+        element { fn:node-name($n) }
+        {
+          req:expand-resources(($n/@*, $n/node()))
+        }
+      default return $n
+};
+
+declare function req:rewrite($url, $path, $verb, $options as element(rest:options)) as xs:string
+{
+  let $options := req:expand-resources($options)
   let $matching-request :=
     (
       $options/*:request[fn:matches($path, @uri)]
@@ -321,7 +396,6 @@ declare function req:rewrite($url, $path, $verb, $options) as xs:string
               fn:substring-after($url, "?")[. ne ""]),
               "&amp;")
           else ()
-        let $_ := xdmp:log(("params:", $params))
         return
           fn:concat(
             fn:replace($path, $matching-request/@uri, $matching-request/@endpoint),
@@ -332,4 +406,8 @@ declare function req:rewrite($url, $path, $verb, $options) as xs:string
     else ()
   return
     ($final-uri, $url)[1]
+};
+declare function req:is-ajax-request() as xs:boolean
+{
+  xdmp:get-request-header("X-Requested-With") = "XMLHttpRequest"
 };

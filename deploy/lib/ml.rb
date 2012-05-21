@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
+require File.expand_path('../Help', __FILE__)
 require File.expand_path('../server_config', __FILE__)
 require File.expand_path('../framework', __FILE__)
 require File.expand_path('../util', __FILE__)
@@ -48,14 +49,6 @@ def need_help?
   find_arg(['-h', '--help']) != nil
 end
 
-def help(command)
-  @logger.formatter = proc { |severity, datetime, progname, msg|
-    "#{msg}\n"
-  }
-
-  @logger.info(eval("Help.#{command}"))
-end
-
 ARGV << '--help' if ARGV.empty?
 
 @profile = find_arg(['-p', '--profile'])
@@ -87,7 +80,7 @@ while ARGV.length > 0
   #
   elsif (command == "create")
     if need_help?
-      help command
+      Help.doHelp(@logger, command)
         break
     else
       f = Roxy::Framework.new(:logger => @logger)
@@ -98,7 +91,7 @@ while ARGV.length > 0
   #
   elsif (ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command))
     if need_help?
-      help command
+      Help.doHelp(@logger, command)
         break
     else
       ServerConfig.set_logger @logger
@@ -120,7 +113,7 @@ while ARGV.length > 0
     command = ARGV.shift
 
     if need_help?
-      help command
+      Help.doHelp(@logger, command)
         break
     elsif (ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command))
 

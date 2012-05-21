@@ -69,12 +69,13 @@ declare function rh:render-layout($layout as xs:string, $format as xs:string, $d
 declare function rh:set-content-type($format)
 {
   if ($format eq "xml") then
-    xdmp:add-response-header("Content-Type", "application/xml")
+    xdmp:set-response-content-type("application/xml")
   else if ($format eq "html") then
-    xdmp:add-response-header("Content-Type", "text/html")
+    xdmp:set-response-content-type("text/html")
   else if ($format eq "json") then
-    xdmp:add-response-header("Content-Type", "application/json")
+    xdmp:set-response-content-type("application/json")
   else if ($format eq "text") then
-    xdmp:add-response-header("Content-Type", "text/plain")
-  else ()
+    xdmp:set-response-content-type("text/plain")
+  else
+    xdmp:set-response-content-type($format)
 };
