@@ -64,7 +64,7 @@ module Roxy
 
         str = ARGV.shift
         if (str) then
-          controller, view = ARGV.shift.split('/')
+          controller, view = str.split('/')
 
           view = view || "main"
 
@@ -97,29 +97,30 @@ module Roxy
     end
 
     def create_model(model, filename, function)
-      target_file = File.expand_path("../../../src/app/models/#{model}.xqy", __FILE__)
+      target_file = File.expand_path("../../../src/app/models/#{filename}.xqy", __FILE__)
       model_file = nil
       if File.exists? target_file then
         if (function != nil) then
-          existing = open(target_file).readlines.join
+          model_file = File.read(target_file)
 
-          if (existing.index("m:#{function}()") != nil) then
-            @logger.warn "function #{model}:#{function}() already exists. Skipping..."
+          if (model_file.index("m:#{function}()") != nil) then
+            @logger.warn "Function #{model}:#{function}() already exists. Skipping..."
             return
           end
-          model_file = open(File.expand_path('../templates/model-function.xqy', __FILE__)).readlines.join
         else
           @logger.warn "Model #{model} already exists. Skipping..."
+          return
         end
       else
-        model_file = open(File.expand_path('../templates/model.xqy', __FILE__)).readlines.join
+        model_file = File.read(File.expand_path('../templates/model.xqy', __FILE__))
+        model_file.gsub!("#model-name", model)
       end
 
-      model_file.gsub!("#model-name", model)
       if (function != nil) then
+        model_file << File.read(File.expand_path('../templates/model-function.xqy', __FILE__))
         model_file.gsub!("#function-name", function)
       end
-      File.open(target_file, 'a') {|f| f.write(model_file) }
+      File.open(target_file, 'w') { |f| f.write(model_file) }
     end
 
     def create_suite(suite, test)

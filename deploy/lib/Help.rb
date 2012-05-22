@@ -44,7 +44,7 @@ General options:
 }
       when 'test'
 	  	%Q{
-Usage: ml create test suite_name [test] [options]
+Usage: ml create test suite_name[/test] [options]
 
 General options:
   -v, [--verbose]  # Verbose output
