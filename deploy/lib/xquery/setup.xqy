@@ -176,6 +176,32 @@ declare function setup:delete-database-and-forests($database-config as element(d
       return admin:save-configuration-without-restart($config)
 };
 
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: Restart the target group.  
+ ::)
+declare function setup:do-restart($group-name as xs:string?) as item()*
+{
+  try {
+    let $group-id :=
+      if ($group-name = "") then
+        xdmp:group()
+      else
+        xdmp:group($group-name)
+    return (
+      xdmp:restart(xdmp:group-hosts($group-id), "Restarting hosts to make configuration changes take effect"),
+      fn:concat($group-name, "Group restarted")
+    )
+  } catch ($e) {
+    if ($e/error:code = "XDMP-NOSUCHGROUP") then
+      fn:concat("Cannot restart group ", $group-name, ", no such group")
+    else
+      $e
+  }
+};
+
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: 
+ ::)
 declare function setup:find-forest-ids($database-config as element(db:database)) as xs:unsignedLong*
 {
   let $group-id := xdmp:group()

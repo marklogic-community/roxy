@@ -242,8 +242,15 @@ class ServerConfig < MLClient
   end
 
   def restart
-    @logger.info("Restarting MarkLogic Server on #{@hostname}")
-    execute_query %Q{xdmp:restart((), "to reload new app config")}
+    group = ARGV.shift
+    if (group)
+      @logger.info("Restarting MarkLogic Server group #{group} on #{@hostname}")
+    else
+      @logger.info("Restarting MarkLogic Server on #{@hostname}")
+    end
+    setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
+    r = execute_query %Q{#{setup} setup:do-restart("#{group}")}
+    # execute_query %Q{xdmp:restart((), "to reload new app config")}
   end
 
   def self.plugin
