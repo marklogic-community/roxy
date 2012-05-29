@@ -17,6 +17,8 @@ xquery version "1.0-ml";
 
 module namespace c = "http://marklogic.com/roxy/config";
 
+declare namespace rest = "http://marklogic.com/appservices/rest";
+
 (:
  : ***********************************************
  : Roxy control options
