@@ -17,6 +17,8 @@ xquery version "1.0-ml";
 
 module namespace c = "http://marklogic.com/roxy/config";
 
+declare namespace rest = "http://marklogic.com/appservices/rest";
+
 (:
  : ***********************************************
  : Roxy control options
@@ -38,7 +40,10 @@ declare variable $DEFAULT-LAYOUTS :=
 declare variable $DEFAULT-FORMAT := "html";
 
 (: Custom routes for URL mapping :)
-declare variable $ROUTES := ();
+declare variable $ROUTES :=
+  <rest:options>
+  <!-- Put your <rest:request/> elements here -->
+  </rest:options>;
 
 (:
  : ***********************************************
