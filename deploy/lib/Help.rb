@@ -57,7 +57,7 @@ General options:
   ex: ml create test users
     This will create a test suite named users in /test/suites/users/.
 
-  ex: ml create model users login
+  ex: ml create model users/login
     This will create a test named login in /test/suites/users/login.xqy.
 }
       when 'layout'
@@ -130,12 +130,14 @@ Initializes the necessary config files for cpf}
 
   def self.restart
     %Q{
-Usage: ml {env} restart [options]
+Usage: ml {env} restart [group] [options]
 
 General options:
   -v, [--verbose]  # Verbose output
 
-Restart the MarkLogic process in the given environment}
+Restart the MarkLogic process in the given environment on each host in the 
+specified group. If no group is specified, restart the MarkLogic process
+on each host in the group to which the target host belongs.}
   end
 
   def self.bootstrap
@@ -239,7 +241,7 @@ INPUT_PACKAGE=${ml.data.dir}/}
 
   def self.plugin
     %Q{
-Usage: ml {env} plugin [comand] [package] [version] [options]
+Usage: ml {env} plugin [command] [package] [version] [options]
 
 command:
   (install|remove|list|refresh)
