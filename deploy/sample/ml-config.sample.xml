@@ -209,4 +209,41 @@
     @ml.triggers-db-xml
     @ml.schemas-db-xml
   </databases>
-</configuration>
+  <sec:roles xmlns:sec="http://marklogic.com/xdmp/security">
+    <sec:role>
+      <sec:role-name>@ml.app-name-role</sec:role-name>
+      <sec:description>A role for users of the @ml.app-name application</sec:description>
+      <sec:role-names>
+      </sec:role-names>
+      <sec:permissions>
+      </sec:permissions>
+      <sec:collections>
+      </sec:collections>
+      <sec:privileges>
+        <sec:privilege>
+          <sec:action>http://marklogic.com/xdmp/privileges/xdmp-value</sec:action>
+          <sec:kind>execute</sec:kind>
+        </sec:privilege>
+        <sec:privilege>
+          <sec:action>http://marklogic.com/xdmp/privileges/xdmp-add-response-header</sec:action>
+          <sec:kind>execute</sec:kind>
+        </sec:privilege>
+        <sec:privilege>
+          <sec:action>http://marklogic.com/xdmp/privileges/xdmp-invoke</sec:action>
+          <sec:kind>execute</sec:kind>
+        </sec:privilege>
+      </sec:privileges>
+    </sec:role>
+  </sec:roles>
+  <sec:users>
+    <sec:user>
+      <sec:user-name>@ml.app-name-user</sec:user-name>
+      <sec:description>A user for the @ml.app-name application</sec:description>
+      <sec:password>password</sec:password>
+      <sec:role-names>
+        <sec:role-names>@ml.app-name-role</sec:role-names>
+      </sec:role-names>
+      <sec:permissions/>
+      <sec:collections/>
+    </sec:user>
+  </sec:users></configuration>

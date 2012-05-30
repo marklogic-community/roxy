@@ -34,12 +34,12 @@
         <modules-database>@ml.modules-db</modules-database>
         <root>/</root>
       </context>
-      <restart-user>your-restart-user-name</restart-user>
+      <restart-user>@ml.app-name-user</restart-user>
       <!-- Permissions are optional -->
       <permissions>
         <permission>
-          <capability>read</capability>
-          <role-name>admin</role-name>
+          <capability>execute</capability>
+          <role-name>@ml.app-name-role</role-name>
         </permission>
       </permissions>
     </domain>

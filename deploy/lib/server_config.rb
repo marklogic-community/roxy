@@ -330,11 +330,17 @@ class ServerConfig < MLClient
     batch = (((@environment != "local") && (batch_override != false)) || (batch_override == true))
 
     options[:batch_commit] = batch
-    options[:permissions] = [
+    options[:permissions] = 
+      [
         {
           :capability => Roxy::ContentCapability::EXECUTE,
-          :role => "app-user"
-      }] unless options[:permissions]
+          :role => @properties['ml.app-role']
+        },
+        {
+          :capability => Roxy::ContentCapability::READ,
+          :role => @properties['ml.app-role']
+        }
+      ] unless options[:permissions]
     xcc.load_files(File.expand_path(dir), options)
   end
 
@@ -484,7 +490,11 @@ private
         :permissions => [
           {
             :capability => Roxy::ContentCapability::EXECUTE,
-            :role => "app-user"
+            :role => @properties['ml.app-role']
+          },
+          {
+            :capability => Roxy::ContentCapability::READ,
+            :role => @properties['ml.app-role']
           }
         ]
       })
@@ -516,7 +526,7 @@ private
           :permissions => [
             {
               :capability => Roxy::ContentCapability::EXECUTE,
-              :role => "app-user"
+              :role => @properties['ml.app-role']
             }
           ]
         })
@@ -550,7 +560,13 @@ private
   def deploy_content
     load_data @properties["ml.data.dir"], {
       :remove_prefix => @properties["ml.data.dir"],
-      :db => @properties['ml.content-db']
+      :db => @properties['ml.content-db'],
+      :permissions => [
+        {
+          :capability => Roxy::ContentCapability::READ,
+          :role => @properties['ml.app-role']
+        }
+      ]
     }
   end
 
@@ -578,13 +594,13 @@ Before you can deploy CPF, you must define a configuration. Steps:
         cpf_config.gsub!("@#{k}", v)
       end
       cpf_code = open(File.expand_path('../xquery/cpf.xqy', __FILE__)).readlines.join
-      r = execute_query %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}, @properties["ml.content-db"]
+      r = execute_query %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}, { :db_name => @properties["ml.content-db"] }
     end
   end
 
   def clean_cpf
     cpf_code = open(File.expand_path('../xquery/cpf.xqy', __FILE__)).readlines.join
-    r = execute_query %Q{#{cpf_code} cpf:clean-cpf()}, @properties["ml.content-db"]
+    r = execute_query %Q{#{cpf_code} cpf:clean-cpf()}, { :db_name => @properties["ml.content-db"] }
   end
 
   def xcc
