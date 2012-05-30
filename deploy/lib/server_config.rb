@@ -250,7 +250,6 @@ class ServerConfig < MLClient
     end
     setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
     r = execute_query %Q{#{setup} setup:do-restart("#{group}")}
-    # execute_query %Q{xdmp:restart((), "to reload new app config")}
   end
 
   def self.plugin
