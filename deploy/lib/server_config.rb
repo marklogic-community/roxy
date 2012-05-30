@@ -231,12 +231,12 @@ class ServerConfig < MLClient
     end
   end
 
-  def execute_query(query, db_name = nil)
+  def execute_query(query, properties = {})
     r = nil
     if @server_version == 4
-      r = execute_query_4 query, db_name
+      r = execute_query_4 query, properties
     else
-      r = execute_query_5 query, db_name
+      r = execute_query_5 query, properties
     end
     r
   end
@@ -607,7 +607,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
     @config
   end
 
-  def execute_query_4(query, db_name)
+  def execute_query_4(query, properties)
     r = go "http://#{@hostname}:#{@bootstrap_port}/use-cases/eval2.xqy", "post", {}, {
       :queryInput => query
     }
@@ -656,38 +656,42 @@ Before you can deploy CPF, you must define a configuration. Steps:
     return nil
   end
 
-  def execute_query_5(query, db_name)
-    if (db_name == nil) then
+  def execute_query_5(query, properties = {})
+    # We need a context for this query. Here's what we look for, in order of preference:
+    # 1. A caller-specified database
+    # 2. A caller-specified application server
+    # 3. An application server that is present by default
+    # 4. Any database
+    if (properties[:db_name] != nil) then
+      db_id = get_db_id(properties[:db_name])
+    elsif (properties[:app_name] != nil) then
+      sid = get_sid(properties[:app_name])
+    else
       sid = get_sid("Manage")
-      if (sid != nil) then
-        @logger.debug("using sid: #{sid}")
-        r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
-          :sid => sid,
-          :resulttype => "text",
-          :q => query
-        }
-        @logger.debug(r.body)
-      end
     end
 
-    if (sid == nil) then
-      if (db_name) then
-        db_id = get_db_id(db_name)
-      end
-
-      if (db_id == nil) then
-        db_id = get_any_db_id
-      end
-      if (db_id != nil) then
-        @logger.debug("using dbid: #{db_id}")
-        r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
-          :dbid => db_id,
-          :resulttype => "text",
-          :q => query
-        }
-        @logger.debug(r.body)
-      end
+    if (db_id == nil && sid == nil) then
+      db_id = get_any_db_id
     end
+
+    if (db_id != nil) then
+      @logger.debug("using dbid: #{db_id}")
+      r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
+        :dbid => db_id,
+        :resulttype => "text",
+        :q => query
+      }
+      @logger.debug(r.body)
+    else 
+      @logger.debug("using sid: #{sid}")
+      r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
+        :sid => sid,
+        :resulttype => "text",
+        :q => query
+      }
+      @logger.debug(r.body)
+    end
+
     r
   end
 
