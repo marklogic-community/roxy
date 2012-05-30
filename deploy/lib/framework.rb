@@ -125,7 +125,7 @@ module Roxy
 
     def create_suite(suite, test)
       suite_dir = File.expand_path("../../../src/test/suites/#{suite}/", __FILE__)
-      Dir.mkdir(suite_dir) unless Dir.exist?(suite_dir)
+      Dir.mkdir(suite_dir) unless File.directory?(suite_dir)
 
       if (test)
         target_file = "#{suite_dir}/#{test}.xqy"
@@ -144,7 +144,7 @@ module Roxy
 
     def create_layout(layout, format)
       layout_dir = File.expand_path("../../../src/app/views/layouts/", __FILE__)
-      Dir.mkdir(layout_dir) unless Dir.exist?(layout_dir)
+      Dir.mkdir(layout_dir) unless File.directory?(layout_dir)
 
       target_file = "#{layout_dir}/#{layout}.#{format}.xqy"
 
