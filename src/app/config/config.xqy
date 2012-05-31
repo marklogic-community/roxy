@@ -17,38 +17,43 @@ xquery version "1.0-ml";
 
 module namespace c = "http://marklogic.com/roxy/config";
 
-declare namespace rest = "http://marklogic.com/appservices/rest";
+(:
+ : ***********************************************
+ : Overrides for the Default Roxy control options
+ :
+ : See /roxy/config/defaults.xqy for the complete list of stuff that you can override.
+ : Roxy will check this file (config.xqy) first. If no overrides are provided then it will use the defaults.
+ :
+ : Go to https://github.com/marklogic/roxy/wiki/Overriding-Roxy-Options for more details
+ :
+ : ***********************************************
+ :)
+declare variable $c:ROXY-OPTIONS :=
+  <options>
+    <layouts>
+      <layout format="html">three-column</layout>
+    </layouts>
+  </options>;
 
 (:
  : ***********************************************
- : Roxy control options
+ : Overrides for the Default Roxy scheme
+ :
+ : See /roxy/config/defaults.xqy for the default routes
+ : Roxy will check this file (config.xqy) first. If no overrides are provided then it will use the defaults.
+ :
+ : Go to https://github.com/marklogic/roxy/wiki/Roxy-URL-Rewriting for more details
+ :
  : ***********************************************
  :)
-
-(: the default controller that the URL http://server:port/ maps to :)
-(: use appbuilder for an appbuilder clone :)
-declare variable $DEFAULT-CONTROLLER := "appbuilder";
-
-(: default layouts for various content types :)
-(: use two-column for an appbuilder clone :)
-declare variable $DEFAULT-LAYOUTS :=
-  let $map := map:map()
-  let $_ := map:put($map, "html", "two-column")
-  return $map;
-
-(: The default format to render results :)
-declare variable $DEFAULT-FORMAT := "html";
-
-(: Custom routes for URL mapping :)
-declare variable $ROUTES :=
-  <rest:options>
-  <!-- Put your <rest:request/> elements here -->
-  </rest:options>;
+declare variable $c:ROXY-ROUTES := ();
 
 (:
  : ***********************************************
  : A decent place to put your appservices search config
- : and various other search options
+ : and various other search options.
+ : The examples below are used by the appbuilder style
+ : default application.
  : ***********************************************
  :)
 declare variable $c:DEFAULT-PAGE-LENGTH as xs:int := 5;
@@ -58,12 +63,12 @@ declare variable $c:SEARCH-OPTIONS :=
     <search-option>unfiltered</search-option>
     <term>
       <term-option>case-insensitive</term-option>
-     </term>
-     <constraint name="facet1">
-       <collection>
-         <facet-option>limit=10</facet-option>
-       </collection>
-     </constraint>
+    </term>
+    <constraint name="facet1">
+      <collection>
+        <facet-option>limit=10</facet-option>
+      </collection>
+    </constraint>
 
     <return-results>true</return-results>
     <return-query>true</return-query>

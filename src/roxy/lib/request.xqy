@@ -130,7 +130,7 @@ declare function req:get(
       else
         $t
   let $max-count as xs:int? := req:get-option($options, "max-count", "xs:int")
-  let $allow-empty as xs:boolean := 
+  let $allow-empty as xs:boolean :=
     (
       req:get-option($options, "allow-empty", "xs:boolean"),
       fn:true()
@@ -280,7 +280,7 @@ declare private function req:cast-as-type(
   $value as xs:string,
   $type as xs:string) as item()*
 {
-  let $validate := 
+  let $validate :=
     if (fn:ends-with($type, "?")) then
       xs:QName(fn:substring($type, 1, fn:string-length($type) - 1))
     else
@@ -314,11 +314,10 @@ declare function req:expand-resources($nodes)
               <rest:uri-param name="format">$1</rest:uri-param>
               <rest:http method="GET"/>
             </rest:request>,
-            <rest:request uri="{fn:concat('^/', $res, '/([\w\d_\-]*)\.?(\w*)$')}" endpoint="/roxy/update-router.xqy">
+            <rest:request uri="{fn:concat('^/', $res, '\.?(\w*)$')}" endpoint="/roxy/update-router.xqy">
               <rest:uri-param name="controller">{$res}</rest:uri-param>
               <rest:uri-param name="func">create</rest:uri-param>
               <rest:uri-param name="format">$2</rest:uri-param>
-              <rest:uri-param name="id">$1</rest:uri-param>
               <rest:http method="POST"/>
             </rest:request>,
             <rest:request uri="{fn:concat('^/', $res, '/([\w\d_\-]*)\.?(\w*)$')}" endpoint="/roxy/query-router.xqy">
@@ -360,14 +359,14 @@ declare function req:expand-resources($nodes)
       default return $n
 };
 
-declare function req:rewrite($url, $path, $verb, $options as element(rest:options)) as xs:string
+declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)) as xs:string
 {
-  let $options := req:expand-resources($options)
+  let $routes := req:expand-resources($routes)
   let $matching-request :=
     (
-      $options/*:request[fn:matches($path, @uri)]
-                        [if (*:http/@method) then $verb = *:http/@method
-                         else fn:true()]
+      $routes/*:request[fn:matches($path, @uri)]
+                       [if (*:http/@method) then $verb = *:http/@method
+                        else fn:true()]
     )[1]
   let $final-uri as xs:string? :=
     if ($matching-request) then
@@ -407,6 +406,7 @@ declare function req:rewrite($url, $path, $verb, $options as element(rest:option
   return
     ($final-uri, $url)[1]
 };
+
 declare function req:is-ajax-request() as xs:boolean
 {
   xdmp:get-request-header("X-Requested-With") = "XMLHttpRequest"

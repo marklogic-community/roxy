@@ -19,6 +19,7 @@ module namespace router = "http://marklogic.com/roxy/router";
 
 import module namespace ch = "http://marklogic.com/roxy/controller-helper" at "/roxy/lib/controller-helper.xqy";
 import module namespace config = "http://marklogic.com/roxy/config" at "/app/config/config.xqy";
+import module namespace def = "http://marklogic.com/roxy/defaults" at "/roxy/config/defaults.xqy";
 import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
 import module namespace rh = "http://marklogic.com/roxy/routing-helper" at "/roxy/lib/routing-helper.xqy";
 import module namespace u = "http://marklogic.com/roxy/util" at "/roxy/lib/util.xqy";
@@ -28,16 +29,26 @@ declare option xdmp:mapping "false";
 declare variable $controller as xs:QName := req:get("controller", "type=xs:QName");
 declare variable $controller-path as xs:string := fn:concat("/app/controllers/", $controller, ".xqy");
 declare variable $func as xs:string := req:get("func", "main", "type=xs:string");
-declare variable $format as xs:string := req:get("format", $config:DEFAULT-FORMAT, "type=xs:string");
+declare variable $default-format :=
+(
+	$config:ROXY-OPTIONS/*:default-format,
+	$def:ROXY-OPTIONS/*:default-format
+)[1];
+declare variable $format as xs:string := req:get("format", $default-format, "type=xs:string");
 declare variable $default-view as xs:string := fn:concat($controller, "/", $func);
 
 (: assume no default layout for xml, json, text :)
-declare variable $default-layout as xs:string? := map:get($config:DEFAULT-LAYOUTS, $format);
+declare variable $default-layout as xs:string? :=
+(
+	$config:ROXY-OPTIONS/*:layouts/*:layout[@format = $format],
+	$def:ROXY-OPTIONS/*:layouts/*:layout[@format = $format]
+)[1];
+	(:map:get($config:DEFAULT-LAYOUTS, $format);:)
 
 declare function router:route()
 {
 	(: run the controller. errors bubble up to the error module :)
-	let $data := 
+	let $data :=
 		xdmp:apply(
 			xdmp:function(
 				fn:QName(fn:concat("http://marklogic.com/roxy/controller/", $controller), $func),
