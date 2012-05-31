@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
-require File.expand_path('../Help', __FILE__)
-require File.expand_path('../server_config', __FILE__)
-require File.expand_path('../framework', __FILE__)
-require File.expand_path('../util', __FILE__)
-require File.expand_path('../../app_specific.rb', __FILE__)
+require 'Help'
+require 'server_config'
+require 'framework'
+require 'util'
+require 'app_specific'
 
 def usage
 puts <<-EOT

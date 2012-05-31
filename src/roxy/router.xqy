@@ -43,7 +43,6 @@ declare variable $default-layout as xs:string? :=
 	$config:ROXY-OPTIONS/*:layouts/*:layout[@format = $format],
 	$def:ROXY-OPTIONS/*:layouts/*:layout[@format = $format]
 )[1];
-	(:map:get($config:DEFAULT-LAYOUTS, $format);:)
 
 declare function router:route()
 {

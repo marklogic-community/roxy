@@ -73,7 +73,7 @@ then
 else
   if [ -e deploy/lib/ml.rb ]
   then
-    ruby deploy/lib/ml.rb $*
+    ruby -I deploy -I deploy/lib deploy/lib/ml.rb $*
   else
     printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
   fi

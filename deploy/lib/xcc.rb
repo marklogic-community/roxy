@@ -15,8 +15,8 @@
 ###############################################################################
 require 'uri'
 require 'net/http'
-require File.expand_path('../Http', __FILE__)
-require File.expand_path('../MLClient', __FILE__)
+require 'RoxyHttp'
+require 'MLClient'
 
 RUBY_XCC_VERSION = "0.9a"
 XCC_VERSION = "5.0-2"
@@ -210,7 +210,7 @@ module Roxy
       flag = commit ? "10" : "20"
 
       # oh so special format that xcc needs to send
-      body = "0#{buffer.length}\r\n#{buffer}#{flag}\r\n"      
+      body = "0#{buffer.length}\r\n#{buffer}#{flag}\r\n"
     end
 
     def load_files(path, options)

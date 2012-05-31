@@ -16,9 +16,10 @@
 require 'uri'
 require 'net/http'
 require 'fileutils'
-require File.expand_path('../Http', __FILE__)
-require File.expand_path('../xcc', __FILE__)
-require File.expand_path('../MLClient', __FILE__)
+require 'json'
+require 'RoxyHttp'
+require 'xcc'
+require 'MLClient'
 
 class ExitException < Exception
 end
@@ -238,7 +239,12 @@ class ServerConfig < MLClient
     else
       r = execute_query_5 query, properties
     end
-    r
+
+    if (r.code.to_i != 200)
+      raise ExitException.new r.body
+    end
+
+    return r
   end
 
   def restart
@@ -330,7 +336,7 @@ class ServerConfig < MLClient
     batch = (((@environment != "local") && (batch_override != false)) || (batch_override == true))
 
     options[:batch_commit] = batch
-    options[:permissions] = 
+    options[:permissions] =
       [
         {
           :capability => Roxy::ContentCapability::EXECUTE,
@@ -698,7 +704,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
         :q => query
       }
       @logger.debug(r.body)
-    else 
+    else
       @logger.debug("using sid: #{sid}")
       r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
         :sid => sid,
@@ -708,7 +714,11 @@ Before you can deploy CPF, you must define a configuration. Steps:
       @logger.debug(r.body)
     end
 
-    r
+    if (r.body.match(/\{"error"/)) then
+      raise ExitException.new JSON.pretty_generate(JSON.parse(r.body))
+    end
+
+    return r
   end
 
   def self.substitute_properties(properties, prefix = "")

@@ -62,7 +62,7 @@ goto end
 
 :rubydeployer
 	if NOT EXIST deploy\lib\ml.rb GOTO missingdeploy
-	ruby deploy\lib\ml.rb %*
+	ruby -Ideploy -Ideploy\lib deploy\lib\ml.rb %*
 	goto end
 
 :missingdeploy
