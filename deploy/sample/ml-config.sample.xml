@@ -211,7 +211,7 @@
   </databases>
   <sec:roles xmlns:sec="http://marklogic.com/xdmp/security">
     <sec:role>
-      <sec:role-name>@ml.app-name-role</sec:role-name>
+      <sec:role-name>@ml.app-role</sec:role-name>
       <sec:description>A role for users of the @ml.app-name application</sec:description>
       <sec:role-names>
       </sec:role-names>
@@ -241,7 +241,7 @@
       <sec:description>A user for the @ml.app-name application</sec:description>
       <sec:password>password</sec:password>
       <sec:role-names>
-        <sec:role-names>@ml.app-name-role</sec:role-names>
+        <sec:role-names>@ml.app-role</sec:role-names>
       </sec:role-names>
       <sec:permissions/>
       <sec:collections/>

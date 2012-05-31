@@ -39,7 +39,7 @@
       <permissions>
         <permission>
           <capability>execute</capability>
-          <role-name>@ml.app-name-role</role-name>
+          <role-name>@ml.app-role</role-name>
         </permission>
       </permissions>
     </domain>
