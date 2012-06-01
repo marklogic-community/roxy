@@ -359,6 +359,28 @@ declare function req:expand-resources($nodes)
       default return $n
 };
 
+declare function req:build-params($matching-request, $url, $path)
+{
+  if ($matching-request/*:uri-param) then
+    fn:string-join((
+      for $param in $matching-request/*:uri-param
+      let $value as xs:string? :=
+        fn:replace($path, $matching-request/@uri, $param)
+      let $value as xs:string? :=
+        if ($value) then
+          $value
+        else if ($param/@default) then
+          $param/@default
+        else ()
+      return
+        if ($value) then
+          fn:concat($param/@name, "=", $value)
+        else (),
+      fn:substring-after($url, "?")[. ne ""]),
+      "&amp;")
+  else ()
+};
+
 declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)) as xs:string
 {
   let $routes := req:expand-resources($routes)
@@ -372,29 +394,20 @@ declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)
     if ($matching-request) then
       if ($matching-request/@redirect) then
       (
-        xdmp:redirect-response($matching-request/@redirect),
-        $matching-request/@redirect
+        xdmp:redirect-response(
+          let $params := req:build-params($matching-request, $url, $path)
+          return
+            fn:concat(
+              $matching-request/@redirect,
+              if ($params) then "?"
+              else (),
+              $params
+            )),
+        (: This needs to point to a main module :)
+        "/roxy/no-op.xqy"
       )
       else if ($matching-request/@endpoint) then
-        let $params :=
-          if ($matching-request/*:uri-param) then
-            fn:string-join((
-              for $param in $matching-request/*:uri-param
-              let $value as xs:string? :=
-                fn:replace($path, $matching-request/@uri, $param)
-              let $value as xs:string? :=
-                if ($value) then
-                  $value
-                else if ($param/@default) then
-                  $param/@default
-                else ()
-              return
-                if ($value) then
-                  fn:concat($param/@name, "=", $value)
-                else (),
-              fn:substring-after($url, "?")[. ne ""]),
-              "&amp;")
-          else ()
+        let $params := req:build-params($matching-request, $url, $path)
         return
           fn:concat(
             fn:replace($path, $matching-request/@uri, $matching-request/@endpoint),
