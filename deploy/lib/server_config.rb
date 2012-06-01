@@ -157,6 +157,7 @@ class ServerConfig < MLClient
     if collation == ""
       collation = "http://marklogic.com/collation/"
     end
+    collation
   end
 
   def self.request_range_value_positions
@@ -167,6 +168,7 @@ class ServerConfig < MLClient
     else
       positions = "false"
     end
+    positions
   end
 
   def self.inject_index(key, index)
