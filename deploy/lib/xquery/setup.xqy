@@ -54,6 +54,7 @@ declare function setup:do-setup($import-config as element(configuration)) as ite
     setup:create-roles($import-config),
     setup:create-roles($import-config),
     setup:create-users($import-config),
+    setup:create-amps($import-config),
     setup:create-mimetypes($import-config),
     setup:create-forests($import-config),
     setup:create-databases($import-config),
@@ -2030,6 +2031,34 @@ declare function setup:create-user($user-name as xs:string,
   catch ($e) {
     fn:concat("User ", $user-name, " creation failed: ", $e//err:format-string)
   }
+};
+
+(::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+ :: 
+ ::)
+declare function setup:create-amps($import-config)
+{
+  for $amp in $import-config/sec:amps/sec:amp
+  return
+    try {
+      xdmp:eval(
+        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $amp external;
+         sec:create-amp(
+           $amp/sec:namespace,
+           $amp/sec:local-name,
+           $amp/sec:doc-uri,
+           xdmp:database($amp/sec:db-name),
+           $amp/sec:role-name
+        )',
+        (xs:QName("amp"), $amp),
+        <options xmlns="xdmp:eval">
+          <database>{xdmp:security-database()}</database>
+        </options>
+      )
+    } catch ($e) {
+      fn:concat("Failed to create amp: ", $e//err:format-string)
+    }
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::

@@ -249,4 +249,19 @@
       <sec:permissions/>
       <sec:collections/>
     </sec:user>
-  </sec:users></configuration>
+  </sec:users>
+  <sec:amps>
+<!--
+  Sample amp. See the Understanding and Using Security Guide section 5.2 for 
+  information about amps. 
+  http://community.marklogic.com/pubs/5.0/books/security.pdf
+    <sec:amp>
+      <sec:namespace>http://marklogic.com/roxy</sec:namespace>
+      <sec:local-name>sample</sec:local-name>
+      <sec:doc-uri>/app/models/sample.xqy</sec:doc-uri>
+      <sec:db-name>@ml.app-modules-db</sec:db-name>
+      <sec:role-name>a-privileged-role</sec:role-name>
+    </sec:amp>
+-->
+  </sec:amps>
+</configuration>
