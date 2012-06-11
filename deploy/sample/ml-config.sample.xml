@@ -264,4 +264,22 @@
     </sec:amp>
 -->
   </sec:amps>
+  <sec:privileges>
+<!--
+    Sample execute privilege. 
+    <sec:privilege>
+      <sec:privilege-name>my-action</sec:privilege-name>
+      <sec:action>http://marklogic.com/custom/privilege/my-action</sec:action>
+      <sec:kind>execute</sec:kind>
+    </sec:privilege>
+-->
+<!--
+    Sample URI privilege. 
+    <sec:privilege>
+      <sec:privilege-name>users-uri</sec:privilege-name>
+      <sec:action>/users/</sec:action>
+      <sec:kind>uri</sec:kind>
+    </sec:privilege>
+-->
+  </sec:privileges>
 </configuration>
