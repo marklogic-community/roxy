@@ -57,6 +57,7 @@ class MLClient
   end
 
   def go(url, verb, headers = {}, params = nil, body = nil)
+    password_prompt
     request_params = build_request_params(url, verb)
     # configure headers
     headers.each do |k, v|
@@ -80,5 +81,16 @@ class MLClient
     return str.gsub(/[^-_.a-zA-Z0-9]+/) { |s|
       s.unpack('C*').collect { |i| "%%%02X" % i }.join
     }
+  end
+  
+  def prompt(*args)
+    print(*args)
+    gets.strip
+  end
+  
+  def password_prompt
+    if (@ml_password == "") then
+      @ml_password = prompt "Password for admin user: "
+    end
   end
 end
