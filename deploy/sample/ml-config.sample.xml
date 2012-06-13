@@ -222,18 +222,12 @@
       <sec:privileges>
         <sec:privilege>
           <sec:privilege-name>xdmp:value</sec:privilege-name>
-          <sec:action>http://marklogic.com/xdmp/privileges/xdmp-value</sec:action>
-          <sec:kind>execute</sec:kind>
         </sec:privilege>
         <sec:privilege>
           <sec:privilege-name>xdmp:add-response-header</sec:privilege-name>
-          <sec:action>http://marklogic.com/xdmp/privileges/xdmp-add-response-header</sec:action>
-          <sec:kind>execute</sec:kind>
         </sec:privilege>
         <sec:privilege>
           <sec:privilege-name>xdmp:invoke</sec:privilege-name>
-          <sec:action>http://marklogic.com/xdmp/privileges/xdmp-invoke</sec:action>
-          <sec:kind>execute</sec:kind>
         </sec:privilege>
       </sec:privileges>
     </sec:role>

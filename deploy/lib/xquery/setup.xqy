@@ -1764,17 +1764,12 @@ declare function setup:configure-server($server-config as element(), $server-id 
 
 declare function setup:create-privileges($import-config as element(configuration))
 {
-  try {
-    for $priv in setup:get-privileges-from-config($import-config)
-    return
-      setup:create-privilege($priv/sec:privilege-name,
-                             $priv/sec:action,
-                             $priv/sec:kind,
-                             ())
-
-  } catch ($e) {
-    fn:concat("Privilege creation failed: ", $e//err:format-string)
-  }
+  for $priv in setup:get-privileges-from-config($import-config)
+  return
+    setup:create-privilege($priv/sec:privilege-name,
+                           $priv/sec:action,
+                           $priv/sec:kind,
+                           ())
 };
 
 declare function setup:create-privilege($privilege-name as xs:string,
@@ -1782,31 +1777,31 @@ declare function setup:create-privilege($privilege-name as xs:string,
                                         $kind as xs:string,
                                         $role-names as xs:string*)
 {
-  try {
-    if (setup:get-privileges()/sec:privilege[sec:privilege-name = $privilege-name]) then
+  let $match := setup:get-privileges()/sec:privilege[sec:privilege-name = $privilege-name]
+  return
+    if ($match) then
+      if ($match/sec:action != $action or $match/sec:kind != $kind) then
+        fn:error(
+          xs:QName("PRIV-MISMATCH"), 
+          fn:concat("Configured privilege conflicts with existing one: name=", $privilege-name, 
+            "; action=", $action, "; kind=", $kind)
+        )
+      else 
+        (: It's a match. No need to mess with it. :)
+        ()
+    else
+      (: Create this new privilege :)
       xdmp:eval('import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+                 declare variable $privilege-name as xs:string external;
                  declare variable $action as xs:string external;
                  declare variable $kind as xs:string external;
-                 sec:remove-privilege($action, $kind)',
-                (xs:QName("action"), $action,
-                 xs:QName("kind"), $kind),
+                 declare variable $role-names as element() external;
+                 sec:create-privilege($privilege-name, $action, $kind, $role-names/*)',
+                (xs:QName("privilege-name"), $privilege-name,
+                 xs:QName("action"), $action,
+                 xs:QName("kind"), $kind,
+                 xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
                 <options xmlns="xdmp:eval"><database>{$default-security}</database></options>)
-    else (),
-    xdmp:eval('import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-               declare variable $privilege-name as xs:string external;
-               declare variable $action as xs:string external;
-               declare variable $kind as xs:string external;
-               declare variable $role-names as element() external;
-               sec:create-privilege($privilege-name, $action, $kind, $role-names/*)',
-              (xs:QName("privilege-name"), $privilege-name,
-               xs:QName("action"), $action,
-               xs:QName("kind"), $kind,
-               xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
-              <options xmlns="xdmp:eval"><database>{$default-security}</database></options>)
-  }
-  catch ($e) {
-    fn:concat("Privilege ", $privilege-name, " creation failed: ", $e//err:format-string)
-  }
 };
 
 declare function setup:create-roles($import-config as element(configuration))
@@ -1874,14 +1869,15 @@ declare function setup:create-role($role-name as xs:string,
       else (),
 
       for $privilege in $privileges
+      let $priv := setup:get-privilege-by-name($privilege/sec:privilege-name)
       return
         xdmp:eval('import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
                    declare variable $action as xs:string external;
                    declare variable $kind as xs:string external;
                    declare variable $role-name as xs:string external;
                    sec:privilege-add-roles($action, $kind, $role-name)',
-                  (xs:QName("action"), $privilege/sec:action,
-                   xs:QName("kind"), $privilege/sec:kind,
+                  (xs:QName("action"), $priv/sec:action,
+                   xs:QName("kind"), $priv/sec:kind,
                    xs:QName("role-name"), $role-name),
                   <options xmlns="xdmp:eval"><database>{$default-security}</database></options>)
     )
@@ -2186,6 +2182,15 @@ declare function setup:get-privileges() as element(sec:privileges)? {
                             <options xmlns="xdmp:eval"><database>{$default-security}</database></options>)
   }
   </privileges>
+};
+
+declare function setup:get-privilege-by-name($name as xs:string) as element(sec:privilege)? {
+  xdmp:eval(
+    'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+     declare variable $name external;
+     /sec:privilege[sec:privilege-name = $name]',
+    (xs:QName("name"), $name),
+    <options xmlns="xdmp:eval"><database>{$default-security}</database></options>)
 };
 
 declare function setup:get-users($ids as xs:unsignedLong*) as element(sec:users)? {
@@ -2643,7 +2648,7 @@ declare function setup:get-setting-from-database-config-as-boolean($database-con
 
 declare function setup:get-privileges-from-config($import-config as element(configuration)) as element(sec:privilege)*
 {
-  $import-config//sec:privileges/sec:privilege
+  $import-config/sec:privileges/sec:privilege
 };
 
 declare function setup:get-roles-from-config($import-config as element(configuration)) as element(sec:role)*
