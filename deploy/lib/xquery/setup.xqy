@@ -942,7 +942,7 @@ declare function setup:configure-database($database-config as element(db:databas
     let $remove-existing-indexes :=
       for $index in admin:database-get-range-field-indexes($admin-config, $database)
       return
-        xdmp:set($admin-config, admin:database-delete-geospatial-element-child-index($admin-config, $database, $index))
+        xdmp:set($admin-config, admin:database-delete-range-field-index($admin-config, $database, $index))
 
     let $admin-config := setup:add-range-field-indexes($admin-config, $database, $database-config)
 
