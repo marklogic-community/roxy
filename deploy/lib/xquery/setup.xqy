@@ -938,6 +938,14 @@ declare function setup:configure-database($database-config as element(db:databas
 
     let $admin-config := setup:add-fields($admin-config, $database, $database-config)
 
+    (: remove any existing range field indexes :)
+    let $remove-existing-indexes :=
+      for $index in admin:database-get-range-field-indexes($admin-config, $database)
+      return
+        xdmp:set($admin-config, admin:database-delete-geospatial-element-child-index($admin-config, $database, $index))
+
+    let $admin-config := setup:add-range-field-indexes($admin-config, $database, $database-config)
+
     let $restart-hosts :=
       admin:save-configuration-without-restart($admin-config)
 
@@ -1014,6 +1022,31 @@ declare function setup:add-range-element-attribute-indexes-R($admin-config as el
       try { admin:database-add-range-element-attribute-index($admin-config, $database, $index-config) }
       catch ($e) { $admin-config }
     return setup:add-range-element-attribute-indexes-R($admin-config, $database, fn:subsequence($index-configs, 2))
+};
+
+declare function setup:add-range-field-indexes($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)
+{
+  let $index-configs := $database-config/db:range-field-indexes/db:range-field-index
+  return setup:add-range-field-indexes-R($admin-config, $database, $index-configs)
+};
+
+declare function setup:add-range-field-indexes-R(
+  $admin-config as element(configuration), 
+  $database as xs:unsignedLong, 
+  $index-configs as element(db:range-field-index)*) as element(configuration)
+{
+  if (fn:empty($index-configs)) then
+    $admin-config
+  else
+    let $index-config := $index-configs[1]
+    let $admin-config :=
+      try { 
+        admin:database-add-range-field-index($admin-config, $database, $index-config) 
+      } catch ($e) { 
+        xdmp:log(fn:concat("Error while building range-field-index: ", xdmp:quote($e))), 
+        $admin-config 
+      }
+    return setup:add-range-field-indexes-R($admin-config, $database, fn:subsequence($index-configs, 2))
 };
 
 declare function setup:add-geospatial-element-attribute-pair-indexes($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)

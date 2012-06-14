@@ -117,6 +117,16 @@
         </range-element-attribute-index>
 -->
       </range-element-attribute-indexes>
+      <range-field-indexes>
+<!--
+        <range-field-index>
+          <scalar-type>date</scalar-type>
+          <field-name>sample</field-name>
+          <collation/>
+          <range-value-positions>false</range-value-positions>
+        </range-field-index>
+-->
+      </range-field-indexes>
       <geospatial-element-attribute-pair-indexes>
 <!--
         Sample for:
