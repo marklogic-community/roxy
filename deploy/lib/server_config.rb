@@ -573,6 +573,10 @@ private
         {
           :capability => Roxy::ContentCapability::READ,
           :role => @properties['ml.app-role']
+        },
+        {
+          :capability => Roxy::ContentCapability::UPDATE,
+          :role => @properties['ml.app-role']
         }
       ]
     }
