@@ -617,6 +617,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
 
   def xcc
     if (!@xcc)
+      password_prompt
       @xcc = Roxy::Xcc.new({
         :user_name => @ml_username,
         :password => @ml_password,
