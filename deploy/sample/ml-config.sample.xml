@@ -239,6 +239,9 @@
         <sec:privilege>
           <sec:privilege-name>xdmp:invoke</sec:privilege-name>
         </sec:privilege>
+        <sec:privilege>
+          <sec:privilege-name>xdmp:with-namespaces</sec:privilege-name>
+        </sec:privilege>
       </sec:privileges>
     </sec:role>
   </sec:roles>
@@ -256,8 +259,8 @@
   </sec:users>
   <sec:amps>
 <!--
-  Sample amp. See the Understanding and Using Security Guide section 5.2 for 
-  information about amps. 
+  Sample amp. See the Understanding and Using Security Guide section 5.2 for
+  information about amps.
   http://community.marklogic.com/pubs/5.0/books/security.pdf
     <sec:amp>
       <sec:namespace>http://marklogic.com/roxy</sec:namespace>
@@ -270,7 +273,7 @@
   </sec:amps>
   <sec:privileges>
 <!--
-    Sample execute privilege. 
+    Sample execute privilege.
     <sec:privilege>
       <sec:privilege-name>my-action</sec:privilege-name>
       <sec:action>http://marklogic.com/custom/privilege/my-action</sec:action>
@@ -278,7 +281,7 @@
     </sec:privilege>
 -->
 <!--
-    Sample URI privilege. 
+    Sample URI privilege.
     <sec:privilege>
       <sec:privilege-name>users-uri</sec:privilege-name>
       <sec:action>/users/</sec:action>
