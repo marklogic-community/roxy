@@ -441,11 +441,13 @@ class ServerConfig < MLClient
 
   def recordloader
     properties_file = File.expand_path("../../#{ARGV.shift}", __FILE__)
+    properties = ServerConfig.load_properties(properties_file, "")
+    properties = ServerConfig.substitute_properties(properties, @properties, "")
 
-    properties = ServerConfig.load_properties(properties_file, "", @properties)
     properties.each do |k, v|
       @logger.info("#{k}=#{v}")
     end
+
     prop_string = ""
     properties.each do |k,v|
       prop_string << %Q{-D#{k}="#{v}" }
@@ -458,8 +460,9 @@ class ServerConfig < MLClient
 
   def xqsync
     properties_file = File.expand_path("../../#{ARGV.shift}", __FILE__)
+    properties = ServerConfig.load_properties(properties_file, "")
+    properties = ServerConfig.substitute_properties(properties, @properties, "")
 
-    properties = ServerConfig.load_properties(properties_file, "", @properties)
     properties.each do |k, v|
       @logger.info("#{k}=#{v}")
     end
@@ -728,21 +731,21 @@ Before you can deploy CPF, you must define a configuration. Steps:
     return r
   end
 
-  def self.substitute_properties(properties, prefix = "")
-    needs_rescan = false
+  def self.substitute_properties(sub_me, with_me, prefix = "")
     dangling_vars = {}
     begin
-      properties.each do |k,v|
+      needs_rescan = false
+      sub_me.each do |k,v|
         if (v.match(/\$\{basedir\}/)) then
-          properties[k] = File.expand_path(v.sub("${basedir}", ServerConfig.pwd))
+          sub_me[k] = File.expand_path(v.sub("${basedir}", ServerConfig.pwd))
         else
           matches = v.scan(/\$\{([^}]+)\}/)
           if (matches.count > 0) then
             var = "#{prefix}#{matches[0][0]}"
-            sub = properties[var]
+            sub = with_me[var]
             if (sub) then
               new_val = v.sub(/\$\{[^}]+\}/, sub)
-              properties[k] = new_val
+              sub_me[k] = new_val
               if (matches.length > 1)
                 needs_rescan = true
               end
@@ -758,7 +761,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
       raise DanglingVarsException.new(dangling_vars)
     end
 
-    properties
+    sub_me
   end
 
   def self.load_properties(properties_filename, prefix = "")
@@ -925,6 +928,6 @@ Before you can deploy CPF, you must define a configuration. Steps:
       properties.merge!(ServerConfig.load_properties(env_properties_file, "ml."))
     end
 
-    properties = ServerConfig.substitute_properties(properties, "ml.")
+    properties = ServerConfig.substitute_properties(properties, properties, "ml.")
   end
 end
