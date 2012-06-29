@@ -33,9 +33,9 @@ declare variable $q as xs:string? := vh:get("q");
     <link href="/css/themes/ui-lightness/jquery-ui.css" type="text/css" rel="stylesheet"/>
     <link href="/css/two-column.less" type="text/css" rel="stylesheet/less"/>
     <link href="/css/app.less" type="text/css" rel="stylesheet/less"/>
-    <script src="/js/lib/less-1.1.3.min.js" type='text/javascript'></script>
-    <script src="/js/jquery-1.6.1.min.js" type='text/javascript'></script>
-    <script src="/js/jquery-ui-1.8.13.min.js" type='text/javascript'></script>
+    <script src="/js/lib/less-1.3.0.min.js" type='text/javascript'></script>
+    <script src="/js/lib/jquery-1.7.1.min.js" type='text/javascript'></script>
+    <script src="/js/lib/jquery-ui-1.8.18.min.js" type='text/javascript'></script>
     <script src="/js/two-column.js" type='text/javascript'></script>
     <script src="/js/app.js" type='text/javascript'></script>
     { vh:get("additional-js") }
