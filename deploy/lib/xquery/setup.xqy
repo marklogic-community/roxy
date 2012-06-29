@@ -1847,10 +1847,11 @@ declare function setup:create-roles($import-config as element(configuration))
                         $role/sec:role-names/sec:role-name,
                         $role/sec:permissions/*,
                         $role/sec:collections/*,
-                        $role/sec:privileges/*)
+                        $role/sec:privileges/*,
+                        $role/sec:amps/*)
 
   } catch ($e) {
-    fn:concat("Role creation failed: ", $e//err:format-string)
+    xdmp:log(fn:concat("Role creation failed: ", $e//err:format-string))
   }
 };
 
@@ -1859,7 +1860,8 @@ declare function setup:create-role($role-name as xs:string,
                                    $role-names as xs:string*,
                                    $permissions as element(sec:permission)*,
                                    $collections as xs:string*,
-                                   $privileges as element(sec:privilege)*)
+                                   $privileges as element(sec:privilege)*,
+                                   $amps as element(sec:amp)*)
 {
   try {
     if (setup:get-roles(())/sec:role[sec:role-name = $role-name]) then
@@ -1911,6 +1913,22 @@ declare function setup:create-role($role-name as xs:string,
                    sec:privilege-add-roles($action, $kind, $role-name)',
                   (xs:QName("action"), $priv/sec:action,
                    xs:QName("kind"), $priv/sec:kind,
+                   xs:QName("role-name"), $role-name),
+                  <options xmlns="xdmp:eval"><database>{$default-security}</database></options>),
+
+      for $amp in $amps
+      return
+        xdmp:eval('import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+                   declare variable $namespace as xs:string external;
+                   declare variable $local-name as xs:string external;
+                   declare variable $document-uri as xs:string external;
+                   declare variable $database as xs:unsignedLong external;
+                   declare variable $role-name as xs:string external;
+                   sec:amp-add-roles($namespace, $local-name, $document-uri, $database, $role-name)',
+                  (xs:QName("namespace"), $amp/sec:namespace,
+                   xs:QName("local-name"), $amp/sec:local-name,
+                   xs:QName("document-uri"), $amp/sec:document-uri,
+                   xs:QName("database"), if ($amp/sec:database-name eq "filesystem") then 0 else xdmp:database($amp/sec:database-name),
                    xs:QName("role-name"), $role-name),
                   <options xmlns="xdmp:eval"><database>{$default-security}</database></options>)
     )
