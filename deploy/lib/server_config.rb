@@ -97,7 +97,7 @@ class ServerConfig < MLClient
     target_config = File.expand_path("../../ml-config.xml", __FILE__)
     sample_properties = File.expand_path("../../sample/build.sample.properties", __FILE__)
     build_properties = File.expand_path("../../build.properties", __FILE__)
-    if (File.exists?(target_config) || File.exists?(build_properties)) then
+    if (find_arg(['--force']) == nil and ( File.exists?(target_config) || File.exists?(build_properties) )) then
       @@logger.error "Init has already been run. Use --force to rerun it.\n"
     else
       FileUtils.cp sample_config, target_config
