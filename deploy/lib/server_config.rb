@@ -899,6 +899,13 @@ Before you can deploy CPF, you must define a configuration. Steps:
       config.gsub!("@ml.test-appserver", "")
     end
 
+    if (@properties['ml.forest-data-dir'])
+      config.gsub!("@ml.forest-data-dir-xml",
+      %Q{
+        <data-directory>@ml.forest-data-dir</data-directory>
+      })
+    end
+
     @properties.each do |k, v|
       config.gsub!("@#{k}", v)
     end

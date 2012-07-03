@@ -88,8 +88,8 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   return
       try { setup:delete-database-and-forests($db-config) } catch ($e) {xdmp:log($e)},
 
-  (: Even though we delete forests that are attached to the database above, we will delete 
-   : forests named in the config file. When named forests are in use, we'll be able to 
+  (: Even though we delete forests that are attached to the database above, we will delete
+   : forests named in the config file. When named forests are in use, we'll be able to
    : delete them even if they aren't attached to the database for whatever reason. :)
   let $config := admin:get-configuration()
   return
@@ -97,8 +97,8 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
     for $forest-name in $import-config/as:assignments/as:assignment/as:forest-name
     return
       if (admin:forest-exists($config, $forest-name)) then
-        try { 
-          xdmp:set($config, admin:forest-delete($config, admin:forest-get-id($config, $forest-name), fn:true())) 
+        try {
+          xdmp:set($config, admin:forest-delete($config, admin:forest-get-id($config, $forest-name), fn:true()))
         } catch ($e) {
           xdmp:log($e)
         }
@@ -142,16 +142,16 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: Delete a database and any forests that are attached 
- :: to it. 
+ :: Delete a database and any forests that are attached
+ :: to it.
  ::)
 
 declare function setup:delete-database-and-forests($database-config as element(db:database))
 {
   let $db-name := $database-config/db:database-name
   let $config := admin:get-configuration()
-  return 
-    if (admin:database-exists($config, $db-name)) then 
+  return
+    if (admin:database-exists($config, $db-name)) then
       let $db-id := admin:database-get-id($config, $db-name)
       let $forest-ids := admin:database-get-attached-forests($config, $db-id)
       let $detach := (
@@ -178,7 +178,7 @@ declare function setup:delete-database-and-forests($database-config as element(d
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: Restart the target group.  
+ :: Restart the target group.
  ::)
 declare function setup:do-restart($group-name as xs:string?) as item()*
 {
@@ -201,7 +201,7 @@ declare function setup:do-restart($group-name as xs:string?) as item()*
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: 
+ ::
  ::)
 declare function setup:find-forest-ids($database-config as element(db:database)) as xs:unsignedLong*
 {
@@ -209,7 +209,7 @@ declare function setup:find-forest-ids($database-config as element(db:database))
   let $config := admin:get-configuration()
   let $hosts := admin:group-get-host-ids($config, $group-id)
   let $data-directory := $database-config/db:forests/db:data-directory
-  for $host at $i in $hosts 
+  for $host at $i in $hosts
   for $j in (1 to $database-config/db:forests-per-host)
   let $name := fn:string-join(
     ($database-config/db:database-name, xdmp:host-name($host), xs:string($j)), "-")
@@ -267,7 +267,7 @@ declare function setup:create-forests($import-config as element(configuration)) 
       setup:get-database-name-from-database-config($db-config)
     let $forests-per-host := $db-config/db:forests-per-host
     let $forest-config := setup:get-database-forest-configs($import-config, $database-name)
-    return 
+    return
       if (fn:exists($forests-per-host)) then
         setup:create-forests-from-count($db-config, $database-name, $forests-per-host)
       else
@@ -294,11 +294,11 @@ declare function setup:create-forests($import-config as element(configuration)) 
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: 
+ ::
  ::)
 declare function setup:create-forests-from-config(
   $import-config as element(configuration),
-  $db-config as element(db:database), 
+  $db-config as element(db:database),
   $database-name as xs:string) as item()*
 {
   xdmp:log(fn:concat("Roxy building ", $database-name, " forests by configuration")),
@@ -316,10 +316,10 @@ declare function setup:create-forests-from-config(
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: 
+ ::
  ::)
 declare function setup:create-forests-from-count(
-  $db-config as element(db:database), 
+  $db-config as element(db:database),
   $database-name as xs:string,
   $forests-per-host as xs:int) as item()*
 {
@@ -327,10 +327,10 @@ declare function setup:create-forests-from-count(
   let $config := admin:get-configuration()
   let $hosts := admin:group-get-host-ids($config, $group-id)
   let $data-directory := $db-config/db:forests/db:data-directory
-  for $host at $i in $hosts 
+  for $host at $i in $hosts
   for $j in (1 to $forests-per-host)
   let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
-  let $log := xdmp:log(fn:concat("Create forest ", $forest-name, " on host ", $host))
+  let $log := xdmp:log(fn:concat("Create forest ", $forest-name, " on host ", $host, " at dir ", $data-directory))
   return setup:create-forest(
     $forest-name,
     $data-directory,
@@ -339,10 +339,10 @@ declare function setup:create-forests-from-count(
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: 
+ ::
  ::)
 declare function setup:get-database-forest-configs(
-  $import-config as element(configuration), 
+  $import-config as element(configuration),
   $database-name as xs:string) as element(as:assignment)*
 {
   let $names := $import-config/db:databases/db:database[db:database-name = $database-name]/db:forests/db:forest-id/@name
@@ -350,7 +350,7 @@ declare function setup:get-database-forest-configs(
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: 
+ ::
  ::)
 declare function setup:create-forest-by-host-name(
   $forest-name as xs:string,
@@ -366,7 +366,7 @@ declare function setup:create-forest-by-host-name(
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: 
+ ::
  ::)
 declare function setup:create-forest(
   $forest-name as xs:string,
@@ -462,7 +462,7 @@ declare function setup:attach-forests($import-config as element(configuration)) 
       setup:get-database-name-from-database-config($db-config)
     let $forests-per-host := $db-config/db:forests-per-host
     let $forest-config := setup:get-database-forest-configs($import-config, $database-name)
-    return 
+    return
       if (fn:exists($forests-per-host)) then
         setup:attach-forests-by-count($db-config)
       else
@@ -476,7 +476,7 @@ declare function setup:attach-forests($import-config as element(configuration)) 
 };
 
 declare function setup:attach-forests-by-config(
-  $import-config as element(configuration), 
+  $import-config as element(configuration),
   $database-config as element(db:database),
   $database-name as xs:string) as item()*
 {
@@ -496,7 +496,7 @@ declare function setup:attach-forests-by-count($db-config as element(db:database
     let $config := admin:get-configuration()
     let $hosts := admin:group-get-host-ids($config, $group-id)
     let $forests-per-host := setup:get-forests-per-host-from-database-config($db-config)
-    for $host at $i in $hosts 
+    for $host at $i in $hosts
     for $j in (1 to $forests-per-host)
     let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
     let $log := xdmp:log(fn:concat("Attach forest ", $forest-name, " on host ", $host))
@@ -1031,8 +1031,8 @@ declare function setup:add-range-field-indexes($admin-config as element(configur
 };
 
 declare function setup:add-range-field-indexes-R(
-  $admin-config as element(configuration), 
-  $database as xs:unsignedLong, 
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
   $index-configs as element(db:range-field-index)*) as element(configuration)
 {
   if (fn:empty($index-configs)) then
@@ -1040,11 +1040,11 @@ declare function setup:add-range-field-indexes-R(
   else
     let $index-config := $index-configs[1]
     let $admin-config :=
-      try { 
-        admin:database-add-range-field-index($admin-config, $database, $index-config) 
-      } catch ($e) { 
-        xdmp:log(fn:concat("Error while building range-field-index: ", xdmp:quote($e))), 
-        $admin-config 
+      try {
+        admin:database-add-range-field-index($admin-config, $database, $index-config)
+      } catch ($e) {
+        xdmp:log(fn:concat("Error while building range-field-index: ", xdmp:quote($e))),
+        $admin-config
       }
     return setup:add-range-field-indexes-R($admin-config, $database, fn:subsequence($index-configs, 2))
 };
@@ -1087,10 +1087,10 @@ declare function setup:add-geospatial-element-pair-indexes-R($admin-config as el
 
 declare function setup:add-geospatial-element-child-indexes($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)
 {
-  
+
   setup:add-geospatial-element-child-indexes-R(
-    $admin-config, 
-    $database, 
+    $admin-config,
+    $database,
     $database-config/db:geospatial-element-child-indexes/db:geospatial-element-child-index)
 };
 
@@ -1815,11 +1815,11 @@ declare function setup:create-privilege($privilege-name as xs:string,
     if ($match) then
       if ($match/sec:action != $action or $match/sec:kind != $kind) then
         fn:error(
-          xs:QName("PRIV-MISMATCH"), 
-          fn:concat("Configured privilege conflicts with existing one: name=", $privilege-name, 
+          xs:QName("PRIV-MISMATCH"),
+          fn:concat("Configured privilege conflicts with existing one: name=", $privilege-name,
             "; action=", $action, "; kind=", $kind)
         )
-      else 
+      else
         (: It's a match. No need to mess with it. :)
         ()
     else
@@ -2081,7 +2081,7 @@ declare function setup:create-user($user-name as xs:string,
 };
 
 (::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
- :: 
+ ::
  ::)
 declare function setup:create-amps($import-config)
 {
