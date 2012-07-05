@@ -27,4 +27,4 @@ req:rewrite(
   xdmp:get-request-url(),
   xdmp:get-request-path(),
   xdmp:get-request-method(),
-  ($config:ROXY-ROUTES, $def:ROXY-ROUTES)[1])
+  $config:ROXY-ROUTES)

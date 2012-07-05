@@ -17,6 +17,10 @@ xquery version "1.0-ml";
 
 module namespace c = "http://marklogic.com/roxy/config";
 
+import module namespace def = "http://marklogic.com/roxy/defaults" at "/roxy/config/defaults.xqy";
+
+declare namespace rest = "http://marklogic.com/appservices/rest";
+
 (:
  : ***********************************************
  : Overrides for the Default Roxy control options
@@ -46,7 +50,13 @@ declare variable $c:ROXY-OPTIONS :=
  :
  : ***********************************************
  :)
-declare variable $c:ROXY-ROUTES := ();
+declare variable $c:ROXY-ROUTES :=
+  <routes xmlns="http://marklogic.com/appservices/rest">
+    <request uri="^/my/awesome/route" />
+    {
+      $def:ROXY-ROUTES/rest:request
+    }
+  </routes>;
 
 (:
  : ***********************************************
