@@ -361,24 +361,22 @@ declare function req:expand-resources($nodes)
 
 declare function req:build-params($matching-request, $url, $path)
 {
-  if ($matching-request/*:uri-param) then
-    fn:string-join((
-      for $param in $matching-request/*:uri-param
-      let $value as xs:string? :=
-        fn:replace($path, $matching-request/@uri, $param)
-      let $value as xs:string? :=
-        if ($value) then
-          $value
-        else if ($param/@default) then
-          $param/@default
-        else ()
-      return
-        if ($value) then
-          fn:concat($param/@name, "=", $value)
-        else (),
-      fn:substring-after($url, "?")[. ne ""]),
-      "&amp;")
-  else ()
+  fn:string-join((
+    for $param in $matching-request/*:uri-param
+    let $value as xs:string? :=
+      fn:replace($path, $matching-request/@uri, $param)
+    let $value as xs:string? :=
+      if ($value) then
+        $value
+      else if ($param/@default) then
+        $param/@default
+      else ()
+    return
+      if ($value) then
+        fn:concat($param/@name, "=", $value)
+      else (),
+    fn:substring-after($url, "?")[. ne ""]),
+    "&amp;")
 };
 
 declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)) as xs:string
@@ -408,6 +406,7 @@ declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)
       )
       else if ($matching-request/@endpoint) then
         let $params := req:build-params($matching-request, $url, $path)
+        let $log := xdmp:log(fn:concat("Rewriting params: ", $params))
         return
           fn:concat(
             fn:replace($path, $matching-request/@uri, $matching-request/@endpoint),
