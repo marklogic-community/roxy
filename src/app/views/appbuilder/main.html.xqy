@@ -59,10 +59,6 @@ let $page := ($response/@start - 1) div $c:DEFAULT-PAGE-LENGTH + 1
 let $total-pages := fn:ceiling($response/@total div $c:DEFAULT-PAGE-LENGTH)
 return
   <div xmlns="http://www.w3.org/1999/xhtml" id="search">
-    <input id="current-query" type="hidden" value="{$q}"/>
-    <input id="current-page" type="hidden" value="{$page}"/>
-    <input id="total-pages" type="hidden" value="{$total-pages}"/>
-    <input id="results-per-page" type="hidden" value="{$c:DEFAULT-PAGE-LENGTH}"/>
   {
     if ($response/@total gt 0) then
     (
