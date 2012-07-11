@@ -243,7 +243,7 @@ class ServerConfig < MLClient
     end
 
     if (r.code.to_i != 200)
-      raise ExitException.new r.body
+      raise ExitException.new(r.body)
     end
 
     return r
@@ -264,9 +264,9 @@ class ServerConfig < MLClient
     # get src dir and package details
     properties = ServerConfig.properties
     src_dir = properties["ml.xquery.dir"]
-    plugin_command = ARGV.shift if ARGV.count
-    package = ARGV.shift if ARGV.count
-    package_version = ARGV.shift if ARGV.count
+    plugin_command = ARGV.shift if ARGV.length
+    package = ARGV.shift if ARGV.length
+    package_version = ARGV.shift if ARGV.length
 
     runme = %Q{cd #{src_dir} && }
     if (is_windows?) then
@@ -300,7 +300,7 @@ class ServerConfig < MLClient
       end
       @logger.info("... Bootstrap Complete")
     else
-      raise ExitException.new "Bootstrap requires the target environment's hostname to be defined"
+      raise ExitException.new("Bootstrap requires the target environment's hostname to be defined")
     end
   end
 
@@ -725,7 +725,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
     end
 
     if (r.body.match(/\{"error"/)) then
-      raise ExitException.new JSON.pretty_generate(JSON.parse(r.body))
+      raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body)))
     end
 
     return r
@@ -740,7 +740,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
           sub_me[k] = File.expand_path(v.sub("${basedir}", ServerConfig.pwd))
         else
           matches = v.scan(/\$\{([^}]+)\}/)
-          if (matches.count > 0) then
+          if (matches.length > 0) then
             var = "#{prefix}#{matches[0][0]}"
             sub = with_me[var]
             if (sub) then
@@ -757,7 +757,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
       end
     end while (needs_rescan == true)
 
-    if (dangling_vars.count > 0)
+    if (dangling_vars.length > 0)
       raise DanglingVarsException.new(dangling_vars)
     end
 
@@ -917,7 +917,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
     default_properties_file = File.expand_path("../../default.properties", __FILE__)
     properties_file = File.expand_path("../../build.properties", __FILE__)
     if !File.exist?(properties_file) then
-      raise ExitException.new "You must run ml init to configure your application."
+      raise ExitException.new("You must run ml init to configure your application.")
     end
 
     properties = ServerConfig.load_properties(default_properties_file, "ml.")

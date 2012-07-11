@@ -107,7 +107,7 @@ while ARGV.length > 0
 
     @properties = ServerConfig.properties
     if (@properties["environment"] == nil)
-      raise ExitException.new "Missing environment for #{command}"
+      raise ExitException.new("Missing environment for #{command}")
     end
 
     command = ARGV.shift
