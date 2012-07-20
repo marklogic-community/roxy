@@ -117,8 +117,13 @@ while ARGV.length > 0
         break
     elsif (ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command))
 
+
+      if (@properties["ml.config.file"] == nil)
+        raise ExitException.new "Missing ml-config.xml file. Check config.file property"
+      end
+
       @s = ServerConfig.new({
-        :config_file => File.expand_path("../../ml-config.xml", __FILE__),
+        :config_file => File.expand_path(@properties["ml.config.file"], __FILE__),
         :properties => @properties,
         :logger => @logger
       })
