@@ -41,6 +41,7 @@ class ServerConfig < MLClient
 
     @properties = options[:properties]
     @environment = @properties["environment"]
+    @config_file = @properties["ml.config.file"]
 
     if (!@properties["ml.server"]) then
       @properties["ml.server"] = @properties["ml.#{@environment}-server"]
@@ -68,6 +69,7 @@ class ServerConfig < MLClient
       end
     end
 
+    @logger.debug "config: #{@config_file}"
     @logger.debug "pwd: #{ServerConfig.pwd}"
     @logger.debug "user: #{@ml_username}"
     @logger.debug "password: #{@ml_password}"
@@ -92,21 +94,37 @@ class ServerConfig < MLClient
 
   def self.init
     # allow the caller to replace roxy with the new app name
-    name = ARGV.shift
     sample_config = File.expand_path("../../sample/ml-config.sample.xml", __FILE__)
-    target_config = File.expand_path("../../ml-config.xml", __FILE__)
     sample_properties = File.expand_path("../../sample/build.sample.properties", __FILE__)
     build_properties = File.expand_path("../../build.properties", __FILE__)
-    if (find_arg(['--force']) == nil and ( File.exists?(target_config) || File.exists?(build_properties) )) then
-      @@logger.error "Init has already been run. Use --force to rerun it.\n"
+    force = find_arg(['--force']) != nil ? true : false
+    force_props = find_arg(['--force-properties']) != nil ? true : false
+    force_config = find_arg(['--force-config']) != nil ? true : false
+    if (!force and !force_props and File.exists?(build_properties)) then
+      @@logger.error "build.properties file found."
+      @@logger.error "   Use --force to reset all configuration files."
+      @@logger.error "   Use --force-properties to reset just the properties file.\n"
     else
-      FileUtils.cp sample_config, target_config
+      #create clean properties file
       FileUtils.cp sample_properties, build_properties
+
+      name = ARGV.shift
       if (name)
         properties_file = open(build_properties).read
         properties_file.gsub!(/app-name=roxy/, "app-name=#{name}")
         open(build_properties, 'w') {|f| f.write(properties_file) }
       end
+    end
+
+    properties = ServerConfig.properties
+    target_config = File.expand_path(properties["ml.config.file"], __FILE__)
+    if (!force and !force_config and File.exists?(target_config)) then
+      @@logger.error "ml-config.xml file found."
+      @@logger.error "   Use --force to reset all configuration files."
+      @@logger.error "   Use --force-config to reset just the configuration file.\n"
+    else
+      #create clean marklogic configuration file
+      FileUtils.cp sample_config, target_config
     end
   end
 
@@ -172,7 +190,8 @@ class ServerConfig < MLClient
   end
 
   def self.inject_index(key, index)
-    config_path = File.expand_path("../../ml-config.xml", __FILE__)
+    properties = ServerConfig.properties
+    config_path = File.expand_path(properties["ml.config.file"], __FILE__)
     existing = File.read(config_path) { |file| file.readlines.join }
     existing = existing.gsub(key) { |match| "#{match}\n#{index}" }
     File.open(config_path, "w") { |file| file.write(existing) }
@@ -201,7 +220,9 @@ class ServerConfig < MLClient
           <collation>#{collation}</collation>
           <range-value-positions>#{positions}</range-value-positions>
         </range-element-attribute-index>"
-    puts "Add this index to deploy/ml-config.xml? [y/N]\n" + index
+
+    properties = ServerConfig.properties
+    puts "Add this index to #{properties["ml.config.file"]}? [y/N]\n" + index
     approve = gets.chomp.downcase
     if approve == "y"
       inject_index("<range-element-attribute-indexes>", index)
@@ -226,7 +247,8 @@ class ServerConfig < MLClient
           <collation>#{collation}</collation>
           <range-value-positions>#{positions}</range-value-positions>
         </range-element-index>"
-    puts "Add this index to deploy/ml-config.xml? [y/N]\n" + index
+    properties = ServerConfig.properties
+    puts "Add this index to #{properties["ml.config.file"]}? [y/N]\n" + index
     approve = gets.chomp.downcase
     if approve == "y"
       inject_index("<range-element-indexes>", index)
