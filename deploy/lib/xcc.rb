@@ -171,7 +171,7 @@ module Roxy
 
       if (options[:collections])
         options[:collections].each do |collection|
-          url << "&col=#{collection}"
+          url << "&coll=#{collection}"
         end
       end
 
