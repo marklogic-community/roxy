@@ -2678,7 +2678,7 @@ declare function setup:get-servers-from-config($import-config as element(configu
 
 declare function setup:get-setting-from-database-config($database-config as element(db:database), $setting-name as xs:string) as element()?
 {
-  xdmp:value(fn:concat("$database-config//*:", $setting-name))
+  xdmp:value(fn:concat("$database-config/*:", $setting-name))
 };
 
 declare function setup:get-setting-from-database-config-as-string($database-config as element(db:database), $setting-name as xs:string) as xs:string?
