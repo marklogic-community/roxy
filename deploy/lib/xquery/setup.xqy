@@ -1019,8 +1019,12 @@ declare function setup:add-range-element-attribute-indexes-R($admin-config as el
   else
     let $index-config := $index-configs[1]
     let $admin-config :=
-      try { admin:database-add-range-element-attribute-index($admin-config, $database, $index-config) }
-      catch ($e) { $admin-config }
+      try {
+        admin:database-add-range-element-attribute-index($admin-config, $database, $index-config)
+      } catch ($e) {
+        xdmp:log(fn:concat("Failed to create element attribute index ", xdmp:quote($index-config), "; ", $e/error:code), "error"),
+        $admin-config
+      }
     return setup:add-range-element-attribute-indexes-R($admin-config, $database, fn:subsequence($index-configs, 2))
 };
 
