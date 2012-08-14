@@ -1380,6 +1380,7 @@ declare function setup:configure-http-server($server-config as element(gr:http-s
     import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
 
     declare namespace gr="http://marklogic.com/xdmp/group";
+    declare namespace err="http://marklogic.com/xdmp/error";
 
     declare variable $server-config as element() external;
     declare variable $server-name as xs:string external;
