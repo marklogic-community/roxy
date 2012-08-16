@@ -40,6 +40,7 @@
       <forest-name>@ml.content-db</forest-name>
     </assignment>
     @ml.test-content-db-assignment
+    @ml.test-modules-db-assignment
     <assignment>
       <forest-name>@ml.modules-db</forest-name>
     </assignment>
@@ -215,6 +216,8 @@
       <directory-creation>automatic</directory-creation>
       <maintain-last-modified>false</maintain-last-modified>
     </database>
+    <!--Create Test Modules Database-->
+    @ml.test-modules-db-xml
     <!--Create a Triggers Database-->
     @ml.triggers-db-xml
     @ml.schemas-db-xml

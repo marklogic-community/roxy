@@ -540,29 +540,88 @@ private
 
       test_config_file = "#{@properties['ml.xquery-test.dir']}/test-config.xqy"
 
-      load_data @properties["ml.xquery-test.dir"], {
-        :add_prefix => File.join(@properties["ml.modules-root"], "test"),
-        :remove_prefix => @properties["ml.xquery-test.dir"],
-        :db => @properties['ml.modules-db'],
-        :ignore_list => ["^#{test_config_file}$"]
-      }
+      # if the test-modules-db is different from the app modules db, also load the
+      # app modules into it
+      if (@properties['ml.test-modules-db'] && @properties['ml.test-modules-db'] != "" &&
+          @properties['ml.test-modules-db'] != @properties['ml.modules-db'])
+        load_data @properties["ml.xquery-test.dir"], {
+          :add_prefix => File.join(@properties["ml.modules-root"], "test"),
+          :remove_prefix => @properties["ml.xquery-test.dir"],
+          :db => @properties['ml.test-modules-db'],
+          :ignore_list => ["^#{test_config_file}$"]
+        }
 
-      if (File.exist?(test_config_file))
-        buffer = open(test_config_file).readlines.join
-        @properties.each do |k, v|
-          buffer.gsub!("@#{k}", v)
+        if (File.exist?(test_config_file))
+          buffer = open(test_config_file).readlines.join
+          @properties.each do |k, v|
+            buffer.gsub!("@#{k}", v)
+          end
+
+          xcc.load_buffer("/test-config.xqy", buffer,{
+            :db => @properties['ml.test-modules-db'],
+            :add_prefix => File.join(@properties["ml.modules-root"], "test"),
+            :permissions => [
+              {
+                :capability => Roxy::ContentCapability::EXECUTE,
+                :role => @properties['ml.app-role']
+              }
+            ]
+          })
         end
 
-        xcc.load_buffer("/test-config.xqy", buffer,{
-          :db => @properties['ml.modules-db'],
+        load_data @properties["ml.xquery.dir"], {
+          :add_prefix => "/",
+          :remove_prefix => @properties["ml.xquery.dir"],
+          :db => @properties['ml.test-modules-db'],
+          :ignore_list => ignore_us
+        }
+
+        if (File.exist?(app_config_file))
+          buffer = open(app_config_file).readlines.join
+          @properties.each do |k, v|
+            buffer.gsub!("@#{k}", v)
+          end
+
+          xcc.load_buffer("/config.xqy", buffer,{
+            :db => @properties['ml.test-modules-db'],
+            :add_prefix => File.join(@properties["ml.modules-root"], "app/config"),
+            :permissions => [
+              {
+                :capability => Roxy::ContentCapability::EXECUTE,
+                :role => @properties['ml.app-role']
+              },
+              {
+                :capability => Roxy::ContentCapability::READ,
+                :role => @properties['ml.app-role']
+              }
+            ]
+          })
+        end
+      else
+        load_data @properties["ml.xquery-test.dir"], {
           :add_prefix => File.join(@properties["ml.modules-root"], "test"),
-          :permissions => [
-            {
-              :capability => Roxy::ContentCapability::EXECUTE,
-              :role => @properties['ml.app-role']
-            }
-          ]
-        })
+          :remove_prefix => @properties["ml.xquery-test.dir"],
+          :db => @properties['ml.modules-db'],
+          :ignore_list => ["^#{test_config_file}$"]
+        }
+
+        if (File.exist?(test_config_file))
+          buffer = open(test_config_file).readlines.join
+          @properties.each do |k, v|
+            buffer.gsub!("@#{k}", v)
+          end
+
+          xcc.load_buffer("/test-config.xqy", buffer,{
+            :db => @properties['ml.modules-db'],
+            :add_prefix => File.join(@properties["ml.modules-root"], "test"),
+            :permissions => [
+              {
+                :capability => Roxy::ContentCapability::EXECUTE,
+                :role => @properties['ml.app-role']
+              }
+            ]
+          })
+        end
       end
     end
   end
@@ -570,6 +629,10 @@ private
   def clean_modules
     @logger.info("Cleaning #{@properties['ml.modules-db']} on #{@hostname}")
     execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.modules-db']}"))}
+    if (@properties['ml.test-modules-db'] && @properties['ml.test-modules-db'] != @properties['ml.modules-db'])
+      @logger.info("Cleaning #{@properties['ml.test-modules-db']} on #{@hostname}")
+      execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.test-modules-db']}"))}
+    end
   end
 
   def clean_schemas
@@ -901,24 +964,66 @@ Before you can deploy CPF, you must define a configuration. Steps:
         </assignment>
       })
 
-      config.gsub!("@ml.test-appserver",
-      %Q{
-        <http-server>
-          <http-server-name>@ml.app-name-test</http-server-name>
-          <port>@ml.test-port</port>
-          <database name="@ml.test-content-db"/>
-          <modules name="@ml.app-modules-db"/>
-          <root>@ml.modules-root</root>
-          <authentication>@ml.authentication-method</authentication>
-          <default-user name="@ml.default-user"/>
-          <url-rewriter>@ml.url-rewriter</url-rewriter>
-          <error-handler>@ml.error-handler</error-handler>
-        </http-server>
-      })
+      if (@properties['ml.test-modules-db'] && @properties['ml.test-modules-db'] != "" &&
+          @properties['ml.test-modules-db'] != @properties['ml.app-modules-db'])
+        config.gsub!("@ml.test-appserver",
+        %Q{
+          <http-server>
+            <http-server-name>@ml.app-name-test</http-server-name>
+            <port>@ml.test-port</port>
+            <database name="@ml.test-content-db"/>
+            <modules name="@ml.test-modules-db"/>
+            <root>@ml.modules-root</root>
+            <authentication>@ml.authentication-method</authentication>
+            <default-user name="@ml.default-user"/>
+            <url-rewriter>@ml.url-rewriter</url-rewriter>
+            <error-handler>@ml.error-handler</error-handler>
+          </http-server>
+        })
+      else
+        config.gsub!("@ml.test-appserver",
+        %Q{
+          <http-server>
+            <http-server-name>@ml.app-name-test</http-server-name>
+            <port>@ml.test-port</port>
+            <database name="@ml.test-content-db"/>
+            <modules name="@ml.modules-db"/>
+            <root>@ml.modules-root</root>
+            <authentication>@ml.authentication-method</authentication>
+            <default-user name="@ml.default-user"/>
+            <url-rewriter>@ml.url-rewriter</url-rewriter>
+            <error-handler>@ml.error-handler</error-handler>
+          </http-server>
+        })
+      end
+
     else
       config.gsub!("@ml.test-content-db-xml", "")
       config.gsub!("@ml.test-content-db-assignment", "")
       config.gsub!("@ml.test-appserver", "")
+    end
+
+    # Build the test modules db if it is different from the app modules db
+    if (@properties['ml.test-modules-db'] && @properties['ml.test-modules-db'] != "" &&
+        @properties['ml.test-modules-db'] != @properties['ml.app-modules-db'])
+      config.gsub!("@ml.test-modules-db-xml",
+      %Q{
+        <database import="@ml.modules-db">
+          <database-name>@ml.test-modules-db</database-name>
+          <forests>
+            <forest-id name="@ml.test-modules-db"/>
+          </forests>
+        </database>
+      })
+
+      config.gsub!("@ml.test-modules-db-assignment",
+      %Q{
+        <assignment>
+          <forest-name>@ml.test-modules-db</forest-name>
+        </assignment>
+      })
+    else
+      config.gsub!("@ml.test-modules-db-xml", "")
     end
 
     if (@properties['ml.forest-data-dir'])
