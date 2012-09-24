@@ -1,0 +1,19 @@
+# Roxy Changes
+This file describes changes made to Roxy per release
+
+## 1.1 (branch: master)
+
+### New Features
+* Deployer is now compatible with Ruby 1.8.5
+* Extra detail when range index creation failes
+* \#39 Allow separate test-modules db
+* Adding support for in-forest eval in XCC deploy
+
+### Resolved Issues
+* \#30 Rewriter drops HTTP parameters for requests that don't have uri-param elements
+* \#31 Removed hidden form fields
+* \#32 Scaffolding for controllers causes errors
+* \#35 Missing namespace declaration in deployment code
+* Fixed a bug in assigning collections via xcc insert
+* Fixed a bug with adding fields via the Roxy Deployer
+* Removed unused facets-only function.
