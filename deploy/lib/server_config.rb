@@ -409,6 +409,14 @@ class ServerConfig < MLClient
     if (@environment == "prod") then
       @logger.error "There is no Test database on the Production server"
     else
+
+      if (ARGV[0] && ARGV[0].match("--run-tear-down"))
+        ARGV.shift
+        tearDown = "&runsuiteteardown=true&runteardown=true"
+        @logger.info "Setting run teardown to true"
+      else
+        tearDown = "&runsuiteteardown=false&runteardown=false"
+      end
       r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/list}, "get"
       suites = []
       r.body.split(">").each do |line|
@@ -418,7 +426,7 @@ class ServerConfig < MLClient
       end
 
       suites.each do |suite|
-        r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/run?suite=#{url_encode(suite)}&format=junit}, "get"
+        r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/run?suite=#{url_encode(suite)}&format=junit#{tearDown}}, "get"
         @logger.info r.body
       end
     end
