@@ -135,7 +135,7 @@ Usage: ml {env} restart [group] [options]
 General options:
   -v, [--verbose]  # Verbose output
 
-Restart the MarkLogic process in the given environment on each host in the 
+Restart the MarkLogic process in the given environment on each host in the
 specified group. If no group is specified, restart the MarkLogic process
 on each host in the group to which the target host belongs.}
   end
@@ -198,7 +198,9 @@ Please choose a WHAT below.
 Usage: ml {env} test [options]
 
 General options:
-  -v, [--verbose]  # Verbose output
+  -v, [--verbose]       # Verbose output
+  --skip-test-teardown  # Skip teardown after each test
+  --skip-suite-teardown # Skip teardown after each suite
 
 Runs your xquery unit tests on the given environment}
   end
