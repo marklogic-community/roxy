@@ -932,7 +932,7 @@ declare function setup:configure-database($database-config as element(db:databas
 
     (: remove any existing field (copied from default.xqy) :)
     let $remove-existing-fields :=
-      for $field as xs:string in admin:database-get-fields($admin-config, $database)/db:field-name
+      for $field as xs:string in admin:database-get-fields($admin-config, $database)/db:field-name[fn:not(. = "")]
       return
         xdmp:set($admin-config, admin:database-delete-field($admin-config, $database, $field))
 
@@ -959,18 +959,7 @@ declare function setup:configure-database($database-config as element(db:databas
 
 declare function setup:add-fields($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)
 {
-  let $fields := $database-config/db:fields/db:field
-  let $field-configs :=
-    ($fields,
-     if ($fields[db:field-name = ""]) then ()
-     else
-      <field xmlns="http://marklogic.com/xdmp/database">
-        <field-name/>
-        <include-root>true</include-root>
-        <included-elements/>
-        <excluded-elements/>
-      </field>
-      )
+  let $field-configs := $database-config/db:fields/db:field
   return setup:add-fields-R($admin-config, $database, $field-configs)
 };
 
