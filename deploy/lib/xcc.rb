@@ -169,6 +169,12 @@ module Roxy
         url << "&format=binary"
       end
 
+      if (options[:forests])
+        options[:forests].each do |forest|
+          url << "&placeKey=#{forest}"
+        end
+      end
+
       if (options[:collections])
         options[:collections].each do |collection|
           url << "&coll=#{collection}"
@@ -250,7 +256,9 @@ module Roxy
         'Accept' => "text/html, text/xml, image/gif, image/jpeg, application/vnd.marklogic.sequence, application/vnd.marklogic.document, */*"
       }
 
-      url = build_load_uri(uri, options, true)
+      commit = options[:commit]
+      commit = true if (commit == nil)
+      url = build_load_uri(uri, options, commit)
       @logger.debug "loading: #{uri}"
 
       r = go url, "put", headers, nil, prep_buffer(buffer, true)

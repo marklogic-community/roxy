@@ -56,7 +56,6 @@ let $uri :=
     "&amp;x1=<test/>",
     "&amp;x2=<<busted-xml/>",
     "&amp;empty=")
-let $_ := xdmp:log(("URI:", $uri))
 let $response := test:http-get($uri, $options)
 return
   $response[2]/*:results/*,

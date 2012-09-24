@@ -406,7 +406,6 @@ declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)
       )
       else if ($matching-request/@endpoint) then
         let $params := req:build-params($matching-request, $url, $path)
-        let $log := xdmp:log(fn:concat("Rewriting params: ", $params))
         return
           fn:concat(
             fn:replace($path, $matching-request/@uri, $matching-request/@endpoint),
