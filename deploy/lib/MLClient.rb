@@ -82,12 +82,12 @@ class MLClient
       s.unpack('C*').collect { |i| "%%%02X" % i }.join
     }
   end
-  
+
   def prompt(*args)
     print(*args)
     gets.strip
   end
-  
+
   def password_prompt
     if (@ml_password == "") then
       @ml_password = prompt "Password for admin user: "
