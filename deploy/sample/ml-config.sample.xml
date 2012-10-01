@@ -128,6 +128,28 @@
         </range-field-index>
 -->
       </range-field-indexes>
+
+      <path-namespaces>
+<!--
+        <path-namespace>
+          <prefix>sample</prefix>
+          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
+        </path-namespace>
+-->
+      </path-namespaces>
+
+      <range-path-indexes>
+<!--
+        <range-path-index>
+          <scalar-type>string</scalar-type>
+          <collation>http://marklogic.com/collation/codepoint</collation>
+          <path-expression>/sample:root/sample:child</path-expression>
+          <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
+        </range-path-index>
+-->
+      </range-path-indexes>
+
       <geospatial-element-attribute-pair-indexes>
 <!--
         Sample for:

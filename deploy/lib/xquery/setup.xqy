@@ -859,11 +859,47 @@ declare function setup:configure-database($database-config as element(db:databas
   return
 
   try {
-    let $admin-config :=
-      admin:get-configuration()
-
     let $database :=
       xdmp:database($database-name)
+
+    let $restart-hosts :=
+      try
+      {
+        xdmp:eval('
+        import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+        let $admin-config := admin:get-configuration()
+        let $remove-existing-indexes :=
+          for $index in admin:database-get-range-path-indexes($admin-config, $database)
+          return
+            xdmp:set($admin-config, admin:database-delete-range-path-index($admin-config, $database, $index))
+        return
+          admin:save-configuration-without-restart($admin-config)')
+      }
+      catch($ex)
+      {
+        fn:false()
+      }
+
+    (: remove any existing path namespaces :)
+    let $restart-hosts :=
+      try
+      {
+        xdmp:eval('
+        let $admin-config := admin:get-configuration()
+        let $remove-existing-indexes :=
+          for $index in admin:database-get-path-namespaces($admin-config, $database)
+          return
+            xdmp:set($admin-config, admin:database-delete-path-namespace($admin-config, $database, $index))
+        return
+          (admin:save-configuration-without-restart($admin-config) or $restart-hosts)')
+      }
+      catch($ex)
+      {
+        fn:false()
+      }
+
+    let $admin-config :=
+      admin:get-configuration()
 
     let $admin-config :=
       setup:add-word-lexicons($admin-config, $database, $database-config)
@@ -906,6 +942,9 @@ declare function setup:configure-database($database-config as element(db:databas
 
     let $admin-config := setup:add-range-element-attribute-indexes($admin-config, $database, $database-config)
 
+    let $admin-config := setup:add-path-namespaces($admin-config, $database, $database-config)
+    let $admin-config := setup:add-range-path-indexes($admin-config, $database, $database-config)
+
     (: remove any existing geospatial element attribute pair indexes :)
     let $remove-existing-indexes :=
       for $index in admin:database-get-geospatial-element-attribute-pair-indexes($admin-config, $database)
@@ -947,7 +986,7 @@ declare function setup:configure-database($database-config as element(db:databas
     let $admin-config := setup:add-range-field-indexes($admin-config, $database, $database-config)
 
     let $restart-hosts :=
-      admin:save-configuration-without-restart($admin-config)
+      (admin:save-configuration-without-restart($admin-config) or $restart-hosts)
 
     return
       fn:concat("Database ", $database-name, " configured succesfully..", if ($restart-hosts) then " (note: restart required)" else ())
@@ -1015,6 +1054,70 @@ declare function setup:add-range-element-attribute-indexes-R($admin-config as el
         $admin-config
       }
     return setup:add-range-element-attribute-indexes-R($admin-config, $database, fn:subsequence($index-configs, 2))
+};
+
+declare function setup:add-path-namespaces($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)
+{
+  let $index-configs := $database-config/db:path-namespaces/db:path-namespace
+  return setup:add-path-namespaces-R($admin-config, $database, $index-configs)
+};
+
+declare function setup:add-path-namespaces-R($admin-config as element(configuration), $database as xs:unsignedLong, $index-configs as element(db:path-namespace)*) as element(configuration)
+{
+  if (fn:empty($index-configs)) then
+    $admin-config
+  else
+    let $index-config := $index-configs[1]
+    let $admin-config :=
+      try {
+        xdmp:eval('
+          import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+          declare variable $admin-config external;
+          declare variable $database external;
+          declare variable $index-config external;
+          admin:database-add-path-namespace($admin-config, $database, $index-config)',
+          (
+            xs:QName("admin-config"), $admin-config,
+            xs:QName("database"), $database,
+            xs:QName("index-config"), $index-config
+          ))
+      } catch ($e) {
+        xdmp:log(fn:concat("Failed to create path namespace ", xdmp:quote($index-config), "; ", $e/error:code), "error"),
+        $admin-config
+      }
+    return setup:add-path-namespaces-R($admin-config, $database, fn:subsequence($index-configs, 2))
+};
+
+declare function setup:add-range-path-indexes($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)
+{
+  let $index-configs := $database-config/db:range-path-indexes/db:range-path-index
+  return setup:add-range-path-indexes-R($admin-config, $database, $index-configs)
+};
+
+declare function setup:add-range-path-indexes-R($admin-config as element(configuration), $database as xs:unsignedLong, $index-configs as element(db:range-path-index)*) as element(configuration)
+{
+  if (fn:empty($index-configs)) then
+    $admin-config
+  else
+    let $index-config := $index-configs[1]
+    let $admin-config :=
+      try {
+        xdmp:eval('
+          import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+          declare variable $admin-config external;
+          declare variable $database external;
+          declare variable $index-config external;
+          admin:database-add-range-path-index($admin-config, $database, $index-config)',
+          (
+            xs:QName("admin-config"), $admin-config,
+            xs:QName("database"), $database,
+            xs:QName("index-config"), $index-config
+          ))
+      } catch ($e) {
+        xdmp:log(fn:concat("Failed to create path index ", xdmp:quote($index-config), "; ", $e/error:code), "error"),
+        $admin-config
+      }
+    return setup:add-range-path-indexes-R($admin-config, $database, fn:subsequence($index-configs, 2))
 };
 
 declare function setup:add-range-field-indexes($admin-config as element(configuration), $database as xs:unsignedLong, $database-config as element(db:database)) as element(configuration)
