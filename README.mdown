@@ -15,6 +15,7 @@ What good is your code if it doesn't work? Testing is paramount to the developme
 * MarkLogic:
   * MarkLogic 4.x - You need the **Docs** appserver running on port 8000 - this port can be overridden in build.properties
   * MarkLogic 5.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
+  * MarkLogic 6.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
 * [Ruby](http://www.ruby-lang.org/en/) - Required for Roxy Deployer only.
 * [Java (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/index.html) - Only if you wish to run the Roxy Deployer [XQSync](http://developer.marklogic.com/code/xqsync, XQSync) or [RecordLoader](http://developer.marklogic.com/code/recordloader, RecordLoader) commands.
 
@@ -22,7 +23,7 @@ What good is your code if it doesn't work? Testing is paramount to the developme
 This section describes the quickest way to get started using Roxy.
 
 ### Assumptions
-* You already have one or more MarkLogic Servers running somewhere that you can access from your computer. If not, get it [here](http://community.marklogic.com/products).* 
+* You already have one or more MarkLogic Servers running somewhere that you can access from your computer. If not, get it [here](http://community.marklogic.com/products).*
 * You know the admin logon to your MarkLogic Server(s)
 
 ### Download Roxy
@@ -37,31 +38,31 @@ This section describes the quickest way to get started using Roxy.
 
   <code>
   \# Username to authenticate to ML
-  user=your-ml-admin-username  
+  user=your-ml-admin-username
   \# password for ML authentication
-  password=your-ml-admin-password  
+  password=your-ml-admin-password
   \# the authentication type for the appserver (digest|basic|application-level)
-  authentication-method=application-level  
+  authentication-method=application-level
   \# the default user to authenticate with. defaults to nobody
-  default-user=nobody  
+  default-user=nobody
   \# the root path of your modules. Use this to override the modules db and use your filesystem location
-  modules-root=/the/path/to/your/files/on/the/filesystem  
-  \# either 'filesystem' or 'name of db'  
-  app-modules-db=filesystem  
+  modules-root=/the/path/to/your/files/on/the/filesystem
+  \# either 'filesystem' or 'name of db'
+  app-modules-db=filesystem
   \# Specify the server(s) you wish to deploy to here. This tutorial assumes you are using localhost.
   local-server=localhost
   \#dev-server=
   \#cert-server=
   \#prod-server=
   </code>
-  
+
 ### Configure MarkLogic Server
 *This step is only needed when database configurations have changed or on a fresh install. In most cases you will not need to restart your server.*
 
-1. Open a command prompt in the root folder of Roxy  
+1. Open a command prompt in the root folder of Roxy
   *If your server is not configured as local-server in build.properties then substitute your environment here ( local | dev | prod )*
 2. `> ml local bootstrap`
-3. Depending on what, if anything, you changed you may need to restart MarkLogic in order to proceed. If you see output telling you to restart...  
+3. Depending on what, if anything, you changed you may need to restart MarkLogic in order to proceed. If you see output telling you to restart...
   `> ml local restart`
 
 ### Deploying Code
@@ -69,12 +70,12 @@ This section describes the quickest way to get started using Roxy.
 
 1. Open a command prompt in the root folder of Roxy
 2. `> ml local deploy modules`
-3. Open your favorite web browser to http://localhost:port  
+3. Open your favorite web browser to http://localhost:port
   *Sub in your hostname and port from build.properties*
 
 ### Congratulations
 **Congratulations!** You have Roxy running on your server. Now you need to start customizing it.
 
 ## Getting Help
-For more information run:  
+For more information run:
   `> ml -h`
