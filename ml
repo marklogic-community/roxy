@@ -70,6 +70,14 @@ then
   else
     usage
   fi
+elif [ "$1" == 'self-test' ]
+then
+  if [ -e deploy/test/test_main.rb ]
+  then
+    ruby -I deploy -I deploy/lib -I deploy/test deploy/test/test_main.rb
+  else
+    printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
+  fi
 else
   if [ -e deploy/lib/ml.rb ]
   then

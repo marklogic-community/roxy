@@ -17,18 +17,26 @@ class MLClient
   def initialize(options)
     @ml_username = options[:user_name]
     @ml_password = options[:password]
-    @logger = options[:logger]
+    @logger = options[:logger] || logger
     @request = {}
   end
 
-  def self.set_logger(logger)
+  def MLClient.logger()
+    @@logger ||= Logger.new(STDOUT)
+  end
+
+  def MLClient.logger=(logger)
     @@logger = logger
+  end
+
+  def logger()
+    @logger
   end
 
   def get_http
     if (!@http)
       @http = Roxy::Http.new({
-        :logger => @logger
+        :logger => logger
       })
     end
     @http
@@ -37,7 +45,7 @@ class MLClient
   def build_request_params(url, verb)
     uri = URI.parse url
     if (!@request[verb])
-      @logger.debug("creating new #{verb} request\n")
+      logger.debug("creating new #{verb} request\n")
       @request[verb] = Net::HTTP.const_get(verb.capitalize).new(uri.request_uri)
       @request[verb].add_field 'Connection', 'keep-alive'
       @request[verb].add_field 'Keep-Alive', '30'
@@ -52,7 +60,7 @@ class MLClient
       :protocol => uri.scheme,
       :user_name => @ml_username,
       :password => @ml_password,
-      :logger => @logger
+      :logger => logger
     }
   end
 

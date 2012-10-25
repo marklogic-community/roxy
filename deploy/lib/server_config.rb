@@ -56,7 +56,7 @@ class ServerConfig < MLClient
       :logger => options[:logger]
     })
 
-    @server_version = @properties["ml.server-version"]
+    @server_version = @properties["ml.server-version"].to_i
 
     if (@properties["ml.bootstrap-port"])
       @bootstrap_port = @properties["ml.bootstrap-port"]
@@ -69,12 +69,12 @@ class ServerConfig < MLClient
       end
     end
 
-    @logger.debug "config: #{@config_file}"
-    @logger.debug "pwd: #{ServerConfig.pwd}"
-    @logger.debug "user: #{@ml_username}"
-    @logger.debug "password: #{@ml_password}"
-    @logger.debug "hostname: #{@hostname}"
-    @logger.debug "port: #{@bootstrap_port}"
+    logger.debug "config: #{@config_file}"
+    logger.debug "pwd: #{ServerConfig.pwd}"
+    logger.debug "user: #{@ml_username}"
+    logger.debug "password: #{@ml_password}"
+    logger.debug "hostname: #{@hostname}"
+    logger.debug "port: #{@bootstrap_port}"
   end
 
   def self.pwd
@@ -86,9 +86,9 @@ class ServerConfig < MLClient
   end
 
   def info
-    @logger.info "Properties:"
+    logger.info "Properties:"
     @properties.each do |k, v|
-      @logger.info k + ": " + v
+      logger.info k + ": " + v
     end
   end
 
@@ -101,9 +101,9 @@ class ServerConfig < MLClient
     force_props = find_arg(['--force-properties']) != nil ? true : false
     force_config = find_arg(['--force-config']) != nil ? true : false
     if (!force and !force_props and File.exists?(build_properties)) then
-      @@logger.error "build.properties file found."
-      @@logger.error "   Use --force to reset all configuration files."
-      @@logger.error "   Use --force-properties to reset just the properties file.\n"
+      logger.error "build.properties file found."
+      logger.error "   Use --force to reset all configuration files."
+      logger.error "   Use --force-properties to reset just the properties file.\n"
     else
       #create clean properties file
       FileUtils.cp sample_properties, build_properties
@@ -119,9 +119,9 @@ class ServerConfig < MLClient
     properties = ServerConfig.properties
     target_config = File.expand_path(properties["ml.config.file"], __FILE__)
     if (!force and !force_config and File.exists?(target_config)) then
-      @@logger.error "ml-config.xml file found."
-      @@logger.error "   Use --force to reset all configuration files."
-      @@logger.error "   Use --force-config to reset just the configuration file.\n"
+      logger.error "ml-config.xml file found."
+      logger.error "   Use --force to reset all configuration files."
+      logger.error "   Use --force-config to reset just the configuration file.\n"
     else
       #create clean marklogic configuration file
       FileUtils.cp sample_config, target_config
@@ -133,7 +133,7 @@ class ServerConfig < MLClient
     target_config = File.expand_path("../../pipeline-config.xml", __FILE__)
 
     if (File.exists?(target_config)) then
-      @@logger.error "initcpf has already been run. Use --force to rerun it.\n"
+      logger.error "initcpf has already been run. Use --force to rerun it.\n"
     else
       FileUtils.cp sample_config, target_config
     end
@@ -274,9 +274,9 @@ class ServerConfig < MLClient
   def restart
     group = ARGV.shift
     if (group)
-      @logger.info("Restarting MarkLogic Server group #{group} on #{@hostname}")
+      logger.info("Restarting MarkLogic Server group #{group} on #{@hostname}")
     else
-      @logger.info("Restarting MarkLogic Server on #{@hostname}")
+      logger.info("Restarting MarkLogic Server on #{@hostname}")
     end
     setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
     r = execute_query %Q{#{setup} setup:do-restart("#{group}")}
@@ -299,39 +299,81 @@ class ServerConfig < MLClient
     runme << " #{plugin_command}" if plugin_command
     runme << " #{package} " if package
     runme << " #{package_version} " if package_version
-    @@logger.debug runme
+    logger.debug runme
 
     output = `#{runme}`
-    @@logger.info(output)
+    logger.info(output)
   end
 
   def config
-    @logger.info get_config
+    logger.info get_config
   end
 
   def bootstrap
     if @hostname && @hostname != ""
-      @logger.info("Bootstrapping your project into MarkLogic on #{@hostname}...")
+      logger.info("Bootstrapping your project into MarkLogic on #{@hostname}...")
       setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
       r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
 
-      @logger.debug r.body
+      logger.debug r.body
 
-      if (r.body.match("(note: restart required)")) then
-        @logger.warn("NOTE*** RESTART OF MARKLOGIC IS REQUIRED")
+      if (r.body.match("<error:error")) then
+        logger.error r.body
+        logger.error "... Bootstrap FAILED"
+      else
+        if (r.body.match("(note: restart required)")) then
+          logger.warn("************************************")
+          logger.warn("*** RESTART OF MARKLOGIC IS REQUIRED")
+          logger.warn("************************************")
+        end
+        logger.info("... Bootstrap Complete")
       end
-      @logger.info("... Bootstrap Complete")
     else
       raise ExitException.new("Bootstrap requires the target environment's hostname to be defined")
     end
   end
 
   def wipe
-    @logger.info("Wiping MarkLogic setup for your project on #{@hostname}...")
+    logger.info("Wiping MarkLogic setup for your project on #{@hostname}...")
     setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
     r = execute_query %Q{#{setup} setup:do-wipe(#{get_config})}
-    @logger.info r.body
-    @logger.info "...wipe complete"
+    logger.debug r.body
+
+    if (r.body.match("<error:error")) then
+      logger.error r.body
+      logger.error "... Wipe FAILED"
+    else
+      if (r.body.match("(note: restart required)")) then
+        logger.warn("************************************")
+        logger.warn("*** RESTART OF MARKLOGIC IS REQUIRED")
+        logger.warn("************************************")
+      end
+      logger.info("... Wipe Complete")
+    end
+  end
+
+  def validate_install
+    logger.info("Validating your project installation into MarkLogic on #{@hostname}...")
+    setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
+    begin
+      r = execute_query %Q{#{setup} setup:validate-install(#{get_config})}
+      logger.info(r.body)
+      logger.info("... Validation SUCCESS")
+      result = true
+    rescue ExitException
+      logger.error "... Validation FAILED"
+      result = false
+    end
+    result
+
+    # logger.debug r.body
+
+    # if (r.body.match("<error:error") or r.body.match(%Q{"error":})) then
+    #   # logger.error r.body
+    #   logger.error "... Validation FAILED"
+    # else
+    #   logger.info("... Validation SUCCESS")
+    # end
   end
 
   def deploy
@@ -407,7 +449,7 @@ class ServerConfig < MLClient
   #
   def test
     if (@environment == "prod") then
-      @logger.error "There is no Test database on the Production server"
+      logger.error "There is no Test database on the Production server"
     else
       if (find_arg(['--skip-suite-teardown']) != nil)
         suiteTearDown = "&runsuiteteardown=false"
@@ -429,7 +471,7 @@ class ServerConfig < MLClient
 
       suites.each do |suite|
         r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/run?suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get"
-        @logger.info r.body
+        logger.info r.body
       end
     end
   end
@@ -477,7 +519,7 @@ class ServerConfig < MLClient
     properties = ServerConfig.substitute_properties(properties, @properties, "")
 
     properties.each do |k, v|
-      @logger.info("#{k}=#{v}")
+      logger.info("#{k}=#{v}")
     end
 
     prop_string = ""
@@ -486,7 +528,7 @@ class ServerConfig < MLClient
     end
 
     runme = %Q{java -cp #{File.expand_path("../java/recordloader.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/marklogic-xcc-5.0.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xpp3-1.1.4c.jar", __FILE__)} #{prop_string} com.marklogic.ps.RecordLoader}
-    @logger.info runme
+    logger.info runme
     `#{runme}`
   end
 
@@ -496,7 +538,7 @@ class ServerConfig < MLClient
     properties = ServerConfig.substitute_properties(properties, @properties, "")
 
     properties.each do |k, v|
-      @logger.info("#{k}=#{v}")
+      logger.info("#{k}=#{v}")
     end
     prop_string = ""
     properties.each do |k,v|
@@ -504,7 +546,7 @@ class ServerConfig < MLClient
     end
 
     runme = %Q{java -Xmx2048m -cp #{File.expand_path("../java/xqsync.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/marklogic-xcc-5.0.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xstream-1.4.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xpp3-1.1.4c.jar", __FILE__)} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
-    @logger.info runme
+    logger.info runme
     `#{runme}`
   end
 
@@ -637,29 +679,29 @@ private
   end
 
   def clean_modules
-    @logger.info("Cleaning #{@properties['ml.modules-db']} on #{@hostname}")
+    logger.info("Cleaning #{@properties['ml.modules-db']} on #{@hostname}")
     execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.modules-db']}"))}
     if (@properties['ml.test-modules-db'] && @properties['ml.test-modules-db'] != @properties['ml.modules-db'])
-      @logger.info("Cleaning #{@properties['ml.test-modules-db']} on #{@hostname}")
+      logger.info("Cleaning #{@properties['ml.test-modules-db']} on #{@hostname}")
       execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.test-modules-db']}"))}
     end
   end
 
   def clean_schemas
     if (@properties['ml.schemas-db'])
-      @logger.info("Cleaning #{@properties['ml.schemas-db']} on #{@hostname}")
+      logger.info("Cleaning #{@properties['ml.schemas-db']} on #{@hostname}")
       execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.schemas-db']}"))}
     else
-      @logger.error("No schemas db is configured")
+      logger.error("No schemas db is configured")
     end
   end
 
   def clean_triggers
     if (@properties['ml.triggers-db'])
-      @logger.info("Cleaning #{@properties['ml.triggers-db']} on #{@hostname}")
+      logger.info("Cleaning #{@properties['ml.triggers-db']} on #{@hostname}")
       execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.triggers-db']}"))}
     else
-      @logger.error("No triggers db is configured")
+      logger.error("No triggers db is configured")
     end
   end
 
@@ -681,7 +723,7 @@ private
   end
 
   def clean_content
-    @logger.info("Cleaning #{@properties['ml.content-db']} on #{@hostname}")
+    logger.info("Cleaning #{@properties['ml.content-db']} on #{@hostname}")
     execute_query %Q{
       for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.content-db']}"))
       return
@@ -691,9 +733,9 @@ private
 
   def deploy_cpf
     if (!@properties["ml.triggers-db"] || @properties["ml.data.dir"] == "")
-      @logger.error("To use CPF, you must define the triggers-db property in your build.properties file")
+      logger.error("To use CPF, you must define the triggers-db property in your build.properties file")
     elsif (!File.exist?(File.expand_path("../../pipeline-config.xml", __FILE__)))
-      @logger.error("
+      logger.error("
 Before you can deploy CPF, you must define a configuration. Steps:
 1. Run 'ml initcpf'
 2. Edit deploy/pipeline-config.xml to set up your domain and pipelines
@@ -721,7 +763,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
         :password => @ml_password,
         :xcc_server => @hostname,
         :xcc_port => @properties["ml.xcc-port"],
-        :logger => @logger
+        :logger => logger
       })
     end
     @xcc
@@ -802,21 +844,21 @@ Before you can deploy CPF, you must define a configuration. Steps:
     end
 
     if (db_id != nil) then
-      @logger.debug("using dbid: #{db_id}")
+      logger.debug("using dbid: #{db_id}")
       r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
         :dbid => db_id,
         :resulttype => "text",
         :q => query
       }
-      @logger.debug(r.body)
+      logger.debug(r.body)
     else
-      @logger.debug("using sid: #{sid}")
+      logger.debug("using sid: #{sid}")
       r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
         :sid => sid,
         :resulttype => "text",
         :q => query
       }
-      @logger.debug(r.body)
+      logger.debug(r.body)
     end
 
     if (r.body.match(/\{"error"/)) then
@@ -826,7 +868,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
     return r
   end
 
-  def self.substitute_properties(sub_me, with_me, prefix = "")
+  def ServerConfig.substitute_properties(sub_me, with_me, prefix = "")
     dangling_vars = {}
     begin
       needs_rescan = false
@@ -859,7 +901,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
     sub_me
   end
 
-  def self.load_properties(properties_filename, prefix = "")
+  def ServerConfig.load_properties(properties_filename, prefix = "")
     properties = {}
     File.open(properties_filename, 'r') do |properties_file|
       properties_file.read.each_line do |line|
@@ -1050,9 +1092,9 @@ Before you can deploy CPF, you must define a configuration. Steps:
     config
   end
 
-  def self.properties
-    default_properties_file = File.expand_path("../../default.properties", __FILE__)
-    properties_file = File.expand_path("../../build.properties", __FILE__)
+  def ServerConfig.properties(prop_file_location = "../..")
+    default_properties_file = File.expand_path("#{prop_file_location}/default.properties", __FILE__)
+    properties_file = File.expand_path("#{prop_file_location}/build.properties", __FILE__)
     if !File.exist?(properties_file) then
       raise ExitException.new("You must run ml init to configure your application.")
     end
@@ -1067,7 +1109,7 @@ Before you can deploy CPF, you must define a configuration. Steps:
 
     properties["environment"] = environment if environment
 
-    env_properties_file = File.expand_path("../../#{environment}.properties", __FILE__)
+    env_properties_file = File.expand_path("#{prop_file_location}/#{environment}.properties", __FILE__)
     if (File.exists?(env_properties_file))
       properties.merge!(ServerConfig.load_properties(env_properties_file, "ml."))
     end
