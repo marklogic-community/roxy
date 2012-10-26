@@ -886,15 +886,15 @@ declare function setup:configure-databases($import-config as element(configurati
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
   let $database := xdmp:database($database-name)
-
-  let $remove-existing-range-path-indexes :=
+  let $admin-config := admin:get-configuration()
+  let $admin-config := (: remove-existing-range-path-indexes := :)
     (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
     try
     {
-      if (xdmp:eval('
+      xdmp:eval('
           import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
           declare variable $database external;
-          let $admin-config := admin:get-configuration()
+          declare variable $admin-config external;
           let $remove-existing-indexes :=
             for $index in admin:database-get-range-path-indexes($admin-config, $database)
             return
@@ -902,44 +902,46 @@ declare function setup:configure-databases($import-config as element(configurati
                 $admin-config,
                 admin:database-delete-range-path-index($admin-config, $database, $index))
           return
-            admin:save-configuration-without-restart($admin-config)',
-          (xs:QName("database"), $database))) then
-        xdmp:set($restart-needed, fn:true())
-      else ()
+            $admin-config
+            (: admin:save-configuration-without-restart($admin-config) :)',
+          (xs:QName("database"), $database,
+           xs:QName("admin-config"), $admin-config))
     }
     catch($ex)
     {
-      if ($ex/error:code = "XDMP-UNDFUN") then ()
+      if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
       else
         xdmp:rethrow()
     }
 
-  let $remove-existing-path-namespaces :=
+  let $admin-config := (: remove-existing-path-namespaces := :)
     (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
     try
     {
-      if (xdmp:eval('
+      xdmp:eval('
           import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
           declare variable $database external;
-          let $admin-config := admin:get-configuration()
+          declare variable $admin-config external;
           let $remove-existing-indexes :=
-            for $index in admin:database-get-path-namespaces($admin-config, $database)
+            for $index at $i in admin:database-get-path-namespaces($admin-config, $database)
             return
               xdmp:set($admin-config, admin:database-delete-path-namespace($admin-config, $database, $index))
           return
-            admin:save-configuration-without-restart($admin-config)',
-          (xs:QName("database"), $database))) then
-        xdmp:set($restart-needed, fn:true())
-      else ()
+            $admin-config (: admin:save-configuration-without-restart($admin-config) :)',
+          (xs:QName("database"), $database,
+           xs:QName("admin-config"), $admin-config))
     }
     catch($ex)
     {
-      if ($ex/error:code = "XDMP-UNDFUN") then ()
+      xdmp:log($ex),
+      if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
+      else if ($ex/error:code = "ADMIN-PATHNAMESPACEINUSE" and fn:not(setup:at-least-version("6.0-2"))) then
+        fn:error(xs:QName("VERSION_NOT_SUPPORTED"), "Roxy does not support path namespaces for this version of MarkLogic. Use 6.0-2 or later.")
       else
         xdmp:rethrow()
     }
 
-  let $admin-config := setup:add-word-lexicons(admin:get-configuration(), $database, $db-config)
+  let $admin-config := setup:add-word-lexicons($admin-config, $database, $db-config)
   let $admin-config := setup:add-fragment-roots($admin-config, $database, $db-config)
   let $admin-config := setup:add-fragment-parents($admin-config, $database, $db-config)
 
@@ -1217,6 +1219,7 @@ declare function setup:add-field-excludes-R(
           else
             xdmp:eval(
              'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+              declare namespace db="http://marklogic.com/xdmp/database";
               declare variable $e external;
 
               admin:database-excluded-element(
@@ -1437,6 +1440,22 @@ declare function setup:validate-range-path-indexes(
         xdmp:rethrow()
     }
   for $expected in $db-config/db:range-path-indexes/db:range-path-index
+  let $expected :=
+    xdmp:eval('
+      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+      declare namespace db="http://marklogic.com/xdmp/database";
+      declare variable $database external;
+      declare variable $x external;
+
+      admin:database-range-path-index(
+       $database,
+       $x/db:scalar-type,
+       $x/db:path-expression,
+       $x/db:collation,
+       $x/db:range-value-positions,
+       $x/db:invalid-values)',
+      (xs:QName("database"), $database,
+       xs:QName("x"), $expected))
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
@@ -3815,6 +3834,31 @@ declare function setup:get-forests-per-host-from-database-config(
  :: Utility functions
  ::)
 
+declare function setup:at-least-version($target)
+{
+  let $current := xdmp:version()
+  let $current-formatted :=
+    fn:concat(
+      fn:format-number(xs:int(fn:replace($current, "^(\d+)\..*", "$1")), "000"), (: major :)
+      fn:format-number(xs:int(fn:replace($current, "^\d+\.(\d+).*", "$1")), "000"), (: minor :)
+      fn:format-number(xs:int(fn:replace($current, "^\d+\.\d+\-(\d+).*", "$1")), "000"), (: x.x-X :)
+      if (fn:matches($current, "^\d+\.\d+\-\d+\.\d+")) then
+        fn:format-number(xs:int(fn:replace($current, "^\d+\.\d+\-\d+\.(\d+)", "$1")), "000") (: x.x-x.X :)
+      else "000"
+    )
+  let $target-formatted :=
+    fn:concat(
+      fn:format-number(xs:int(fn:replace($target, "^(\d+)\..*", "$1")), "000"), (: major :)
+      fn:format-number(xs:int(fn:replace($target, "^\d+\.(\d+).*", "$1")), "000"), (: minor :)
+      fn:format-number(xs:int(fn:replace($target, "^\d+\.\d+\-(\d+).*", "$1")), "000"), (: x.x-X :)
+      if (fn:matches($target, "^\d+\.\d+\-\d+\.\d+")) then
+        fn:format-number(xs:int(fn:replace($target, "^\d+\.\d+\-\d+\.(\d+)", "$1")), "000") (: x.x-x.X :)
+      else "000"
+    )
+  return fn:compare($current-formatted, $target-formatted) >= 0
+};
+
+
 declare function setup:read-config-file($filename as xs:string) as document-node()
 {
   xdmp:security-assert("http://marklogic.com/xdmp/privileges/admin-module-read", "execute"),
@@ -4306,15 +4350,24 @@ declare function setup:validation-fail($message)
 
 declare function setup:validate-install($import-config as element(configuration))
 {
-  setup:validate-privileges($import-config),
-  setup:validate-roles($import-config),
-  setup:validate-users($import-config),
-  setup:validate-mimetypes($import-config),
-  setup:validate-forests($import-config),
-  setup:validate-databases($import-config),
-  setup:validate-attached-forests($import-config),
-  setup:validate-amps($import-config),
-  setup:validate-database-settings($import-config),
-  setup:validate-databases-indexes($import-config),
-  setup:validate-appservers($import-config)
+  try
+  {
+    setup:validate-privileges($import-config),
+    setup:validate-roles($import-config),
+    setup:validate-users($import-config),
+    setup:validate-mimetypes($import-config),
+    setup:validate-forests($import-config),
+    setup:validate-databases($import-config),
+    setup:validate-attached-forests($import-config),
+    setup:validate-amps($import-config),
+    setup:validate-database-settings($import-config),
+    setup:validate-databases-indexes($import-config),
+    setup:validate-appservers($import-config)
+  }
+  catch($ex)
+  {
+    xdmp:set-response-code(500, 'Internal Server Error'),
+    xdmp:set-response-content-type("text/plain"),
+    $ex
+  }
 };

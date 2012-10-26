@@ -320,6 +320,7 @@ class ServerConfig < MLClient
       if (r.body.match("<error:error")) then
         logger.error r.body
         logger.error "... Bootstrap FAILED"
+        return false
       else
         if (r.body.match("(note: restart required)")) then
           logger.warn("************************************")
@@ -327,6 +328,7 @@ class ServerConfig < MLClient
           logger.warn("************************************")
         end
         logger.info("... Bootstrap Complete")
+        return true
       end
     else
       raise ExitException.new("Bootstrap requires the target environment's hostname to be defined")
@@ -342,6 +344,7 @@ class ServerConfig < MLClient
     if (r.body.match("<error:error")) then
       logger.error r.body
       logger.error "... Wipe FAILED"
+      return false
     else
       if (r.body.match("(note: restart required)")) then
         logger.warn("************************************")
@@ -349,6 +352,7 @@ class ServerConfig < MLClient
         logger.warn("************************************")
       end
       logger.info("... Wipe Complete")
+      return true
     end
   end
 
@@ -357,10 +361,18 @@ class ServerConfig < MLClient
     setup = open(File.expand_path('../xquery/setup.xqy', __FILE__)).readlines.join
     begin
       r = execute_query %Q{#{setup} setup:validate-install(#{get_config})}
-      logger.info(r.body)
-      logger.info("... Validation SUCCESS")
-      result = true
-    rescue ExitException
+      logger.info "code: #{r.code.to_i}"
+      logger.info r.body
+
+      if (r.body.match("<error:error")) then
+        logger.error r.body
+        result = false
+      else
+        logger.info("... Validation SUCCESS")
+        result = true
+      end
+    rescue Net::HTTPFatalError => e
+      logger.error e.response.body
       logger.error "... Validation FAILED"
       result = false
     end

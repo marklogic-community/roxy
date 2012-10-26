@@ -280,7 +280,6 @@
           <coordinate-system>wgs84</coordinate-system>
           <point-format>point</point-format>
           <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
         </geospatial-element-index>
         <geospatial-element-index>
           <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
@@ -288,7 +287,6 @@
           <coordinate-system>wgs84</coordinate-system>
           <point-format>point</point-format>
           <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
         </geospatial-element-index>
       </geospatial-element-indexes>
       <geospatial-element-attribute-pair-indexes>

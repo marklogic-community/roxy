@@ -226,6 +226,7 @@
           <localname>name</localname>
           <collation>http://marklogic.com/collation/codepoint</collation>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </range-element-index>
         <range-element-index>
           <scalar-type>string</scalar-type>
@@ -233,6 +234,7 @@
           <localname>name2</localname>
           <collation>http://marklogic.com/collation/codepoint</collation>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </range-element-index>
       </range-element-indexes>
       <range-element-attribute-indexes>
@@ -244,6 +246,7 @@
           <localname>name</localname>
           <collation>http://marklogic.com/collation/codepoint</collation>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </range-element-attribute-index>
         <range-element-attribute-index>
           <scalar-type>string</scalar-type>
@@ -253,6 +256,7 @@
           <localname>name2</localname>
           <collation>http://marklogic.com/collation/codepoint</collation>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </range-element-attribute-index>
       </range-element-attribute-indexes>
       <range-field-indexes>
@@ -261,12 +265,14 @@
           <field-name>sample</field-name>
           <collation/>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </range-field-index>
         <range-field-index>
           <scalar-type>date</scalar-type>
           <field-name>sample2</field-name>
           <collation/>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </range-field-index>
       </range-field-indexes>
       <path-namespaces>
@@ -323,6 +329,7 @@
           <longitude-localname>lon</longitude-localname>
           <coordinate-system>wgs84</coordinate-system>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </geospatial-element-attribute-pair-index>
         <geospatial-element-attribute-pair-index>
           <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
@@ -333,6 +340,7 @@
           <longitude-localname>lon2</longitude-localname>
           <coordinate-system>wgs84</coordinate-system>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </geospatial-element-attribute-pair-index>
       </geospatial-element-attribute-pair-indexes>
       <geospatial-element-pair-indexes>
@@ -345,6 +353,7 @@
           <longitude-localname>lon</longitude-localname>
           <coordinate-system>wgs84</coordinate-system>
           <range-value-positions>true</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </geospatial-element-pair-index>
         <geospatial-element-pair-index>
           <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
@@ -355,6 +364,7 @@
           <longitude-localname>lon2</longitude-localname>
           <coordinate-system>wgs84</coordinate-system>
           <range-value-positions>true</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </geospatial-element-pair-index>
       </geospatial-element-pair-indexes>
       <geospatial-element-child-indexes>
@@ -366,6 +376,7 @@
           <coordinate-system>wgs84</coordinate-system>
           <point-format>point</point-format>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </geospatial-element-child-index>
         <geospatial-element-child-index>
           <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
@@ -375,6 +386,7 @@
           <coordinate-system>wgs84</coordinate-system>
           <point-format>point</point-format>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
         </geospatial-element-child-index>
       </geospatial-element-child-indexes>
       <element-word-lexicons>
