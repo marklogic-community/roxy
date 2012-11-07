@@ -1,6 +1,9 @@
 # Roxy
 Roxy (RObust XQuerY Framework) is a lightweight framework for quickly developing well-structured, easily maintained XQuery applications. Roxy was heavily inspired by Ruby On Rails and CakePHP.
 
+## Getting Help
+To get help with Roxy, subscribe to the [Roxy mailing list](https://github.com/marklogic/roxy.git, Roxy mailing list).
+
 ## Components
 ### Roxy Deployer
 Roxy Deployer makes managing MarkLogic application easy. Simply edit a few configuration files and you have full access to create and deploy applications to MarkLogic servers, local or remote. Roxy Deployer is written in Ruby and is easily extended to add additional functionality.
