@@ -235,7 +235,7 @@ module Roxy
     end
 
     def prep_body(path, commit)
-      prep_buffer(File.read(path), commit)
+      prep_buffer(File.open(path, 'rb') { |f| f.read }, commit)
     end
 
     def prep_buffer(buffer, commit)
