@@ -474,9 +474,9 @@ declare function setup:create-forests-from-config(
   $database-name as xs:string) as item()*
 {
   for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
-  let $forest-name as xs:string? := $forest-config/as:forest-name[fn:string-length(.) > 0]
-  let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(.) > 0]
-  let $host-name as xs:string? := $forest-config/as:host[fn:string-length(.) > 0]
+  let $forest-name as xs:string? := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
+  let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
+  let $host-name as xs:string? := $forest-config/as:host[fn:string-length(fn:string(.)) > 0]
   return
     setup:create-forest(
       $forest-name,
@@ -491,9 +491,9 @@ declare function setup:validate-forests-from-config(
   $database-name as xs:string)
 {
   for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
-  let $forest-name as xs:string? := $forest-config/as:forest-name[fn:string-length(.) > 0]
-  let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(.) > 0]
-  let $host-name as xs:string? := $forest-config/as:host[fn:string-length(.) > 0]
+  let $forest-name as xs:string? := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
+  let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
+  let $host-name as xs:string? := $forest-config/as:host[fn:string-length(fn:string(.)) > 0]
   return
     setup:validate-forest(
       $forest-name,
@@ -2287,12 +2287,12 @@ declare function setup:validate-appservers(
 declare function setup:create-appserver(
   $server-config as element(gr:http-server)) as item()*
 {
-  let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(.) > 0]
+  let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]
   return
     if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then
       fn:concat("HTTP Server ", $server-name, " already exists, not recreated..")
     else
-      let $root := $server-config/gr:root[fn:string-length(.) > 0]
+      let $root := $server-config/gr:root[fn:string-length(fn:string(.)) > 0]
       let $root := if ($root) then $root else "/"
       let $port := xs:unsignedLong($server-config/gr:port)
       let $is-webdav := xs:boolean($server-config/gr:webDAV)
@@ -2341,7 +2341,7 @@ declare function setup:create-appserver(
 declare function setup:validate-appserver(
   $server-config as element(gr:http-server)) as item()*
 {
-  let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(.) > 0]
+  let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]
   return
     if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then ()
     else
@@ -2351,12 +2351,12 @@ declare function setup:validate-appserver(
 declare function setup:create-xdbcserver(
   $server-config as element(gr:xdbc-server)) as item()*
 {
-  let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(.) > 0]
+  let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]
   return
     if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then
       fn:concat("XDBC Server ", $server-name, " already exists, not recreated..")
     else
-      let $root := $server-config/gr:root[fn:string-length(.) > 0]
+      let $root := $server-config/gr:root[fn:string-length(fn:string(.)) > 0]
       let $root := if ($root) then $root else "/"
       let $port := xs:unsignedLong($server-config/gr:port)
       let $database-id :=
@@ -2394,7 +2394,7 @@ declare function setup:create-xdbcserver(
 declare function setup:validate-xdbcserver(
   $server-config as element(gr:xdbc-server)) as item()*
 {
-  let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(.) > 0]
+  let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]
   return
     if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then ()
     else
@@ -2440,7 +2440,7 @@ declare function setup:validate-appservers-settings(
 declare function setup:configure-http-server(
   $server-config as element(gr:http-server)) as item()*
 {
-  let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(.) > 0]
+  let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]
   let $server-id := xdmp:server($server-name)
   let $admin-config := setup:configure-server($server-config, $server-id)
   return
@@ -2478,7 +2478,7 @@ declare function setup:configure-http-server(
         xdmp:database($server-config/gr:modules/@name)
       else
         0
-    let $root := $server-config/gr:root[fn:string-length(.) > 0]
+    let $root := $server-config/gr:root[fn:string-length(fn:string(.)) > 0]
     let $root := if ($root) then $root else "/"
 
     let $admin-config :=
@@ -2494,17 +2494,24 @@ declare function setup:configure-http-server(
 
     let $admin-config := admin:appserver-set-root($admin-config, $server-id, $root)
 
-    let $value := $server-config/gr:session-timeout[fn:string-length(.) > 0]
+    let $value := $server-config/gr:session-timeout[fn:string-length(fn:string(.)) > 0]
     let $admin-config :=
       if ($value) then
         admin:appserver-set-session-timeout($admin-config, $server-id, $value)
       else
         $admin-config
 
-    let $value := $server-config/gr:static-expires[fn:string-length(.) > 0]
+    let $value := $server-config/gr:static-expires[fn:string-length(fn:string(.)) > 0]
     let $admin-config :=
       if ($value) then
         admin:appserver-set-static-expires($admin-config, $server-id, $value)
+      else
+        $admin-config
+
+    let $value := $server-config/gr:rewrite-resolves-globally[fn:string-length(fn:string(.)) > 0]
+    let $admin-config :=
+      if ($value) then
+        xdmp:value("admin:appserver-set-rewrite-resolves-globally($admin-config, $server-id, $value)")
       else
         $admin-config
 
@@ -2513,21 +2520,21 @@ declare function setup:configure-http-server(
 
     let $admin-config :=
       if ($is-webdav) then
-        let $value := $server-config/gr:compute-content-length[fn:string-length(.) > 0]
+        let $value := $server-config/gr:compute-content-length[fn:string-length(fn:string(.)) > 0]
         return
           if ($value) then
             admin:appserver-set-compute-content-length($admin-config, $server-id, $value)
           else
             $admin-config
       else
-        let $value := $server-config/gr:error-handler[fn:string-length(.) > 0]
+        let $value := $server-config/gr:error-handler[fn:string-length(fn:string(.)) > 0]
         let $admin-config :=
           if ($value) then
             admin:appserver-set-error-handler($admin-config, $server-id, $value)
           else
             $admin-config
 
-        let $value := $server-config/gr:url-rewriter[fn:string-length(.) > 0]
+        let $value := $server-config/gr:url-rewriter[fn:string-length(fn:string(.)) > 0]
         let $admin-config :=
           if ($value) then
             admin:appserver-set-url-rewriter($admin-config, $server-id, $value)
@@ -2562,7 +2569,7 @@ declare function setup:configure-http-server(
 declare function setup:validate-http-server(
   $server-config as element(gr:http-server)) as item()*
 {
-  let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(.) > 0]
+  let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]
   let $server-id := xdmp:server($server-name)
   let $admin-config := admin:get-configuration()
   let $default-user :=
@@ -2585,7 +2592,7 @@ declare function setup:validate-http-server(
       xdmp:database($server-config/gr:modules/@name)
     else
       0
-  let $root := $server-config/gr:root[fn:string-length(.) > 0]
+  let $root := $server-config/gr:root[fn:string-length(fn:string(.)) > 0]
   let $root := if ($root) then $root else "/"
 
   return
@@ -2617,14 +2624,14 @@ declare function setup:validate-http-server(
       else
         setup:validation-fail(fn:concat("Appserver root mismatch: ", $root, " != ", $actual)),
 
-    let $expected := $server-config/gr:session-timeout[fn:string-length(.) > 0]
+    let $expected := $server-config/gr:session-timeout[fn:string-length(fn:string(.)) > 0]
     let $actual := admin:appserver-get-session-timeout($admin-config, $server-id)
     return
       if ($expected = $actual) then ()
       else
         setup:validation-fail(fn:concat("Appserver session timeout mismatch: ", $expected, " != ", $actual)),
 
-    let $expected := $server-config/gr:static-expires[fn:string-length(.) > 0]
+    let $expected := $server-config/gr:static-expires[fn:string-length(fn:string(.)) > 0]
     let $actual := admin:appserver-get-static-expires($admin-config, $server-id)
     return
       if ($expected = $actual) then ()
@@ -2638,7 +2645,7 @@ declare function setup:validate-http-server(
         setup:validation-fail(fn:concat("Appserver default user mismatch: ", $default-user, " != ", $actual)),
 
     if ($is-webdav) then
-      let $expected := $server-config/gr:compute-content-length[fn:string-length(.) > 0]
+      let $expected := $server-config/gr:compute-content-length[fn:string-length(fn:string(.)) > 0]
       let $actual := admin:appserver-get-compute-content-length($admin-config, $server-id)
       return
         if ($expected = $actual) then ()
@@ -2646,14 +2653,14 @@ declare function setup:validate-http-server(
           setup:validation-fail(fn:concat("Appserver compute content length mismatch: ", $expected, " != ", $actual))
     else
     (
-      let $expected := $server-config/gr:error-handler[fn:string-length(.) > 0]
+      let $expected := $server-config/gr:error-handler[fn:string-length(fn:string(.)) > 0]
       let $actual := admin:appserver-get-error-handler($admin-config, $server-id)
       return
         if ($expected = $actual) then ()
         else
           setup:validation-fail(fn:concat("Appserver error handler mismatch: ", $expected, " != ", $actual)),
 
-      let $expected := $server-config/gr:url-rewriter[fn:string-length(.) > 0]
+      let $expected := $server-config/gr:url-rewriter[fn:string-length(fn:string(.)) > 0]
       let $actual := admin:appserver-get-url-rewriter($admin-config, $server-id)
       return
         if ($expected = $actual) then ()
@@ -2666,7 +2673,7 @@ declare function setup:validate-http-server(
 declare function setup:configure-xdbc-server(
   $server-config as element(gr:xdbc-server)) as item()*
 {
-  let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(.) > 0]
+  let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]
   return
     (: reconnect databases in case the appserver already existed :)
     let $database-id :=
@@ -2702,7 +2709,7 @@ declare function setup:configure-xdbc-server(
 declare function setup:validate-xdbc-server(
   $server-config as element(gr:xdbc-server)) as item()*
 {
-  let $server-id := xdmp:server($server-config/gr:xdbc-server-name[fn:string-length(.) > 0])
+  let $server-id := xdmp:server($server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0])
   let $admin-config := admin:get-configuration()
   return
   (
@@ -2824,7 +2831,7 @@ declare function setup:configure-server(
       if ($setting/@value) then
         fn:data(xdmp:value($setting/@value))
       else
-        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(.) > 0]")))
+        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(fn:string(.)) > 0]")))
     where (fn:exists($value))
     return
       xdmp:set($admin-config,
@@ -2900,7 +2907,7 @@ declare function setup:validate-server(
       <setting>output-encoding</setting>
     </settings>
   for $setting in $settings/*:setting
-  let $expected := fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(.) > 0]")))
+  let $expected := fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(fn:string(.)) > 0]")))
   let $actual := xdmp:value(fn:concat("admin:appserver-get-", $setting, "($admin-config, $server-id)"))
   where $expected
   return
@@ -2990,98 +2997,16 @@ declare function setup:create-roles(
   let $role-names as xs:string* := $role/sec:role-names/sec:role-name
   let $permissions as element(sec:permission)* := $role/sec:permissions/*
   let $collections as xs:string* := $role/sec:collections/*
-  let $privileges as element(sec:privilege)* := $role/sec:privileges/*
+  let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
   let $amps as element(sec:amp)* := $role/sec:amps/*
   let $eval-options :=
     <options xmlns="xdmp:eval">
       <database>{$default-security}</database>
     </options>
   return
-    (: if the role exists, then update it :)
-    if (setup:get-roles(())/sec:role[sec:role-name = $role-name]) then
-    (
-      xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $role-name as xs:string external;
-         declare variable $description as xs:string external;
-         sec:role-set-description($role-name, $description)',
-        (xs:QName("role-name"), $role-name,
-         xs:QName("description"), fn:string($description)),
-        $eval-options),
-      if ($role-names) then
-        xdmp:eval(
-          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-           declare variable $role-name as xs:string external;
-           declare variable $role-names as element() external;
-           sec:role-set-roles($role-name, $role-names/*)',
-          (xs:QName("role-name"), $role-name,
-           xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
-          $eval-options)
-      else (),
-
-      if ($permissions) then
-        xdmp:eval(
-          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-           declare variable $role-name as xs:string external;
-           declare variable $permissions as element() external;
-           sec:role-set-default-permissions($role-name, $permissions/*)',
-          (
-            xs:QName("role-name"), $role-name,
-            xs:QName("permissions"),
-            <w>
-            {
-              for $p in $permissions
-              return
-                xdmp:permission($p/sec:role-name, $p/sec:capability)
-            }
-            </w>
-          ),
-          $eval-options)
-      else (),
-
-      if ($collections) then
-        xdmp:eval(
-          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-           declare variable $role-name as xs:string external;
-           declare variable $collections as element() external;
-           sec:role-set-default-collections($role-name, $collections/*)',
-          (xs:QName("role-name"), $role-name,
-           xs:QName("collections"), <w>{for $c in $collections return <w>{$c}</w>}</w>),
-          $eval-options)
-      else (),
-
-      for $privilege in $privileges
-      let $priv := setup:get-privilege-by-name($privilege/sec:privilege-name)
-      return
-        xdmp:eval(
-          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-           declare variable $action as xs:string external;
-           declare variable $kind as xs:string external;
-           declare variable $role-name as xs:string external;
-           sec:privilege-add-roles($action, $kind, $role-name)',
-          (xs:QName("action"), $priv/sec:action,
-           xs:QName("kind"), $priv/sec:kind,
-           xs:QName("role-name"), $role-name),
-          $eval-options),
-
-      for $amp in $amps
-      return
-        xdmp:eval(
-          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-           declare variable $namespace as xs:string external;
-           declare variable $local-name as xs:string external;
-           declare variable $document-uri as xs:string external;
-           declare variable $database as xs:unsignedLong external;
-           declare variable $role-name as xs:string external;
-           sec:amp-add-roles($namespace, $local-name, $document-uri, $database, $role-name)',
-          (xs:QName("namespace"), $amp/sec:namespace,
-           xs:QName("local-name"), $amp/sec:local-name,
-           xs:QName("document-uri"), $amp/sec:document-uri,
-           xs:QName("database"), if ($amp/sec:database-name eq "filesystem") then 0 else xdmp:database($amp/sec:database-name),
-           xs:QName("role-name"), $role-name),
-          $eval-options)
-    )
-    (: role is new. create it :)
+  (
+    (: if the role exists, then don't create it :)
+    if (setup:get-roles(())/sec:role[sec:role-name = $role-name]) then ()
     else
     (
       xdmp:eval(
@@ -3094,28 +3019,127 @@ declare function setup:create-roles(
          xs:QName("description"), fn:string($description),
          xs:QName("collections"), <w>{for $c in $collections return <w>{$c}</w>}</w>),
         $eval-options),
-      setup:add-rollback("roles", $role)
-    )
+        setup:add-rollback("roles", $role)
+    ),
+
+    xdmp:eval(
+      'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+       declare variable $role-name as xs:string external;
+       declare variable $description as xs:string external;
+       sec:role-set-description($role-name, $description)',
+      (xs:QName("role-name"), $role-name,
+       xs:QName("description"), fn:string($description)),
+      $eval-options),
+    if ($role-names) then
+      xdmp:eval(
+        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $role-name as xs:string external;
+         declare variable $role-names as element() external;
+         sec:role-set-roles($role-name, $role-names/*)',
+        (xs:QName("role-name"), $role-name,
+         xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
+        $eval-options)
+    else (),
+
+    if ($permissions) then
+      xdmp:eval(
+        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $role-name as xs:string external;
+         declare variable $permissions as element() external;
+         sec:role-set-default-permissions($role-name, $permissions/*)',
+        (
+          xs:QName("role-name"), $role-name,
+          xs:QName("permissions"),
+          <w>
+          {
+            for $p in $permissions
+            return
+              xdmp:eval('
+                declare variable $p external;
+
+                xdmp:permission($p/sec:role-name, $p/sec:capability)',
+                (xs:QName("p"), $p))
+          }
+          </w>
+        ),
+        $eval-options)
+    else (),
+
+    if ($collections) then
+      xdmp:eval(
+        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $role-name as xs:string external;
+         declare variable $collections as element() external;
+         sec:role-set-default-collections($role-name, $collections/*)',
+        (xs:QName("role-name"), $role-name,
+         xs:QName("collections"), <w>{for $c in $collections return <w>{$c}</w>}</w>),
+        $eval-options)
+    else (),
+
+    for $privilege in $privileges
+    let $priv := setup:get-privilege-by-name($privilege/sec:privilege-name)
+    let $validate-privilege :=
+      if ($priv) then xdmp:log(text { "privilege is valid", $privilege/sec:privilege-name })
+      else
+        fn:error(
+          xs:QName("INVALID-PRIVILEGE"),
+          fn:concat(
+            "Invalid privilege '",
+            $privilege/sec:privilege-name,
+            "' specified for role: ",
+            $role-name))
+    return
+      xdmp:eval(
+        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $action as xs:string external;
+         declare variable $kind as xs:string external;
+         declare variable $role-name as xs:string external;
+         sec:privilege-add-roles($action, $kind, $role-name)',
+        (xs:QName("action"), $priv/sec:action,
+         xs:QName("kind"), $priv/sec:kind,
+         xs:QName("role-name"), $role-name),
+        $eval-options),
+
+    for $amp in $amps
+    return
+      xdmp:eval(
+        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $namespace as xs:string external;
+         declare variable $local-name as xs:string external;
+         declare variable $document-uri as xs:string external;
+         declare variable $database as xs:unsignedLong external;
+         declare variable $role-name as xs:string external;
+         sec:amp-add-roles($namespace, $local-name, $document-uri, $database, $role-name)',
+        (xs:QName("namespace"), $amp/sec:namespace,
+         xs:QName("local-name"), $amp/sec:local-name,
+         xs:QName("document-uri"), $amp/sec:document-uri,
+         xs:QName("database"), if ($amp/sec:database-name eq "filesystem") then 0 else xdmp:database($amp/sec:database-name),
+         xs:QName("role-name"), $role-name),
+        $eval-options)
+  )
 };
 
 declare function setup:validate-roles(
   $import-config as element(configuration))
 {
-  for $role in $import-config//sec:roles/sec:role
+  for $role in $import-config/sec:roles/sec:role
   let $role-name as xs:string := $role/sec:role-name
   let $description as xs:string? := $role/sec:description
   let $role-names as xs:string* := $role/sec:role-names/sec:role-name
-  let $permissions as element(sec:permission)* := $role/sec:permissions/*
+  let $permissions as element(sec:permission)* := $role/sec:permissions/sec:permission
   let $collections as xs:string* := $role/sec:collections/*
-  let $privileges as element(sec:privilege)* := $role/sec:privileges/*
+  let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
   let $amps as element(sec:amp)* := $role/sec:amps/*
   let $match := setup:get-roles(())/sec:role[sec:role-name = $role-name]
+  let $_ := xdmp:log($match)
   return
     (: if the role exists, then update it :)
     if ($match) then
       if ($match/sec:role-name != $role-name or
           $match/sec:description != $description or
-          $match/sec:role-names/sec:role-name != $role-names) then
+          $match/sec:role-names/sec:role-name != $role-names or
+          fn:count($match/sec:permissions/sec:permission) != fn:count($permissions) or
+          fn:count($match/sec:privileges/sec:privilege) != fn:count($privileges)) then
         setup:validation-fail(fn:concat("Mismatched role: ", $role-name))
       else ()
     else
@@ -3816,7 +3840,7 @@ declare function setup:get-databases-from-config(
 declare function setup:get-database-name-from-database-config(
   $db-config as element(db:database)) as xs:string?
 {
-  $db-config/db:database-name[fn:string-length(.) > 0]
+  $db-config/db:database-name[fn:string-length(fn:string(.)) > 0]
 };
 
 declare function setup:get-forests-per-host-from-database-config(

@@ -290,7 +290,6 @@ module Roxy
       @user_name = request_params[:user_name]
       @password = request_params[:password]
 
-      @logger.debug("Opening new #{@protocol.upcase} connection to #@server:#@port")
       @http              = Net::HTTP.new(@server, @port)
       @http.open_timeout = @params[:http_connection_open_timeout]
       @http.read_timeout = @params[:http_connection_read_timeout]

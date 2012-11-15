@@ -15,83 +15,77 @@
 ###############################################################################
 module Roxy
   class Framework
+
+    attr_reader :logger
+
     def initialize(options)
       @logger = options[:logger]
     end
 
     def create
-      if (ARGV[0] == "model") then
+      if ARGV[0] == "model"
         burn = ARGV.shift #burn model arg
 
         str = ARGV.shift
-        if (str) then
+        if str
           model, function = str.split('/')
           filename = ARGV.shift || model
-          if (model != nil) then
-            create_model model, filename, function
-          end
+          create_model(model, filename, function) if model != nil
         else
           ARGV.unshift(burn)
-          Help.doHelp(@logger, "create")
+          Help.doHelp(logger, "create")
         end
-      elsif (ARGV[0] == "test") then
+      elsif ARGV[0] == "test"
         burn = ARGV.shift #burn test arg
 
         str = ARGV.shift
         if str
           suite, test = str.split('/')
-          if (suite != nil) then
-            create_suite suite, test
-          end
+          create_suite(suite, test) if suite != nil
         else
           ARGV.unshift(burn)
-          Help.doHelp(@logger, "create")
+          Help.doHelp(logger, "create")
         end
-      elsif (ARGV[0] == "layout") then
+      elsif ARGV[0] == "layout"
         burn = ARGV.shift #burn test arg
 
         layout = ARGV.shift
         format = ARGV.shift || "html"
 
-        if (layout != nil) then
+        if layout != nil
           create_layout(layout, format)
         else
           ARGV.unshift(burn)
-          Help.doHelp(@logger, "create")
+          Help.doHelp(logger, "create")
         end
       else
         force = find_arg(['-f']) != nil
 
         str = ARGV.shift
-        if (str) then
+        if str
           controller, view = str.split('/')
 
           view = view || "main"
 
           format = ARGV.shift || "html"
-          @logger.debug "controller: #{controller}"
-          @logger.debug "view: #{view}\n"
-          @logger.debug "format: #{format}\n"
+          logger.debug "controller: #{controller}"
+          logger.debug "view: #{view}\n"
+          logger.debug "format: #{format}\n"
 
-          if (controller != nil and view != nil) then
-            if (force == false) then
-              view_type = (format != nil and format != "none") ? ((format == "json") ? "a" : "an") + " #{format} view" : "no view"
+          if controller != nil && view != nil
+            if force == false
+              view_type = (format != nil && format != "none") ? ((format == "json") ? "a" : "an") + " #{format} view" : "no view"
               print "\nAbout to create a #{view}() function in the #{controller}.xqy controller with #{view_type}. Proceed?\n> "
               answer = gets()
               answer = answer.downcase.strip
-              if (answer != "y" and answer != "yes") then
-                return
-              end
+              return if answer != "y" && answer != "yes"
             end
 
-            create_controller controller, view
-
-            if (format != nil and format != "none") then
-              create_view controller, view, format
-            end
+            create_controller(controller, view)
+            create_view(controller, view, format) unless format == nil || format == "none"
           end
         else
-          Help.doHelp(@logger, "create")
+          Help.doHelp(logger, "create")
         end
       end
     end
@@ -99,16 +93,16 @@ module Roxy
     def create_model(model, filename, function)
       target_file = File.expand_path("../../../src/app/models/#{filename}.xqy", __FILE__)
       model_file = nil
-      if File.exists? target_file then
-        if (function != nil) then
-          model_file = File.read(target_file)
+      if File.exists? target_file
+        if function != nil
+          model_file = File.read target_file
 
-          if (model_file.index("m:#{function}()") != nil) then
-            @logger.warn "Function #{model}:#{function}() already exists. Skipping..."
+          if model_file.index("m:#{function}()") != nil
+            logger.warn "Function #{model}:#{function}() already exists. Skipping..."
             return
           end
         else
-          @logger.warn "Model #{model} already exists. Skipping..."
+          logger.warn "Model #{model} already exists. Skipping..."
           return
         end
       else
@@ -116,7 +110,7 @@ module Roxy
         model_file.gsub!("#model-name", model)
       end
 
-      if (function != nil) then
+      if function != nil
         model_file << File.read(File.expand_path('../templates/model-function.xqy', __FILE__))
         model_file.gsub!("#function-name", function)
       end
@@ -125,17 +119,17 @@ module Roxy
 
     def create_suite(suite, test)
       suite_dir = File.expand_path("../../../src/test/suites/#{suite}/", __FILE__)
-      Dir.mkdir(suite_dir) unless File.directory?(suite_dir)
+      Dir.mkdir(suite_dir) unless File.directory? suite_dir
 
-      if (test)
+      if test
         target_file = "#{suite_dir}/#{test}.xqy"
 
         test_file = nil
-        if File.exists? target_file then
-          @logger.warn "Test #{test} already exists. Skipping..."
+        if File.exists? target_file
+          logger.warn "Test #{test} already exists. Skipping..."
           return
         else
-          test_file = open(File.expand_path('../templates/test.xqy', __FILE__)).readlines.join
+          test_file = File.read(File.expand_path('../templates/test.xqy', __FILE__))
         end
 
         File.open(target_file, 'a') {|f| f.write(test_file) }
@@ -144,13 +138,13 @@ module Roxy
 
     def create_layout(layout, format)
       layout_dir = File.expand_path("../../../src/app/views/layouts/", __FILE__)
-      Dir.mkdir(layout_dir) unless File.directory?(layout_dir)
+      Dir.mkdir(layout_dir) unless File.directory? layout_dir
 
       target_file = "#{layout_dir}/#{layout}.#{format}.xqy"
 
       layout_file = nil
-      if File.exists? target_file then
-        @logger.warn "Layout #{layout}.#{format} already exists. Skipping..."
+      if File.exists? target_file
+        logger.warn "Layout #{layout}.#{format} already exists. Skipping..."
         return
       else
         layout_file = File.expand_path("../templates/layout.#{format}.xqy", __FILE__)
@@ -164,16 +158,16 @@ module Roxy
     def create_controller(controller, view)
       target_file = File.expand_path("../../../src/app/controllers/#{controller}.xqy", __FILE__)
       controller_file = nil
-      if File.exists? target_file then
-        existing = open(target_file).readlines.join
+      if File.exists? target_file
+        existing = File.read(target_file)
 
-        if (existing.index("c:#{view}()") != nil) then
-          @logger.warn "function #{controller}:#{view}() already exists. Skipping..."
+        if existing.index("c:#{view}()") != nil
+          logger.warn "function #{controller}:#{view}() already exists. Skipping..."
           return
         end
-        controller_file = open(File.expand_path('../templates/controller-function.xqy', __FILE__)).readlines.join
+        controller_file = File.read File.expand_path('../templates/controller-function.xqy', __FILE__)
       else
-        controller_file = open(File.expand_path('../templates/controller.xqy', __FILE__)).readlines.join
+        controller_file = File.read File.expand_path('../templates/controller.xqy', __FILE__)
       end
 
       controller_file.gsub!("#controller-name", controller)
@@ -183,23 +177,21 @@ module Roxy
 
     def create_view(controller, view, format)
       dir = File.expand_path("../../../src/app/views/#{controller}/", __FILE__)
-      if File.directory?(dir) == false
-        Dir.mkdir(dir)
-      end
+      Dir.mkdir(dir) unless File.directory? dir
 
       out_file = "#{dir}/#{view}.#{format}.xqy"
 
       template_file = File.expand_path("../templates/view.#{format}.xqy", __FILE__)
       template_file = File.expand_path("../templates/view.xqy", __FILE__) unless File.exists?(template_file)
 
-      if File.exists?(out_file) == false then
-        view_template = open(template_file).readlines.join
+      if File.exists?(out_file) == false
+        view_template = File.read template_file
         view_template.gsub!("#location", out_file)
         view_template.gsub!("#controller", controller)
         view_template.gsub!("#view", view)
         File.open(out_file, 'w') {|f| f.write(view_template) }
       else
-        @logger.warn "View #{out_file} already exists. Skipping..."
+        logger.warn "View #{out_file} already exists. Skipping..."
       end
     end
   end

@@ -68,23 +68,23 @@ module Roxy
     INSERT = "I"
     UPDATE = "U"
     EXECUTE = "E"
+    ER = ["E", "R"]
+    RU = ["R", "U"]
   end
 
   class Xcc < MLClient
+
+    attr_reader :hostname, :port
+
+    IGNORE_EXTENSIONS = ['..', '.', '.svn', '.git', '.ds_store', 'thumbs.db']
+
     def initialize(options)
       super(options)
       @hostname = options[:xcc_server]
       @port = options[:xcc_port]
-      @http = Roxy::Http.new({
-        :logger => @logger
-      })
+      @http = Roxy::Http.new :logger => logger
       @request = {}
       @gmt_offset = Time.now.gmt_offset
-    end
-
-    def go(url, verb, headers = {}, params = nil, body = nil)
-      headers['User-Agent'] = "Roxy RubyXCC/#{RUBY_XCC_VERSION}  MarkXDBC/#{XCC_VERSION}"
-      super(url, verb, headers, params, body)
     end
 
     def xcc_query(options)
@@ -100,22 +100,77 @@ module Roxy
       r = go "http://#{options[:host]}:#{options[:port]}/eval", "post", headers, params
     end
 
+    def load_files(path, options = {})
+      if File.exists?(path)
+        headers = {
+          'Content-Type' => "text/xml",
+          'Accept' => "text/html, text/xml, image/gif, image/jpeg, application/vnd.marklogic.sequence, application/vnd.marklogic.document, */*"
+        }
+
+        data = get_files(path, options)
+        size = data.size
+
+        batch_commit = options[:batch_commit] == true
+        logger.debug "Using Batch commit: #{batch_commit}"
+        data.each_with_index do |file_uri, i|
+          commit = ((false == batch_commit) || (i >= (size - 1)))
+
+          target_uri = build_target_uri(file_uri, options)
+          url = build_load_uri(target_uri, options, commit)
+          logger.debug "loading: #{file_uri} => #{target_uri}"
+
+          r = go url, "put", headers, nil, prep_body(file_uri, commit)
+          logger.error(r.body) unless r.code.to_i == 200
+        end
+
+        return data.length
+      else
+        logger.error "#{path} does not exist"
+      end
+      0
+    end
+
+    def load_buffer(uri, buffer, options)
+      headers = {
+        'Content-Type' => "text/xml",
+        'Accept' => "text/html, text/xml, image/gif, image/jpeg, application/vnd.marklogic.sequence, application/vnd.marklogic.document, */*"
+      }
+
+      commit = options[:commit]
+      commit = true if (commit == nil)
+      target_uri = build_target_uri(uri, options)
+      url = build_load_uri(target_uri, options, commit)
+      logger.debug "loading: #{uri} => #{target_uri}"
+
+      r = go url, "put", headers, nil, prep_buffer(buffer, true)
+      logger.error(r.body) unless r.code.to_i == 200
+
+      1
+    end
+
+    private
+
+    def go(url, verb, headers = {}, params = nil, body = nil)
+      headers['User-Agent'] = "Roxy RubyXCC/#{RUBY_XCC_VERSION}  MarkXDBC/#{XCC_VERSION}"
+      super(url, verb, headers, params, body)
+    end
+
     def get_files(path, options = {}, data = [])
-      @logger.debug "getting files for #{path}"
-      if (File.directory?(path))
+      if File.directory?(path)
         Dir.foreach(path) do |entry|
-          next if (entry == '..' || entry == '.' || entry == '.svn' || entry == '.git' || entry == '.DS_Store' || entry == "Thumbs.db" || entry == "thumbs.db")
+          next if IGNORE_EXTENSIONS.include?(entry.downcase)
           full_path = File.join(path, entry)
           skip = false
-          if (options && options[:ignore_list])
-            options[:ignore_list].each do |ignore|
-              if full_path.match(ignore)
-                skip = true
-                break
-              end
+
+          options[:ignore_list].each do |ignore|
+            if full_path.match(ignore)
+              skip = true
+              break
             end
-          end
+          end if options[:ignore_list]
+
           next if skip == true
+
           if File.directory?(full_path)
             get_files(full_path, options, data)
           else
@@ -128,147 +183,67 @@ module Roxy
       data
     end
 
-    def build_load_uri(file_uri, options, commit)
+    def build_target_uri(file_uri, options)
+      target_uri = file_uri.sub(options[:remove_prefix] || "", "")
+      if options[:add_prefix]
+        prefix = options[:add_prefix].chomp("/")
+        target_uri = prefix + target_uri
+      end
+      target_uri
+    end
+
+    def build_load_uri(target_uri, options, commit)
       url = "http://#{@hostname}:#{@port}/insert?"
 
-      file_uri = file_uri.sub(options[:remove_prefix] || "", "")
-      if (options[:add_prefix])
-        prefix = options[:add_prefix].chomp("/")
-        file_uri = prefix + file_uri
-      end
+      url << "uri=#{url_encode(target_uri)}"
 
-      url << "uri=#{url_encode(file_uri)}"
+      url << "&locale=#{options[:locale]}" if options[:locale]
 
-      if (options[:locale])
-        url << "&locale=#{options[:locale]}"
-      end
+      url << "&lang=#{options[:language]}" if options[:language]
 
-      if (options[:language])
-        url << "&lang=#{options[:language]}"
-      end
+      url << "&defaultns=#{options[:namespace]}" if options[:namespace]
 
-      if (options[:namespace])
-        url << "&defaultns=#{options[:namespace]}"
-      end
+      url << "&quality=#{options[:quality]}" if options[:quality]
 
-      if (options[:quality])
-        url << "&quality=#{options[:quality]}"
-      end
 
-      if (options[:repairlevel] == "none")
-        url << "&repair=none"
-      elsif(options[:repairlevel] == "full")
-        url << "&repair=full"
-      end
+      url << "&repair=none" if options[:repairlevel] == "none"
+      url << "&repair=full" if options[:repairlevel] == "full"
 
-      if (options[:format] == "xml")
-        url << "&format=xml"
-      elsif(options[:format] == "text")
-        url << "&format=text"
-      elsif(options[:format] == "binary")
-        url << "&format=binary"
-      end
+      url << "&format=xml" if options[:format] == "xml"
+      url << "&format=text" if options[:format] == "text"
+      url << "&format=binary" if options[:format] == "binary"
 
-      if (options[:forests])
-        options[:forests].each do |forest|
-          url << "&placeKey=#{forest}"
-        end
-      end
+      options[:forests].each do |forest|
+        url << "&placeKey=#{forest}"
+      end if options[:forests]
 
-      if (options[:collections])
-        options[:collections].each do |collection|
-          url << "&coll=#{collection}"
-        end
-      end
+      options[:collections].each do |collection|
+        url << "&coll=#{collection}"
+      end if options[:collections]
 
-      if (options[:permissions])
-        options[:permissions].each do |perm|
-          url << "&perm=#{perm[:capability]}#{perm[:role]}"
-        end
-      end
+      options[:permissions].each do |perm|
+        url << "&perm=#{perm[:capability]}#{perm[:role]}"
+      end if (options[:permissions])
 
       url << "&tzoffset=#{@gmt_offset}"
 
-      if (options[:db])
-        url << "&dbname=#{options[:db]}"
-      end
-      # "&perm=Eapp-user&perm=Rapp-user&locale=#{LOCALE}&tzoffset=-18000&dbname=#{options[:db]}"
+      url << "&dbname=#{options[:db]}" if options[:db]
 
-      if (false == commit)
-        url << "&nocommit"
-      end
+      url << "&nocommit" if false == commit
 
       url
     end
 
     def prep_body(path, commit)
-      file = open(path, "rb")
-
-      #flag that ML server is expecting
-      flag = commit ? "10" : "20"
-
-      # oh so special format that xcc needs to send
-      body = "0#{file.lstat.size}\r\n#{file.read}#{flag}\r\n"
+      prep_buffer(File.read(path), commit)
     end
 
     def prep_buffer(buffer, commit)
       #flag that ML server is expecting
-      flag = commit ? "10" : "20"
+      flag = commit ? 10 : 20
 
       # oh so special format that xcc needs to send
       body = "0#{buffer.length}\r\n#{buffer}#{flag}\r\n"
-    end
-
-    def load_files(path, options)
-      if (File.exists?(path))
-        headers = {
-          'Content-Type' => "text/xml",
-          'Accept' => "text/html, text/xml, image/gif, image/jpeg, application/vnd.marklogic.sequence, application/vnd.marklogic.document, */*"
-        }
-
-        data = get_files(path, options)
-        size = data.size
-
-        @logger.info "Loading #{size} #{pluralize(size, "document", "documents")} from #{path} to #{@hostname}:#{@port}/#{options[:db]}"
-
-        batch_commit = options[:batch_commit] == true
-        @logger.debug "Using Batch commit: #{batch_commit}"
-        data.each_with_index do |d, i|
-          commit = ((false == batch_commit) || (i >= (size - 1)))
-
-          file_uri = d
-          url = build_load_uri(file_uri, options, commit)
-          @logger.debug "loading: #{file_uri}"
-
-          r = go url, "put", headers, nil, prep_body(d, commit)
-          if (r.code.to_i != 200)
-            @logger.error(r.body)
-          end
-        end
-      else
-        @logger.error "#{path} does not exist"
-      end
-    end
-
-    def load_buffer(uri, buffer, options)
-      headers = {
-        'Content-Type' => "text/xml",
-        'Accept' => "text/html, text/xml, image/gif, image/jpeg, application/vnd.marklogic.sequence, application/vnd.marklogic.document, */*"
-      }
-
-      commit = options[:commit]
-      commit = true if (commit == nil)
-      url = build_load_uri(uri, options, commit)
-      @logger.debug "loading: #{uri}"
-
-      r = go url, "put", headers, nil, prep_buffer(buffer, true)
-      if (r.code.to_i != 200)
-        @logger.error(r.body)
-      end
-    end
-
-    def pluralize(count, singular, plural = nil)
-      ((count == 1 || count =~ /^1(\.0+)?$/) ? singular : plural)
     end
 
   end

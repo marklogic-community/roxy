@@ -19,32 +19,6 @@ require 'framework'
 require 'util'
 require 'app_specific'
 
-def usage
-puts <<-EOT
-Usage: ml COMMAND [ARGS]
-
-Deployment Commands:
- init           Creates configuration files for you to customize
- initcpf        Creates cpf configuration files for you to customize
- info           Return settings for a given environment
- bootstrap      Configures your application on the MarkLogic server
- wipe           Remove your configuration from the MarkLogic server
- restart        Restart your MarkLogic server
- deploy         Loads modules, data, cpf configuration into the server
- clean          Removes all files from the cpf, modules, or content databases
- info           Prints the configuration information
- test           Runs xquery unit tests
- recordloader   Runs RecordLoader
- xqsync         Runs XQSync
-
-Roxy MVC Commands:
- create       Creates a controller or view or model
- index        Adds an index to the configuration
-
-All commands can be run with -h for more information.
-EOT
-end
-
 def need_help?
   find_arg(['-h', '--help']) != nil
 end
@@ -65,123 +39,97 @@ end
 @logger = Logger.new(STDOUT)
 @logger.level = find_arg(['-v', '--verbose']) ? Logger::DEBUG : Logger::INFO
 @logger.formatter = proc { |severity, datetime, progname, msg|
-  "#{severity}: #{msg}\n"
+  sev = "#{severity}: " if severity == "ERROR"
+  "#{sev}#{msg}\n"
 }
 
+if RUBY_VERSION < "1.8.7"
+  @logger.warn <<-MSG
+
+    WARNING!!!
+    You are using a very old version of Ruby: #{RUBY_VERSION}
+    Roxy works best with Ruby 1.8.7 or greater.
+    Proceed with caution.
+  MSG
+end
+
 begin
-while ARGV.length > 0
-  command = ARGV.shift
-
-  if ["-h", "--help"].include?(command)
-    usage
-    break
-  #
-  # Roxy framework is a convenience utility for create MVC code
-  #
-  elsif (command == "create")
-    if need_help?
-      Help.doHelp(@logger, command)
-        break
-    else
-      f = Roxy::Framework.new(:logger => @logger)
-      f.create# ARGV.join
-    end
-  #
-  # put things in ServerConfig class methods that don't depend on environment or server info
-  #
-  elsif (ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command))
-    if need_help?
-      Help.doHelp(@logger, command)
-        break
-    else
-      ServerConfig.set_logger @logger
-      eval "ServerConfig.#{command}"
-    end
-
-  #
-  # ServerConfig methods require environment to be set in order to talk to a ML server
-  #
-  else
-
-    ARGV.unshift(command)
-
-    @properties = ServerConfig.properties
-    if (@properties["environment"] == nil)
-      raise ExitException.new("Missing environment for #{command}")
-    end
-
+  while ARGV.length > 0
     command = ARGV.shift
 
-    if need_help?
-      Help.doHelp(@logger, command)
+    #
+    # Roxy framework is a convenience utility for create MVC code
+    #
+    if command == "create"
+      if need_help?
+        Help.doHelp(@logger, command)
         break
-    elsif (ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command))
-
-
-      if (@properties["ml.config.file"] == nil)
-        raise ExitException.new "Missing ml-config.xml file. Check config.file property"
-      end
-
-      @s = ServerConfig.new({
-        :config_file => File.expand_path(@properties["ml.config.file"], __FILE__),
-        :properties => @properties,
-        :logger => @logger
-      })
-
-        case command
-          when 'load'
-            dir = ARGV[0]
-            db = ARGV[1]
-            remove_prefix = ""
-            if (ARGV.include?('-r'))
-              index = ARGV.index('-r') + 1
-              if (ARGV.size > index)
-                remove_prefix = ARGV[index]
-              else
-                @logger.error("invalid option")
-              end
-            elsif (ARGV.include?('--remove-prefix'))
-              # index = ARGV.index('-v') || ARGV.index('--verbose')
-              # ARGV.slice!(index)
-            end
-
-            if (dir && db)
-              @s.load_data dir, remove_prefix, db
-            else
-              puts "Error: Destination directory and Database are required"
-            end
-          else
-            @s.send(command)
-        end
       else
-        puts "Error: Command not recognized" unless ['-h', '--help'].include?(command)
-        usage
+        f = Roxy::Framework.new :logger => @logger
+        f.create
+      end
+    #
+    # put things in ServerConfig class methods that don't depend on environment or server info
+    #
+    elsif ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command)
+      if need_help?
+        Help.doHelp(@logger, command)
+        break
+      else
+        ServerConfig.logger = @logger
+        ServerConfig.send command
+      end
+    #
+    # ServerConfig methods require environment to be set in order to talk to a ML server
+    #
+    else
+      # unshift to get the environment in ServerConfig.properties
+      ARGV.unshift command
+      @properties = ServerConfig.properties
+      command = ARGV.shift
+
+      if need_help? && Help.respond_to?(command)
+        Help.doHelp(@logger, command)
+        break
+      elsif ServerConfig.instance_methods.include?(command)
+        raise HelpException.new(command, "Missing environment for #{command}") if @properties["environment"].nil?
+        raise ExitException.new("Missing ml-config.xml file. Check config.file property") if @properties["ml.config.file"].nil?
+
+        @s = ServerConfig.new(
+          :config_file => File.expand_path(@properties["ml.config.file"], __FILE__),
+          :properties => @properties,
+          :logger => @logger
+        ).send(command)
+      else
+        Help.doHelp(@logger, :usage)
         break
       end
     end
   end
-      rescue Net::HTTPServerException => e
-        case e.response
-        when Net::HTTPUnauthorized then
-          @logger.error("Invalid login credentials for #{@properties["environment"]} environment!!")
-        else
-          @logger.error(e)
-          @logger.error(e.response.body)
-        end
-      rescue Net::HTTPFatalError => e
-        @logger.error(e)
-        @logger.error(e.response.body)
+rescue Net::HTTPServerException => e
+  case e.response
+  when Net::HTTPUnauthorized then
+    @logger.error "Invalid login credentials for #{@properties["environment"]} environment!!"
+  else
+    @logger.error e
+    @logger.error e.response.body
+  end
+rescue Net::HTTPFatalError => e
+  @logger.error e
+  @logger.error e.response.body
 rescue DanglingVarsException => e
   @logger.error "WARNING: The following configuration variables could not be validated:"
   e.vars.each do |k,v|
     @logger.error "#{k}=#{v}"
   end
+rescue HelpException => e
+  Help.doHelp(@logger, e.command, e.message)
 rescue ExitException => e
-  @logger.error(e)
-      rescue Exception => e
-        @logger.error(e)
-        @logger.error(e.backtrace)
-      end
+  @logger.error e
+rescue Exception => e
+  @logger.error e
+  @logger.error e.backtrace
+end
 
 if @profile then
   result = RubyProf.stop

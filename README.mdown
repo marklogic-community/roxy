@@ -1,6 +1,9 @@
 # Roxy
 Roxy (RObust XQuerY Framework) is a lightweight framework for quickly developing well-structured, easily maintained XQuery applications. Roxy was heavily inspired by Ruby On Rails and CakePHP.
 
+## Getting Help
+To get help with Roxy, subscribe to the [Roxy mailing list](http://developer.marklogic.com/mailman/listinfo/roxy, Roxy mailing list).
+
 ## Components
 ### Roxy Deployer
 Roxy Deployer makes managing MarkLogic application easy. Simply edit a few configuration files and you have full access to create and deploy applications to MarkLogic servers, local or remote. Roxy Deployer is written in Ruby and is easily extended to add additional functionality.
@@ -15,6 +18,7 @@ What good is your code if it doesn't work? Testing is paramount to the developme
 * MarkLogic:
   * MarkLogic 4.x - You need the **Docs** appserver running on port 8000 - this port can be overridden in build.properties
   * MarkLogic 5.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
+  * MarkLogic 6.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
 * [Ruby](http://www.ruby-lang.org/en/) - Required for Roxy Deployer only.
 * [Java (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/index.html) - Only if you wish to run the Roxy Deployer [XQSync](http://developer.marklogic.com/code/xqsync, XQSync) or [RecordLoader](http://developer.marklogic.com/code/recordloader, RecordLoader) commands.
 
@@ -36,25 +40,25 @@ This section describes the quickest way to get started using Roxy.
 3. Modify deploy/build.properties with your application's settings.
 
   <code>
-  \# Username to authenticate to ML
+  \# Username to authenticate to ML  
   user=your-ml-admin-username  
-  \# password for ML authentication
+  \# password for ML authentication  
   password=your-ml-admin-password  
-  \# the authentication type for the appserver (digest|basic|application-level)
+  \# the authentication type for the appserver (digest|basic|application-level)  
   authentication-method=application-level  
-  \# the default user to authenticate with. defaults to nobody
+  \# the default user to authenticate with. defaults to nobody  
   default-user=nobody  
-  \# the root path of your modules. Use this to override the modules db and use your filesystem location
+  \# the root path of your modules. Use this to override the modules db and use your filesystem location  
   modules-root=/the/path/to/your/files/on/the/filesystem  
   \# either 'filesystem' or 'name of db'  
   app-modules-db=filesystem  
-  \# Specify the server(s) you wish to deploy to here. This tutorial assumes you are using localhost.
-  local-server=localhost
-  \#dev-server=
-  \#cert-server=
-  \#prod-server=
+  \# Specify the server(s) you wish to deploy to here. This tutorial assumes you are using localhost.  
+  local-server=localhost  
+  \#dev-server=  
+  \#cert-server=  
+  \#prod-server=  
   </code>
-  
+
 ### Configure MarkLogic Server
 *This step is only needed when database configurations have changed or on a fresh install. In most cases you will not need to restart your server.*
 
