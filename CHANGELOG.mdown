@@ -5,7 +5,7 @@ This file describes changes made to Roxy per release
 
 ### New Features
 * Deployer is now compatible with Ruby 1.8.5
-* Extra detail when range index creation failes
+* Extra detail when range index creation fails
 * \#39 Allow separate test-modules db
 * Adding support for in-forest eval in XCC deploy
 
@@ -17,3 +17,15 @@ This file describes changes made to Roxy per release
 * Fixed a bug in assigning collections via xcc insert
 * Fixed a bug with adding fields via the Roxy Deployer
 * Removed unused facets-only function.
+
+## 1.2 (branch: master)
+
+### New Features
+* Added new ML 6 indexes (path range index, etc)
+* Added ml load command to load 1 file or a directory
+* Added ml corb to run Corb jobs
+
+### Resolved Issues
+* \#38 Fixed --force with ml init and ml initcpf
+* \#36 Refactored the bootstrap process. Now complete with proper failure and rollback
+* Fixed backwards compatibility with ML 4
