@@ -2,7 +2,7 @@
 Roxy (RObust XQuerY Framework) is a lightweight framework for quickly developing well-structured, easily maintained XQuery applications. Roxy was heavily inspired by Ruby On Rails and CakePHP.
 
 ## Getting Help
-To get help with Roxy, subscribe to the [Roxy mailing list](http://developer.marklogic.com/mailman/listinfo/roxy, Roxy mailing list).
+To get help with Roxy, subscribe to the [Roxy mailing list](http://developer.marklogic.com/mailman/listinfo/roxy).
 
 ## Components
 ### Roxy Deployer
@@ -20,7 +20,7 @@ What good is your code if it doesn't work? Testing is paramount to the developme
   * MarkLogic 5.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
   * MarkLogic 6.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
 * [Ruby](http://www.ruby-lang.org/en/) - Required for Roxy Deployer only.
-* [Java (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/index.html) - Only if you wish to run the Roxy Deployer [XQSync](http://developer.marklogic.com/code/xqsync, XQSync) or [RecordLoader](http://developer.marklogic.com/code/recordloader, RecordLoader) commands.
+* [Java (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/index.html) - Only if you wish to run the Roxy Deployer [XQSync](http://developer.marklogic.com/code/xqsync, XQSync) or [RecordLoader](http://developer.marklogic.com/code/recordloader) commands.
 
 ## Getting Started (Quick Version)
 This section describes the quickest way to get started using Roxy.
