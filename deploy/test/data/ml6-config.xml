@@ -85,6 +85,10 @@
           <localname>frag-parents2</localname>
         </fragment-parent>
       </fragment-parents>
+      <word-lexicons>
+        <word-lexicon>http://marklogic.com/collation/</word-lexicon>
+        <word-lexicon>http://marklogic.com/collation/codepoint</word-lexicon>
+      </word-lexicons>
       <fields>
         <field>
           <field-name/>

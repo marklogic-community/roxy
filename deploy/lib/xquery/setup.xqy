@@ -887,59 +887,9 @@ declare function setup:configure-databases($import-config as element(configurati
   let $database-name := setup:get-database-name-from-database-config($db-config)
   let $database := xdmp:database($database-name)
   let $admin-config := admin:get-configuration()
-  let $admin-config := (: remove-existing-range-path-indexes := :)
-    (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
-    try
-    {
-      xdmp:eval('
-          import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-          declare variable $database external;
-          declare variable $admin-config external;
-          let $remove-existing-indexes :=
-            for $index in admin:database-get-range-path-indexes($admin-config, $database)
-            return
-              xdmp:set(
-                $admin-config,
-                admin:database-delete-range-path-index($admin-config, $database, $index))
-          return
-            $admin-config
-            (: admin:save-configuration-without-restart($admin-config) :)',
-          (xs:QName("database"), $database,
-           xs:QName("admin-config"), $admin-config))
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
-      else
-        xdmp:rethrow()
-    }
 
-  let $admin-config := (: remove-existing-path-namespaces := :)
-    (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
-    try
-    {
-      xdmp:eval('
-          import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-          declare variable $database external;
-          declare variable $admin-config external;
-          let $remove-existing-indexes :=
-            for $index at $i in admin:database-get-path-namespaces($admin-config, $database)
-            return
-              xdmp:set($admin-config, admin:database-delete-path-namespace($admin-config, $database, $index))
-          return
-            $admin-config (: admin:save-configuration-without-restart($admin-config) :)',
-          (xs:QName("database"), $database,
-           xs:QName("admin-config"), $admin-config))
-    }
-    catch($ex)
-    {
-      xdmp:log($ex),
-      if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
-      else if ($ex/error:code = "ADMIN-PATHNAMESPACEINUSE" and fn:not(setup:at-least-version("6.0-2"))) then
-        fn:error(xs:QName("VERSION_NOT_SUPPORTED"), "Roxy does not support path namespaces for this version of MarkLogic. Use 6.0-2 or later.")
-      else
-        xdmp:rethrow()
-    }
+  let $admin-config := setup:remove-existing-range-path-indexes($admin-config, $database)
+  let $admin-config := setup:remove-existing-path-namespaces($admin-config, $database)
 
   let $admin-config := setup:add-word-lexicons($admin-config, $database, $db-config)
   let $admin-config := setup:add-fragment-roots($admin-config, $database, $db-config)
@@ -950,135 +900,24 @@ declare function setup:configure-databases($import-config as element(configurati
     <element-word-query-throughs />
     <phrase-throughs />
     <phrase-arounds />
-    <geospatial-element-indexes />
-
   :)
 
   let $admin-config := setup:set-schema-database($admin-config, $db-config, $database)
   let $admin-config := setup:set-security-database($admin-config, $db-config, $database)
   let $admin-config := setup:set-triggers-database($admin-config, $db-config, $database)
-
-  (: remove any existing range index (copied from default.xqy) :)
-  let $remove-existing-indexes :=
-    for $index in admin:database-get-range-element-indexes($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-range-element-index($admin-config, $database, $index))
-
   let $admin-config := setup:add-range-element-indexes($admin-config, $database, $db-config)
-
-  (: remove any existing range element attribute index :)
-  let $remove-existing-indexes :=
-    for $index in admin:database-get-range-element-attribute-indexes($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-range-element-attribute-index($admin-config, $database, $index))
-
   let $admin-config := setup:add-range-element-attribute-indexes($admin-config, $database, $db-config)
-
   let $admin-config := setup:add-path-namespaces($admin-config, $database, $db-config)
   let $admin-config := setup:add-range-path-indexes($admin-config, $database, $db-config)
-
-  (: remove any existing geospatial element attribute pair indexes :)
-  let $remove-existing-indexes :=
-    for $index in admin:database-get-geospatial-element-indexes($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-geospatial-element-index($admin-config, $database, $index))
-
   let $admin-config := setup:add-geospatial-element-indexes($admin-config, $database, $db-config)
-
-  (: remove any existing geospatial element attribute pair indexes :)
-  let $remove-existing-indexes :=
-    for $index in admin:database-get-geospatial-element-attribute-pair-indexes($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-geospatial-element-attribute-pair-index($admin-config, $database, $index))
-
   let $admin-config := setup:add-geospatial-element-attribute-pair-indexes($admin-config, $database, $db-config)
-
-  (: remove any existing geospatial element  pair indexes :)
-  let $remove-existing-indexes :=
-    for $index in admin:database-get-geospatial-element-pair-indexes($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-geospatial-element-pair-index($admin-config, $database, $index))
-
   let $admin-config := setup:add-geospatial-element-pair-indexes($admin-config, $database, $db-config)
-
-  (: remove any existing geospatial element  pair indexes :)
-  let $remove-existing-indexes :=
-    for $index in admin:database-get-geospatial-element-child-indexes($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-geospatial-element-child-index($admin-config, $database, $index))
-
   let $admin-config := setup:add-geospatial-element-child-indexes($admin-config, $database, $db-config)
-
-  (: remove any existing field (copied from default.xqy) :)
-  let $remove-existing-fields :=
-    for $field as xs:string in admin:database-get-fields($admin-config, $database)/db:field-name[fn:not(. = "")]
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-field($admin-config, $database, $field))
-
   let $admin-config := setup:add-fields($admin-config, $database, $db-config)
   let $admin-config := setup:add-field-includes($admin-config, $database, $db-config)
   let $admin-config := setup:add-field-excludes($admin-config, $database, $db-config)
-
-
-  let $remove-existing-indexes :=
-    (: wrap in try catch because this function is new to 5.0 and will fail in older version of ML :)
-    try
-    {
-      xdmp:set(
-        $admin-config,
-        xdmp:eval('
-          import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-          declare variable $admin-config external;
-          declare variable $database external;
-
-          let $remove-existing-indexes :=
-            for $index in admin:database-get-range-field-indexes($admin-config, $database)
-            return
-              xdmp:set(
-                $admin-config,
-                admin:database-delete-range-field-index($admin-config, $database, $index))
-          return
-            $admin-config',
-          (xs:QName("admin-config"), $admin-config,
-           xs:QName("database"), $database)))
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "XDMP-UNDFUN") then ()
-      else
-        xdmp:rethrow()
-    }
-
   let $admin-config := setup:add-range-field-indexes($admin-config, $database, $db-config)
-
-  let $remove-existing-element-word-lexicons :=
-    for $lexicon in admin:database-get-element-word-lexicons($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-element-word-lexicon($admin-config, $database, $lexicon))
   let $admin-config := setup:add-element-word-lexicons($admin-config, $database, $db-config)
-
-  let $remove-existing-element-attribute-word-lexicons :=
-    for $lexicon in admin:database-get-element-attribute-word-lexicons($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-element-attribute-word-lexicon($admin-config, $database, $lexicon))
   let $admin-config := setup:add-element-attribute-word-lexicons($admin-config, $database, $db-config)
 
   return
@@ -1124,17 +963,31 @@ declare function setup:validate-databases-indexes($import-config as element(conf
 
 };
 
+declare function setup:remove-existing-fields(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $field as xs:string in admin:database-get-fields($admin-config, $database)/db:field-name[fn:not(. = "")]
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-field($admin-config, $database, $field)),
+  $admin-config
+};
+
 declare function setup:add-fields(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-fields-R(
-    $admin-config,
-    $database,
-    for $e in $db-config/db:fields/db:field[db:field-name != ""]
-    return
-      admin:database-field($e/db:field-name, $e/db:include-root))
+  let $admin-config := setup:remove-existing-fields($admin-config, $database)
+  return
+    setup:add-fields-R(
+      $admin-config,
+      $database,
+      for $e in $db-config/db:fields/db:field[db:field-name != ""]
+      return
+        admin:database-field($e/db:field-name, $e/db:include-root))
 };
 
 declare function setup:add-fields-R(
@@ -1238,15 +1091,29 @@ declare function setup:add-field-excludes-R(
     $admin-config
 };
 
+declare function setup:remove-existing-range-element-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $index in admin:database-get-range-element-indexes($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-range-element-index($admin-config, $database, $index)),
+  $admin-config
+};
+
 declare function setup:add-range-element-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-range-element-indexes-R(
-    $admin-config,
-    $database,
-    $db-config/db:range-element-indexes/db:range-element-index)
+  let $admin-config := setup:remove-existing-range-element-indexes($admin-config, $database)
+  return
+    setup:add-range-element-indexes-R(
+      $admin-config,
+      $database,
+      $db-config/db:range-element-indexes/db:range-element-index)
 };
 
 declare function setup:add-range-element-indexes-R(
@@ -1276,15 +1143,29 @@ declare function setup:validate-range-element-indexes(
       setup:validation-fail(fn:concat("Missing range element index: ", $expected/db:localname))
 };
 
+declare function setup:remove-existing-range-element-attribute-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $index in admin:database-get-range-element-attribute-indexes($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-range-element-attribute-index($admin-config, $database, $index)),
+  $admin-config
+};
+
 declare function setup:add-range-element-attribute-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-range-element-attribute-indexes-R(
-    $admin-config,
-    $database,
-    $db-config/db:range-element-attribute-indexes/db:range-element-attribute-index)
+  let $admin-config := setup:remove-existing-range-element-attribute-indexes($admin-config, $database)
+  return
+    setup:add-range-element-attribute-indexes-R(
+      $admin-config,
+      $database,
+      $db-config/db:range-element-attribute-indexes/db:range-element-attribute-index)
 };
 
 declare function setup:add-range-element-attribute-indexes-R(
@@ -1312,6 +1193,37 @@ declare function setup:validate-range-element-attribute-indexes(
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
       setup:validation-fail(fn:concat("Missing range element attribute index: ", $expected/db:localname))
+};
+
+declare function setup:remove-existing-path-namespaces(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
+  try
+  {
+    xdmp:eval('
+      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+      declare variable $database external;
+      declare variable $admin-config external;
+      let $remove-existing-indexes :=
+        for $index at $i in admin:database-get-path-namespaces($admin-config, $database)
+        return
+          xdmp:set($admin-config, admin:database-delete-path-namespace($admin-config, $database, $index))
+      return
+        $admin-config (: admin:save-configuration-without-restart($admin-config) :)',
+      (xs:QName("database"), $database,
+       xs:QName("admin-config"), $admin-config))
+  }
+  catch($ex)
+  {
+    xdmp:log($ex),
+    if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
+    else if ($ex/error:code = "ADMIN-PATHNAMESPACEINUSE" and fn:not(setup:at-least-version("6.0-2"))) then
+      fn:error(xs:QName("VERSION_NOT_SUPPORTED"), "Roxy does not support path namespaces for this version of MarkLogic. Use 6.0-2 or later.")
+    else
+      xdmp:rethrow()
+  }
 };
 
 declare function setup:add-path-namespaces(
@@ -1378,6 +1290,37 @@ declare function setup:validate-path-namespaces(
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
       setup:validation-fail(fn:concat("Missing path namespace: ", $expected/db:prefix, " => ", $expected/db:namespace-uri))
+};
+
+declare function setup:remove-existing-range-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
+  try
+  {
+    xdmp:eval('
+        import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+        declare variable $database external;
+        declare variable $admin-config external;
+        let $remove-existing-indexes :=
+          for $index in admin:database-get-range-path-indexes($admin-config, $database)
+          return
+            xdmp:set(
+              $admin-config,
+              admin:database-delete-range-path-index($admin-config, $database, $index))
+        return
+          $admin-config
+          (: admin:save-configuration-without-restart($admin-config) :)',
+        (xs:QName("database"), $database,
+         xs:QName("admin-config"), $admin-config))
+  }
+  catch($ex)
+  {
+    if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
+    else
+      xdmp:rethrow()
+  }
 };
 
 declare function setup:add-range-path-indexes(
@@ -1462,15 +1405,29 @@ declare function setup:validate-range-path-indexes(
       setup:validation-fail(fn:concat("Missing range path index: ", $expected/db:path-expression))
 };
 
+declare function setup:remove-existing-element-word-lexicons(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $lexicon in admin:database-get-element-word-lexicons($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-element-word-lexicon($admin-config, $database, $lexicon)),
+  $admin-config
+};
+
 declare function setup:add-element-word-lexicons(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-element-word-lexicons-R(
-    $admin-config,
-    $database,
-    $db-config/db:element-word-lexicons/db:element-word-lexicon)
+  let $admin-config := setup:remove-existing-element-word-lexicons($admin-config, $database)
+  return
+    setup:add-element-word-lexicons-R(
+      $admin-config,
+      $database,
+      $db-config/db:element-word-lexicons/db:element-word-lexicon)
 };
 
 declare function setup:add-element-word-lexicons-R(
@@ -1487,15 +1444,29 @@ declare function setup:add-element-word-lexicons-R(
     $admin-config
 };
 
+declare function setup:remove-existing-element-attribute-word-lexicons(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $lexicon in admin:database-get-element-attribute-word-lexicons($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-element-attribute-word-lexicon($admin-config, $database, $lexicon)),
+  $admin-config
+};
+
 declare function setup:add-element-attribute-word-lexicons(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-element-attribute-word-lexicons-R(
-    $admin-config,
-    $database,
-    $db-config/db:element-attribute-word-lexicons/db:element-attribute-word-lexicon)
+  let $admin-config := setup:remove-existing-element-attribute-word-lexicons($admin-config, $database)
+  return
+    setup:add-element-attribute-word-lexicons-R(
+      $admin-config,
+      $database,
+      $db-config/db:element-attribute-word-lexicons/db:element-attribute-word-lexicon)
 };
 
 declare function setup:add-element-attribute-word-lexicons-R(
@@ -1512,16 +1483,49 @@ declare function setup:add-element-attribute-word-lexicons-R(
     $admin-config
 };
 
+declare function setup:remove-existing-range-field-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  (: wrap in try catch because this function is new to 5.0 and will fail in older version of ML :)
+  try
+  {
+    xdmp:eval('
+      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+      declare variable $admin-config external;
+      declare variable $database external;
+
+      let $remove-existing-indexes :=
+        for $index in admin:database-get-range-field-indexes($admin-config, $database)
+        return
+          xdmp:set(
+            $admin-config,
+            admin:database-delete-range-field-index($admin-config, $database, $index))
+      return
+        $admin-config',
+      (xs:QName("admin-config"), $admin-config,
+       xs:QName("database"), $database))
+  }
+  catch($ex)
+  {
+    if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
+    else
+      xdmp:rethrow()
+  }
+};
+
 
 declare function setup:add-range-field-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-range-field-indexes-R(
-    $admin-config,
-    $database,
-    $db-config/db:range-field-indexes/db:range-field-index)
+  let $admin-config := setup:remove-existing-range-field-indexes($admin-config, $database)
+  return
+    setup:add-range-field-indexes-R(
+      $admin-config,
+      $database,
+      $db-config/db:range-field-indexes/db:range-field-index)
 };
 
 declare function setup:add-range-field-indexes-R(
@@ -1548,16 +1552,30 @@ declare function setup:add-range-field-indexes-R(
     $admin-config
 };
 
+declare function setup:remove-existing-geospatial-element-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $index in admin:database-get-geospatial-element-indexes($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-geospatial-element-index($admin-config, $database, $index)),
+  $admin-config
+};
+
 
 declare function setup:add-geospatial-element-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-geospatial-element-indexes-R(
-    $admin-config,
-    $database,
-    $db-config/db:geospatial-element-indexes/db:geospatial-element-index)
+  let $admin-config := setup:remove-existing-geospatial-element-indexes($admin-config, $database)
+  return
+    setup:add-geospatial-element-indexes-R(
+      $admin-config,
+      $database,
+      $db-config/db:geospatial-element-indexes/db:geospatial-element-index)
 };
 
 declare function setup:add-geospatial-element-indexes-R(
@@ -1587,15 +1605,30 @@ declare function setup:validate-geospatial-element-indexes(
       setup:validation-fail(fn:concat("Missing geospatial element index: ", $expected/db:localname))
 };
 
+declare function setup:remove-existing-geospatial-element-attribute-pair-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $index in admin:database-get-geospatial-element-attribute-pair-indexes($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-geospatial-element-attribute-pair-index($admin-config, $database, $index)),
+  $admin-config
+};
+
+
 declare function setup:add-geospatial-element-attribute-pair-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-geospatial-element-attribute-pair-indexes-R(
-    $admin-config,
-    $database,
-    $db-config/db:geospatial-element-attribute-pair-indexes/db:geospatial-element-attribute-pair-index)
+  let $admin-config := setup:remove-existing-geospatial-element-attribute-pair-indexes($admin-config, $database)
+  return
+    setup:add-geospatial-element-attribute-pair-indexes-R(
+      $admin-config,
+      $database,
+      $db-config/db:geospatial-element-attribute-pair-indexes/db:geospatial-element-attribute-pair-index)
 };
 
 declare function setup:add-geospatial-element-attribute-pair-indexes-R(
@@ -1625,15 +1658,29 @@ declare function setup:validate-geospatial-element-attribute-pair-indexes(
       setup:validation-fail(fn:concat("Missing geospatial element attribute pair index: ", $expected/db:localname))
 };
 
+declare function setup:remove-existing-geospatial-element-pair-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $index in admin:database-get-geospatial-element-pair-indexes($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-geospatial-element-pair-index($admin-config, $database, $index)),
+  $admin-config
+};
+
 declare function setup:add-geospatial-element-pair-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-geospatial-element-pair-indexes-R(
-    $admin-config,
-    $database,
-    $db-config/db:geospatial-element-pair-indexes/db:geospatial-element-pair-index)
+  let $admin-config := setup:remove-existing-geospatial-element-pair-indexes($admin-config, $database)
+  return
+    setup:add-geospatial-element-pair-indexes-R(
+      $admin-config,
+      $database,
+      $db-config/db:geospatial-element-pair-indexes/db:geospatial-element-pair-index)
 };
 
 declare function setup:add-geospatial-element-pair-indexes-R(
@@ -1662,15 +1709,29 @@ declare function setup:validate-geospatial-element-pair-indexes(
       setup:validation-fail(fn:concat("Missing geospatial element pair index: ", $expected/db:localname))
 };
 
+declare function setup:remove-existing-geospatial-element-child-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $index in admin:database-get-geospatial-element-child-indexes($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-geospatial-element-child-index($admin-config, $database, $index)),
+  $admin-config
+};
+
 declare function setup:add-geospatial-element-child-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-geospatial-element-child-indexes-R(
-    $admin-config,
-    $database,
-    $db-config/db:geospatial-element-child-indexes/db:geospatial-element-child-index)
+  let $admin-config :=setup:remove-existing-geospatial-element-child-indexes($admin-config, $database)
+  return
+    setup:add-geospatial-element-child-indexes-R(
+      $admin-config,
+      $database,
+      $db-config/db:geospatial-element-child-indexes/db:geospatial-element-child-index)
 };
 
 declare function setup:add-geospatial-element-child-indexes-R(
@@ -1700,15 +1761,29 @@ declare function setup:validate-geospatial-element-child-indexes(
       setup:validation-fail(fn:concat("Missing geospatial element child index: ", $expected/db:localname))
 };
 
+declare function setup:remove-existing-word-lexicons(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $lexicon in admin:database-get-word-lexicons($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-word-lexicon($admin-config, $database, $lexicon)),
+  $admin-config
+};
+
 declare function setup:add-word-lexicons(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-word-lexicons-R(
-    $admin-config,
-    $database,
-    $db-config/db:word-lexicons/db:word-lexicon)
+  let $admin-config := setup:remove-existing-word-lexicons($admin-config, $database)
+  return
+    setup:add-word-lexicons-R(
+      $admin-config,
+      $database,
+      $db-config/db:word-lexicons/db:word-lexicon)
 };
 
 declare function setup:add-word-lexicons-R(
@@ -1750,20 +1825,27 @@ declare function setup:safe-database-add-word-lexicon(
     admin:database-word-lexicon($collation))
 };
 
+declare function setup:remove-existing-fragment-roots(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $root in admin:database-get-fragment-roots($admin-config, $database)
+  return
+   xdmp:set($admin-config, admin:database-delete-fragment-root($admin-config, $database, $root)),
+  $admin-config
+};
+
 declare function setup:add-fragment-roots(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  (: remove any existing fragment roots first :)
-  for $root in admin:database-get-fragment-roots($admin-config, $database)
+  let $admin-config := setup:remove-existing-fragment-roots($admin-config, $database)
   return
-   xdmp:set($admin-config, admin:database-delete-fragment-root($admin-config, $database, $root)),
-
-  setup:add-fragment-roots-R(
-    $admin-config,
-    $database,
-    $db-config/db:fragment-roots/db:fragment-root)
+    setup:add-fragment-roots-R(
+      $admin-config,
+      $database,
+      $db-config/db:fragment-roots/db:fragment-root)
 };
 
 declare function setup:add-fragment-roots-R(
@@ -1798,20 +1880,27 @@ declare function setup:validate-fragment-roots(
       setup:validation-fail(fn:concat("Missing fragment root: ", $expected/db:localname))
 };
 
+declare function setup:remove-existing-fragment-parents(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $parent in admin:database-get-fragment-parents($admin-config, $database)
+  return
+    xdmp:set($admin-config, admin:database-delete-fragment-parent($admin-config, $database, $parent)),
+  $admin-config
+};
+
 declare function setup:add-fragment-parents(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  (: remove any existing fragment parents first :)
-  for $parent in admin:database-get-fragment-parents($admin-config, $database)
+  let $admin-config := setup:remove-existing-fragment-parents($admin-config, $database)
   return
-   xdmp:set($admin-config, admin:database-delete-fragment-parent($admin-config, $database, $parent)),
-
-  setup:add-fragment-parents-R(
-    $admin-config,
-    $database,
-    $db-config/db:fragment-parents/db:fragment-parent)
+    setup:add-fragment-parents-R(
+      $admin-config,
+      $database,
+      $db-config/db:fragment-parents/db:fragment-parent)
 };
 
 declare function setup:add-fragment-parents-R(
@@ -1846,6 +1935,37 @@ declare function setup:validate-fragment-parents(
       setup:validation-fail(fn:concat("Missing fragment root: ", $expected/db:localname))
 };
 
+declare function setup:remove-existing-word-query-included-elements(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  for $element in admin:database-get-word-query-included-elements($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-word-query-included-element(
+        $admin-config,
+        $database,
+        $element)),
+  $admin-config
+};
+
+declare function setup:remove-existing-word-query-excluded-elements(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  (: remove existing word query excluded elements first :)
+  for $element in admin:database-get-word-query-excluded-elements($admin-config, $database)
+  return
+    xdmp:set(
+      $admin-config,
+      admin:database-delete-word-query-excluded-element(
+        $admin-config,
+        $database,
+        $element)),
+  $admin-config
+};
+
 declare function setup:config-word-query(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
@@ -1854,17 +1974,7 @@ declare function setup:config-word-query(
   let $empty-field := $db-config/db:fields/db:field[db:field-name = ""]
   return
   (
-    (: remove existing word query included elements first :)
-    for $element in admin:database-get-word-query-included-elements($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-word-query-included-element(
-          $admin-config,
-          $database,
-          $element)),
-
-    (: now add the new ones :)
+    xdmp:set($admin-config, setup:remove-existing-word-query-included-elements($admin-config, $database)),
     for $element in $empty-field/db:included-elements/db:included-element
     return
       xdmp:set(
@@ -1874,17 +1984,7 @@ declare function setup:config-word-query(
           $database,
           $element)),
 
-    (: remove existing word query excluded elements first :)
-    for $element in admin:database-get-word-query-excluded-elements($admin-config, $database)
-    return
-      xdmp:set(
-        $admin-config,
-        admin:database-delete-word-query-excluded-element(
-          $admin-config,
-          $database,
-          $element)),
-
-    (: now add the new ones :)
+    xdmp:set($admin-config, setup:remove-existing-word-query-excluded-elements($admin-config, $database)),
     for $element in $empty-field/db:excluded-elements/db:excluded-element
     return
       xdmp:set(
@@ -2176,7 +2276,6 @@ declare function setup:validate-triggers-database(
     else
       setup:validation-fail(fn:concat("Triggers database mismatch! ", $expected, " != ", $actual))
 };
-
 
 (:
   if the schema database is 0, set it to 0.
