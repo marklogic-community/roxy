@@ -20,11 +20,42 @@
       <port>@ml.app-port</port>
       <database name="@ml.content-db"/>
       <modules name="@ml.app-modules-db"/>
-      <root>@ml.modules-root</root>
-      <authentication>@ml.authentication-method</authentication>
-      <default-user name="@ml.default-user"/>
-      <url-rewriter>@ml.url-rewriter</url-rewriter>
-      <error-handler>@ml.error-handler</error-handler>
+      <last-login>0</last-login>
+      <display-last-login>false</display-last-login>
+      <address>0.0.0.0</address>
+      <backlog>256</backlog>
+      <threads>32</threads>
+      <request-timeout>30</request-timeout>
+      <keep-alive-timeout>5</keep-alive-timeout>
+      <session-timeout>3600</session-timeout>
+      <max-time-limit>3600</max-time-limit>
+      <default-time-limit>600</default-time-limit>
+      <static-expires>3600</static-expires>
+      <pre-commit-trigger-depth>1000</pre-commit-trigger-depth>
+      <pre-commit-trigger-limit>10000</pre-commit-trigger-limit>
+      <collation>http://marklogic.com/collation/</collation>
+      <authentication>digest</authentication>
+      <default-user>@ml.default-user</default-user>
+      <privilege>admin-ui</privilege>
+      <concurrent-request-limit>0</concurrent-request-limit>
+      <compute-content-length>false</compute-content-length>
+      <log-errors>true</log-errors>
+      <debug-allow>true</debug-allow>
+      <profile-allow>true</profile-allow>
+      <default-xquery-version>1.0-ml</default-xquery-version>
+      <output-sgml-character-entities>none</output-sgml-character-entities>
+      <output-encoding>UTF-8</output-encoding>
+      <error-handler>/roxy/error.xqy</error-handler>
+      <schemas/>
+      <namespaces/>
+      <request-blackouts/>
+      <url-rewriter>/roxy/rewrite.xqy</url-rewriter>
+      <!-- <ssl-certificate-template>6687743459482021793</ssl-certificate-template> -->
+      <ssl-allow-sslv3>true</ssl-allow-sslv3>
+      <ssl-allow-tls>true</ssl-allow-tls>
+      <ssl-hostname>sixer</ssl-hostname>
+      <ssl-ciphers>ALL:!LOW:@STRENGTH</ssl-ciphers>
+      <ssl-require-client-certificate>true</ssl-require-client-certificate>
     </http-server>
     @ml.test-appserver
   </http-servers>
@@ -61,10 +92,9 @@
       <forests>
         <forest-id name="@ml.content-db"/>
       </forests>
-      <uri-lexicon>true</uri-lexicon>
-      <collection-lexicon>true</collection-lexicon>
-      <directory-creation>manual</directory-creation>
-      <maintain-last-modified>false</maintain-last-modified>
+      <enabled>true</enabled>
+      <security-database>@ml.content-db-security</security-database>
+      <language>en</language>
       <fragment-roots>
         <fragment-root>
           <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
@@ -85,18 +115,52 @@
           <localname>frag-parents2</localname>
         </fragment-parent>
       </fragment-parents>
-      <word-lexicons>
-        <word-lexicon>http://marklogic.com/collation/</word-lexicon>
-        <word-lexicon>http://marklogic.com/collation/codepoint</word-lexicon>
-      </word-lexicons>
+      <element-word-query-throughs>
+        <element-word-query-through>
+          <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
+          <localname>p</localname>
+        </element-word-query-through>
+        <element-word-query-through>
+          <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
+          <localname>p</localname>
+        </element-word-query-through>
+      </element-word-query-throughs>
+      <phrase-throughs>
+        <phrase-through>
+          <namespace-uri>http://www.w3.org/1999/xhtml</namespace-uri>
+          <localname>a abbr acronym b big br center cite code dfn em font i kbd q samp small span strong sub sup tt var</localname>
+        </phrase-through>
+        <phrase-through>
+          <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
+          <localname>br cr fldChar fldData fldSimple hlink noBreakHyphen permEnd permStart pgNum proofErr r softHyphen sym t tab</localname>
+        </phrase-through>
+        <phrase-through>
+          <namespace-uri>http://schemas.microsoft.com/office/word/2003/auxHint</namespace-uri>
+          <localname>t</localname>
+        </phrase-through>
+        <phrase-through>
+          <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
+          <localname>r t endnoteReference footnoteReference customXml hyperlink sdt sdtContent commentRangeEnd commentRangeStart bookmarkStart bookmarkEnd fldSimple instrText smartTag ins proofErr</localname>
+        </phrase-through>
+        <phrase-through>
+          <namespace-uri>http://marklogic.com/entity</namespace-uri>
+          <localname>person organization location gpe facility religion nationality credit-card-number email coordinate money percent id phone-number url utm date time</localname>
+        </phrase-through>
+      </phrase-throughs>
+      <phrase-arounds>
+        <phrase-around>
+          <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
+          <localname>delInstrText delText endnote footnote instrText pict rPr</localname>
+        </phrase-around>
+        <phrase-around>
+          <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
+          <localname>pPr rPr customXmlPr sdtPr commentReference del</localname>
+        </phrase-around>
+      </phrase-arounds>
       <fields>
         <field>
           <field-name/>
           <include-root>false</include-root>
-          <word-lexicons>
-            <word-lexicon>http://marklogic.com/collation/</word-lexicon>
-            <word-lexicon>http://marklogic.com/collation/it/S2/CU/T00BB/AS</word-lexicon>
-          </word-lexicons>
           <stemmed-searches>decompounding</stemmed-searches>
           <word-searches>true</word-searches>
           <fast-phrase-searches>true</fast-phrase-searches>
@@ -137,16 +201,18 @@
             </excluded-element>
           </excluded-elements>
         </field>
-
         <field>
           <field-name>test</field-name>
           <include-root>true</include-root>
-          <word-lexicons/>
+          <word-lexicons>
+            <word-lexicon>http://marklogic.com/collation/</word-lexicon>
+            <word-lexicon>http://marklogic.com/collation/codepoint</word-lexicon>
+          </word-lexicons>
           <included-elements>
             <included-element>
               <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
               <localname>sample-included-element</localname>
-              <weight>1.0</weight>
+              <weight>1</weight>
               <attribute-namespace-uri/>
               <attribute-localname/>
               <attribute-value/>
@@ -154,7 +220,7 @@
             <included-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
               <localname>sample-included-element2</localname>
-              <weight>1.0</weight>
+              <weight>1</weight>
               <attribute-namespace-uri/>
               <attribute-localname/>
               <attribute-value/>
@@ -164,16 +230,10 @@
             <excluded-element>
               <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
               <localname>sample-excluded-element</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
             </excluded-element>
             <excluded-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
               <localname>sample-excluded-element2</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
             </excluded-element>
           </excluded-elements>
         </field>
@@ -185,7 +245,7 @@
             <included-element>
               <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
               <localname>sample-included-element</localname>
-              <weight>1.0</weight>
+              <weight>1</weight>
               <attribute-namespace-uri/>
               <attribute-localname/>
               <attribute-value/>
@@ -193,7 +253,7 @@
             <included-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
               <localname>sample-included-element2</localname>
-              <weight>1.0</weight>
+              <weight>1</weight>
               <attribute-namespace-uri/>
               <attribute-localname/>
               <attribute-value/>
@@ -203,16 +263,10 @@
             <excluded-element>
               <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
               <localname>sample-excluded-element</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
             </excluded-element>
             <excluded-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
               <localname>sample-excluded-element2</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
             </excluded-element>
           </excluded-elements>
         </field>
@@ -253,12 +307,6 @@
           <range-value-positions>false</range-value-positions>
         </range-element-attribute-index>
       </range-element-attribute-indexes>
-      <range-field-indexes>
-      </range-field-indexes>
-      <path-namespaces>
-      </path-namespaces>
-      <range-path-indexes>
-      </range-path-indexes>
       <geospatial-element-indexes>
         <geospatial-element-index>
           <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
@@ -374,16 +422,16 @@
       <forests>
         <forest-id name="@ml.modules-db"/>
       </forests>
-      <stemmed-searches>off</stemmed-searches>
+      <stemmed-searches>basic</stemmed-searches>
       <word-searches>false</word-searches>
       <word-positions>false</word-positions>
-      <fast-phrase-searches>false</fast-phrase-searches>
+      <fast-phrase-searches>true</fast-phrase-searches>
       <fast-reverse-searches>false</fast-reverse-searches>
-      <fast-case-sensitive-searches>false</fast-case-sensitive-searches>
-      <fast-diacritic-sensitive-searches>false</fast-diacritic-sensitive-searches>
-      <fast-element-word-searches>false</fast-element-word-searches>
+      <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
+      <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
+      <fast-element-word-searches>true</fast-element-word-searches>
       <element-word-positions>false</element-word-positions>
-      <fast-element-phrase-searches>false</fast-element-phrase-searches>
+      <fast-element-phrase-searches>true</fast-element-phrase-searches>
       <element-value-positions>false</element-value-positions>
       <attribute-value-positions>false</attribute-value-positions>
       <three-character-searches>false</three-character-searches>
@@ -392,13 +440,45 @@
       <trailing-wildcard-searches>false</trailing-wildcard-searches>
       <trailing-wildcard-word-positions>false</trailing-wildcard-word-positions>
       <fast-element-trailing-wildcard-searches>false</fast-element-trailing-wildcard-searches>
-      <word-lexicons/>
+      <word-lexicons>
+        <word-lexicon>http://marklogic.com/collation/</word-lexicon>
+        <word-lexicon>http://marklogic.com/collation/codepoint</word-lexicon>
+      </word-lexicons>
       <two-character-searches>false</two-character-searches>
       <one-character-searches>false</one-character-searches>
-      <uri-lexicon>false</uri-lexicon>
+      <uri-lexicon>true</uri-lexicon>
       <collection-lexicon>false</collection-lexicon>
-      <directory-creation>automatic</directory-creation>
+      <reindexer-enable>true</reindexer-enable>
+      <reindexer-throttle>5</reindexer-throttle>
+      <reindexer-timestamp>0</reindexer-timestamp>
+      <directory-creation>manual</directory-creation>
       <maintain-last-modified>false</maintain-last-modified>
+      <maintain-directory-last-modified>false</maintain-directory-last-modified>
+      <inherit-permissions>false</inherit-permissions>
+      <inherit-collections>false</inherit-collections>
+      <inherit-quality>false</inherit-quality>
+      <in-memory-limit>32768</in-memory-limit>
+      <in-memory-list-size>64</in-memory-list-size>
+      <in-memory-tree-size>16</in-memory-tree-size>
+      <in-memory-range-index-size>2</in-memory-range-index-size>
+      <in-memory-reverse-index-size>2</in-memory-reverse-index-size>
+      <locking>fast</locking>
+      <journaling>fast</journaling>
+      <journal-size>128</journal-size>
+      <journal-count>2</journal-count>
+      <preallocate-journals>false</preallocate-journals>
+      <preload-mapped-data>false</preload-mapped-data>
+      <range-index-optimize>facet-time</range-index-optimize>
+      <positions-list-max-size>256</positions-list-max-size>
+      <format-compatibility>automatic</format-compatibility>
+      <index-detection>automatic</index-detection>
+      <expunge-locks>automatic</expunge-locks>
+      <tf-normalization>scaled-log</tf-normalization>
+      <merge-priority>lower</merge-priority>
+      <merge-max-size>0</merge-max-size>
+      <merge-min-size>1024</merge-min-size>
+      <merge-min-ratio>2</merge-min-ratio>
+      <merge-timestamp>0</merge-timestamp>
     </database>
     <!--Create Test Modules Database-->
     @ml.test-modules-db-xml
@@ -494,7 +574,7 @@
       <description>A user for the @ml.app-name application</description>
       <password>password</password>
       <role-names>
-        <role-names>@ml.app-role</role-names>
+        <role-name>@ml.app-role</role-name>
       </role-names>
       <permissions/>
       <collections/>
@@ -504,7 +584,7 @@
       <description>A second user for the @ml.app-name application</description>
       <password>password2</password>
       <role-names>
-        <role-names>@ml.app-role2</role-names>
+        <role-name>@ml.app-role2</role-name>
       </role-names>
       <permissions/>
       <collections/>
