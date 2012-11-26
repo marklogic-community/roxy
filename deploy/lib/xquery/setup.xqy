@@ -44,6 +44,11 @@ declare variable $roll-back := map:map();
 
 declare variable $restart-needed as xs:boolean := fn:false();
 
+declare variable $system-users := ("nobody", "infostudio-admin");
+
+declare variable $system-roles as xs:string+ :=
+  setup:read-config-file("security.xml")/sec:security/sec:roles/sec:role/@name;
+
 declare variable $database-settings :=
   <settings>
     <setting>enabled</setting>
@@ -422,7 +427,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   return
     admin:save-configuration($admin-config),
 
-  for $user in $import-config/sec:users/sec:user/sec:user-name
+  for $user in $import-config/sec:users/sec:user/sec:user-name[fn:not(. = $system-users)]
   return
     try
     {
@@ -442,7 +447,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
         xdmp:rethrow()
     },
 
-  for $role in $import-config/sec:roles/sec:role/sec:role-name
+  for $role in $import-config/sec:roles/sec:role/sec:role-name[fn:not(. = $system-roles)]
   return
     try
     {
