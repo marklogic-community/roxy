@@ -584,7 +584,7 @@ private
         :capability => c,
         :role => role
       }
-    end
+    end if capabilities.is_a?(Array
   end
 
   def deploy_tests?(target_db)
