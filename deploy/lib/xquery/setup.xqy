@@ -1832,19 +1832,23 @@ declare function setup:validate-range-field-indexes($admin-config, $database, $d
 {
   try
   {
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare variable $admin-config external;
-      declare variable $database external;
+    let $existing :=
+      xdmp:eval('
+        import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
 
-      let $existing := admin:database-get-range-field-indexes($admin-config, $database)
-      for $expected in $db-config/db:range-field-indexes/db:range-field-index
-      return
-        if ($existing[fn:deep-equal(., $expected)]) then ()
-        else
-          setup:validation-fail(fn:concat("Database mismatched range field index: ", $expected/db:field-name))',
-      (xs:QName("admin-config"), $admin-config,
-       xs:QName("database"), $database))
+        declare namespace db="http://marklogic.com/xdmp/database";
+
+        declare variable $admin-config external;
+        declare variable $database external;
+
+        admin:database-get-range-field-indexes($admin-config, $database)',
+        (xs:QName("admin-config"), $admin-config,
+         xs:QName("database"), $database))
+    for $expected in $db-config/db:range-field-indexes/db:range-field-index
+    return
+      if ($existing[fn:deep-equal(., $expected)]) then ()
+      else
+        setup:validation-fail(fn:concat("Database mismatched range field index: ", $expected/db:field-name))
   }
   catch($ex)
   {
