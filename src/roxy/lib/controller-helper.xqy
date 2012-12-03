@@ -17,6 +17,10 @@ xquery version "1.0-ml";
 
 module namespace ch = 'http://marklogic.com/roxy/controller-helper';
 
+(: The request library provides awesome helper methods to abstract get-request-field :)
+import module namespace req = "http://marklogic.com/roxy/request" at
+ "/roxy/lib/request.xqy";
+
 declare option xdmp:mapping "false";
 
 declare variable $ALL-FORMATS as xs:string+ := ("html", "xml", "json", "text");
@@ -75,9 +79,14 @@ declare function ch:use-layout($layout as xs:string?, $formats as xs:string*)
   )
 };
 
-declare function ch:add-value($key as xs:string, $value as item()*)
+declare function ch:add-value($key as xs:string, $default as item()*)
 {
-  map:put($ch:map, $key, (map:get($ch:map, $key), $value))
+  map:put($ch:map, $key, (map:get($ch:map, $key), $default))
+};
+
+declare function ch:add-value($key as xs:string)
+{
+  ch:add-value($key, req:get($key))
 };
 
 declare function ch:set-value($key as xs:string, $value as item()*)
