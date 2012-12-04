@@ -16,6 +16,7 @@
 require 'uri'
 require 'net/http'
 require 'fileutils'
+require 'rexml/document'
 require 'json'
 require 'RoxyHttp'
 require 'xcc'
@@ -460,15 +461,61 @@ class ServerConfig < MLClient
       else
         testTearDown = "&runteardown=true"
       end
+
+      test = find_arg(['--test'])
+
+      assertions = find_arg(['--assertions'])
+      assertions = "&assertions=#{url_encode(assertions)}" if assertions
+
+      format = find_arg(['--format']) || 'pretty'
+
+      total_assertions, total_successes, total_failures, total_errors, total_time = 0, 0, 0, 0, 0
+
+      if test
+        body = %Q{<t:tests xmlns:t="http://marklogic.com/roxy/test"><t:test path="#{test}"/></t:tests>}
+      else
       r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/list}, "get"
-      suites = []
-      r.body.split(">").each do |line|
-        suites << line.gsub(/.*suite path="([^"]+)".*/, '\1').strip if line.match("suite path")
+        body = r.body
       end
 
-      suites.each do |suite|
-        r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/run?suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get"
-        logger.info r.body
+      bad_results = []
+      tests = REXML::Document.new(body)
+
+      tests.root.elements().each do |e|
+        test = e.attribute('path').to_s
+        r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/run?test=#{url_encode(test)}#{suiteTearDown}#{testTearDown}}, "get"
+
+        result = REXML::Document.new(r.body).root
+        assertions = result.attribute('assertions').to_s.to_i
+        successes = result.attribute('successes').to_s.to_i
+        failures = result.attribute('failures').to_s.to_i
+        errors = result.attribute('errors').to_s.to_i
+        time = result.attribute('time').to_s.to_f
+
+        result.elements().each do |ee|
+          if ee.name == 'error' || ee.attribute('type').to_s == 'failure'
+            bad_results << ee.to_s
+      end
+    end
+
+        if format == "pretty"
+          putc('F') if failures > 0
+          putc('E') if errors > 0
+          putc('.') unless failures > 0 || errors > 0
+  end
+
+        total_assertions += assertions
+        total_successes += successes
+        total_failures += failures
+        total_errors += errors
+        total_time += time
+      end
+
+      if format == "pretty"
+        logger.info "\nRan #{total_assertions} assertions, #{total_successes} successes, #{total_failures} failures, #{total_errors} errors in #{total_time} seconds."
+        logger.info bad_results.join("\n")
+      elsif format == "xml"
+        logger.info %Q{<t:tests assertions="#{total_assertions}" successes="#{total_successes}" failures="#{total_failures}" errors="#{total_errors}" time="#{total_time}" xmlns:t="http://marklogic.com/roxy/test">#{bad_results.join("\n")}</t:tests>}
       end
     end
   end

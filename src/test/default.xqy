@@ -15,10 +15,10 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-(:import module namespace test="http://marklogic.com/roxy/test" at "/test/unit-test.xqy";:)
-
 import module namespace cvt = "http://marklogic.com/cpf/convert"
       at "/MarkLogic/conversion/convert.xqy";
+
+import module namespace m="http://marklogic.com/roxy/test-runner" at "/test/lib/test-runner.xqy";
 
 import module namespace helper="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
@@ -33,147 +33,6 @@ declare variable $FS-PATH  as xs:string :=
     if(xdmp:platform() eq "winnt") then "\" else "/";
 
 declare option xdmp:mapping "false";
-
-(:~
- : Returns a list of the available tests. This list is magically computed based on the modules
- :)
-declare function t:list() {
-  let $suite-ignore-list := (".svn", "CVS", ".DS_Store", "Thumbs.db", "thumbs.db", "test-data")
-  let $test-ignore-list := ("setup.xqy", "teardown.xqy", "suite-setup.xqy", "suite-teardown.xqy")
-  return
-    element t:tests {
-      let $db-id as xs:unsignedLong := xdmp:modules-database()
-      let $root as xs:string := xdmp:modules-root()
-      let $suites as xs:string* :=
-        if ($db-id = 0) then
-          xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites"))/dir:entry[dir:type = "directory" and fn:not(dir:filename = $suite-ignore-list)]/dir:filename
-        else
-          let $uris :=
-            try {
-              xdmp:eval(fn:concat('cts:uri-match("', $root, 'test/suites/*")'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
-            }
-            catch($ex) {
-              xdmp:eval(fn:concat('xdmp:directory("', $root, 'test/suites/", "infinity")/xdmp:node-uri(.)'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
-            }
-          return
-            fn:distinct-values(
-              for $uri in $uris
-              let $path := fn:replace(cvt:basepath($uri), fn:concat($root, "test/suites/?"), "")
-              where $path ne "" and fn:not(fn:contains($path, "/")) and fn:not($path = $suite-ignore-list)
-              return
-                $path)
-      for $suite as xs:string in $suites
-      let $tests as xs:string* :=
-        if ($db-id = 0) then
-          xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites/", $suite))/dir:entry[dir:type = "file" and fn:not(dir:filename = $test-ignore-list)]/dir:filename[fn:ends-with(., ".xqy")]
-        else
-          let $uris :=
-            try {
-              xdmp:eval(fn:concat('cts:uri-match("', $root, 'test/suites/', $suite, '/*")'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
-            }
-            catch($ex) {
-              xdmp:eval(fn:concat('xdmp:directory("', $root, 'test/suites/', $suite, '/", "infinity")/xdmp:node-uri(.)'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
-            }
-          return
-            fn:distinct-values(
-              for $uri in $uris
-              let $path := fn:replace($uri, fn:concat($root, "test/suites/", $suite, "/"), "")
-              where $path ne "" and fn:not(fn:contains($path, "/")) and fn:not($path = $test-ignore-list) and fn:ends-with($path, ".xqy")
-              return
-                $path)
-      where $tests
-      return
-        element t:suite {
-          attribute path { $suite },
-          element t:tests {
-            for $test in $tests
-            return
-              element t:test {
-                attribute path { $test }
-              }
-          }
-        }
-    }
-};
-
-declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-suite-teardown as xs:boolean, $run-teardown as xs:boolean) {
-  let $start-time := xdmp:elapsed-time()
-  let $results :=
-    element t:run {
-      helper:log(" "),
-      helper:log(text {"SUITE:", $suite}),
-      try {
-        helper:log(" - invoking suite setup"),
-        xdmp:invoke(fn:concat("suites/", $suite, "/suite-setup.xqy"))
-      }
-      catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)},
-
-      helper:log(" - invoking tests"),
-
-      let $tests as xs:string* :=
-        if ($tests) then $tests
-        else
-          t:list()/t:suite[@path = $suite]/t:tests/t:test/@path
-      for $test in $tests
-      return
-        t:run($suite, $test, fn:concat("suites/", $suite, "/", $test), $run-teardown),
-
-      if ($run-suite-teardown eq fn:true()) then
-        try {
-          helper:log(" - invoking suite teardown"),
-          xdmp:invoke(fn:concat("suites/", $suite, "/suite-teardown.xqy"))
-        }
-        catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
-      else helper:log(" - not running suite teardown"),
-      helper:log(" ")
-    }
-  let $end-time := xdmp:elapsed-time()
-  return
-    element t:suite {
-      attribute name { $suite },
-      attribute total { fn:count($results/t:test/t:result) },
-      attribute passed { fn:count($results/t:test/t:result[@type = 'success']) },
-      attribute failed { fn:count($results/t:test/t:result[@type = 'fail']) },
-      attribute time { functx:total-seconds-from-duration($end-time - $start-time) },
-      $results/*/self::t:test
-    }
-};
-
-declare function t:run($suite as xs:string, $name as xs:string, $module, $run-teardown as xs:boolean) {
-  helper:log(text { "    TEST:", $name }),
-  let $start-time := xdmp:elapsed-time()
-  let $setup :=
-    try {
-      helper:log("   ...invoking setup"),
-      let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/setup.xqy"))
-      return ()
-    }
-    catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
-  let $result :=
-    try {
-      helper:log("    ...running"),
-      xdmp:invoke($module)
-    }
-    catch($ex) {
-      helper:fail($ex)
-    }
-  let $teardown :=
-    if ($run-teardown eq fn:true()) then
-      try {
-        let $_ := helper:log("    ...invoking teardown")
-        let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/teardown.xqy"))
-        return ()
-      }
-      catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
-    else helper:log("    ...not running teardown")
-  let $end-time := xdmp:elapsed-time()
-  return
-    element t:test {
-      attribute name { $name },
-      attribute time { functx:total-seconds-from-duration($end-time - $start-time) },
-      $result
-    }
-};
 
 declare function local:format-junit($suite as element())
 {
@@ -209,26 +68,33 @@ declare function local:format-junit($suite as element())
 
 
 declare function local:run() {
-  let $suite := xdmp:get-request-field("suite")
-  let $tests := fn:tokenize(xdmp:get-request-field("tests", ""), ",")[. ne ""]
+  let $test := fn:tokenize(xdmp:get-request-field("test", ""), ",")[. ne ""]
+  let $assertions := fn:tokenize(xdmp:get-request-field("assertions", ""), ",")[. ne ""]
   let $run-suite-teardown as xs:boolean := xdmp:get-request-field("runsuiteteardown", "") eq "true"
   let $run-teardown as xs:boolean := xdmp:get-request-field("runteardown", "") eq "true"
   let $format as xs:string := xdmp:get-request-field("format", "xml")
+  let $result :=
+    if ($test) then
+      m:run-test($test, $assertions, $run-teardown)
+    else
+      ()
   return
-    if ($suite) then
-      let $result := t:run-suite($suite, $tests, $run-suite-teardown, $run-teardown)
-      return
-        if ($format eq "junit") then
-          local:format-junit($result)
-        else
-          $result
-    else ()
+    if ($format eq "junit") then
+      local:format-junit($result)
+    else
+      $result
 };
 
 declare function local:list()
 {
-  t:list()
+  m:list()
 };
+
+declare function local:all()
+{
+  m:run-tests(m:list()/t:test/@path/fn:string(.))
+};
+
 
 (:~
  : Provides the UI for the test framework to allow selection and running of tests
@@ -254,7 +120,7 @@ declare function local:main() {
         </div>
         <div>
         <div id="overview" style="float:left;">
-          <h2>{$app-server} Unit Tests:&nbsp;<span id="passed-count"/><span id="failed-count"/></h2>
+          <h2>{$app-server} Unit Tests:&nbsp;<span id="test-results"/></h2>
 
         </div>
         <div style="float:right;">
@@ -266,50 +132,53 @@ declare function local:main() {
           <thead>
             <tr>
               <th><input id="checkall" type="checkbox" checked="checked"/>Run</th>
-              <th>Test Suite</th>
-              <th>Total Test Count</th>
-              <th>Tests Run</th>
-              <th>Passed</th>
-              <th>Failed</th>
+              <th>Test</th>
+              <th>Total Assertions</th>
+              <th>Successes</th>
+              <th>Failures</th>
+              <th>Errors</th>
             </tr>
           </thead>
 
           <tbody>
           {
-            for $suite at $index in t:list()/t:suite
+            let $tests := m:list()
+            for $test at $index in $tests/t:test
+            let $name := cvt:basename($test/@path)
             let $class := if ($index mod 2 = 1) then "odd" else "even"
             return
             (
               <tr class="{$class}">
-                <td class="left"><input class="cb" type="checkbox" checked="checked" value="{fn:data($suite/@path)}"/></td>
+                <td class="left"><input class="cb" type="checkbox" checked="checked" value="{fn:data($test/@path)}"/></td>
                 <td>
                   <div class="test-name">
                     <img class="tests-toggle-plus" src="img/arrow-right.gif"/>
                     <img class="tests-toggle-minus" src="img/arrow-down.gif"/>
-                    {fn:data($suite/@path)} <span class="spinner"><img src="img/spinner.gif"/><b>Running...</b></span>
+                    {$name} <span class="spinner"><img src="img/spinner.gif"/><b>Running...</b></span>
                   </div>
 
                 </td>
-                <td>{fn:count($suite/t:tests/t:test)}</td>
-                <td class="tests-run">-</td>
-                <td class="passed">-</td>
-                <td class="right failed">-</td>
+                <td class="assertions">-</td>
+                <td class="successes">-</td>
+                <td class="right failures">-</td>
+                <td class="right errors">-</td>
               </tr>,
               <tr class="{$class}">
                 <td colspan="6">
                 <div class="tests">
-                  <div class="wrapper"><input class="check-all-tests" type="checkbox" checked="checked"/>Run All Tests</div>
+                  <div class="wrapper"><input class="check-all-tests" type="checkbox" checked="checked"/>Run All Assertions</div>
                   <ul class="tests">
-                  {
-                    for $test in $suite/t:tests/t:test
-                    return
-                      <li class="tests"><input class="test-cb" type="checkbox" checked="checked" value="{fn:data($test/@path)}"/>{fn:string($test/@path)}<span class="outcome"></span></li>
-                  }
+                    <li class="setup"><span class="outcome"></span></li>
+                    {
+                      for $assertion as xs:string in $test/t:assertions/t:assertion
+                      return
+                        <li class="tests"><input class="test-cb" type="checkbox" checked="checked" value="{$assertion}"/>{$assertion}<span class="outcome"></span></li>
+                    }
+                    <li class="teardown"><span class="outcome"></span></li>
                   </ul>
                 </div>
                 </td>
               </tr>
-
             )
           }
           </tbody>

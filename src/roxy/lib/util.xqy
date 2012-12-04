@@ -38,6 +38,36 @@ declare function u:build-uri(
     "/")
 };
 
+(:~
+ : Builds a uri from a base and a suffix
+ : Handles properly concatenating with slashes
+ :
+ : @param $base - the base of the uri
+ : @param $suffix - the suffix of the uri
+ :)
+declare function u:join-file($parts as xs:string+)
+{
+  u:join-file($parts, "/")
+};
+
+declare function u:join-file($parts as xs:string+, $separator as xs:string?)
+{
+  fn:string-join(
+    (
+      fn:replace($parts[1], "(.*)/$", "$1"),
+      let $count := fn:count($parts)
+      return
+        if ($count > 2) then
+          for $part in $parts[2 to $count - 1]
+          return
+            fn:replace($part, "^/(.*)|(.*)/$", "$1$2")
+        else (),
+      fn:replace($parts[fn:last()], "^/(.*)", "$1")
+    ),
+    "/")
+};
+
+
 declare function u:string-pad (
   $padString as xs:string?,
   $padCount as xs:integer) as xs:string

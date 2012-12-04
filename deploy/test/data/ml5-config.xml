@@ -65,7 +65,16 @@
       <output-include-default-attributes>default</output-include-default-attributes>
       <error-handler>/roxy/error.xqy</error-handler>
       <schemas/>
-      <namespaces/>
+      <namespaces>
+        <namespace>
+          <prefix>ns1</prefix>
+          <namespace-uri>http://www.ns.com/ns1</namespace-uri>
+        </namespace>
+        <namespace>
+          <prefix>ns2</prefix>
+          <namespace-uri>http://www.ns.com/ns2</namespace-uri>
+        </namespace>
+      </namespaces>
       <request-blackouts/>
       <url-rewriter>/roxy/rewrite.xqy</url-rewriter>
       <!-- <ssl-certificate-template>6687743459482021793</ssl-certificate-template> -->

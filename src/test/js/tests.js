@@ -15,6 +15,8 @@
 **/
 var queue = [];
 
+var runTest = null;
+
 function disableParent(item, parentClass) {
   var li = $(item).parents(parentClass);
   if ($(item).is(":checked")) {
@@ -28,13 +30,13 @@ function disableParent(item, parentClass) {
 
 function runNextTest() {
   if (queue.length > 0) {
-    runSuite(queue.pop());
+    runTest(queue.pop());
   }
   else {
     // compute total pass/fails
     var totalFails = 0;
-    $('td.failed').each(function(){
-      fails = parseInt($(this).text(), 10);
+    $('td.failures').each(function(){
+      var fails = parseInt($(this).text(), 10);
 
       if (isNaN(fails)) {
         fails = 0;
@@ -42,42 +44,36 @@ function runNextTest() {
       totalFails += fails;
     });
 
+    var totalErrors = 0;
+    $('td.errors').each(function(){
+      var errors = parseInt($(this).text(), 10);
+
+      if (isNaN(errors)) {
+        errors = 0;
+      }
+      totalErrors += errors;
+    });
+
     var totalPasses = 0;
-    $('td.passed').each(function() {
-      passes = parseInt($(this).text(), 10);
+    $('td.successes').each(function() {
+      var passes = parseInt($(this).text(), 10);
       if (isNaN(passes)) {
         passes = 0;
       }
       totalPasses += passes;
     });
 
-    var passedText = (totalFails > 0) ? totalPasses : "all";
-    passedText += " passed";
-    $("#passed-count").text(passedText);
-
-    if (totalFails > 0) {
-      $("#failed-count").text(totalFails + " failed");
-    }
-    else {
-      $("#failed-count").text("");
-    }
-
     $(".canceltests").hide();
     $(".runtests").show();
 
     var txt = "";
-    if (totalPasses > 0 && totalFails <= 0) {
-      txt = '<span class="success">All Passed</span>';
-    }
-    else if (totalPasses > 0 && totalFails > 0) {
-      txt = '<span class="success">Passed: ' + totalPasses + '</span><span class="failed">Failed: ' + totalFails + '</span>';
-    }
-    else if (totalPasses <= 0 && totalFails > 0) {
-      txt = '<span class="failed">TOTAL FAILURE!</span>';
+    if (totalPasses > 0 || totalFails > 0 || totalErrors > 0) {
+      txt = '<span class="success"><span class="count">' + totalPasses + '</span> successes</span><span class="failed"><span class="count">' + totalFails + '</span> failures</span><span class="error"><span class="count">' + totalErrors + '</span> errors</span>';
     }
     else {
       txt = '<span class="failed">NO TESTS RUN</span>';
     }
+    $('#test-results').html(txt);
     $.gritter.add({
       title: 'Tests finished',
       text: txt,
@@ -88,10 +84,11 @@ function runNextTest() {
   }
 }
 
-function renderError(error) {
-  result =
+function renderError(name, error) {
+  var failure = error.find("[nodeName = 'error:code']").text() === "TEST-FAIL" ? 'FAILURE' : 'ERROR';
+  var result =
     '<div class="failure">' +
-    '<div class="test-name">Fail</div>' +
+    '<div class="test-name">' + name + ' ' + failure + '</div>' +
     '<div class="test-data">';
 
   if (typeof(error[0]) === 'string') {
@@ -156,64 +153,66 @@ function renderError(error) {
   return $(result);
 }
 
-function suiteSuccess(parent, xml) {
+function testSuccess(parent, xml) {
   var i;
-  var suite = $("[nodeName='t:suite']", xml);
-  var runCount = suite.attr('total');
-  var passedCount = suite.attr('passed');
-  var failedCount = suite.attr('failed');
+  var test = $("[nodeName='t:test']", xml);
+  var assertions = parseInt(test.attr('assertions'), 10);
+  var successes = parseInt(test.attr('successes'), 10);
+  var failures = parseInt(test.attr('failures'), 10);
+  var errors = parseInt(test.attr('errors'), 10);
 
-  // var errors = [];
-  suite.find("[nodeName = 't:test']").each(function() {
-    var name = $(this).attr("name");
-    var type = "success";
-    var errors = [];
+  test.find("[nodeName = 't:assertion'],[nodeName = 't:error']").each(function() {
+    var assertion = $(this);
+    var name = assertion.attr("name");
+    var type = assertion.attr("type") || this.localName;
 
-    var results = $(this).find("[nodeName = 't:result']");
-    results.each(function() {
-      if ($(this).attr("type") !== "success") {
-        type = $(this).attr("type");
-        var error = $(this).children();
-        if (error.length <= 0) {
-          error = $(this).text();
-        }
-        errors.push(error);
+    var error = assertion.children();
+    if (error.length <= 0) {
+      error = assertion.text();
+    }
+
+    var span = null;
+
+    if (name === "setup" || name === "teardown") {
+      var row = parent.next().find('.' + name);
+      if (row.length > 0) {
+        row.show();
+        span = row.find('span.outcome');
       }
+    }
+    else {
+      span = parent.next().find('input[value = "' + name + '"]').next('span.outcome');
+    }
 
-    });
+    if (span) {
+      span.text(type === "success" ? "Passed" : "Failed");
+      span.removeClass("success");
+      span.removeClass("fail");
+      span.addClass(type);
 
-    span = parent.next().find('input[value = "' + name + '"]').next('span.outcome');
+      if (type !== "success") {
+        span.after(renderError(name, error));
+        span.next().find("img.plus").click(function(event) {
+          $(this).hide();
+          $(this).next("img.minus").show();
+          $(this).nextAll("div.stack").show();
+        });
 
-    span.text(type === "success" ? "Passed" : "Failed");
-    span.removeClass("success");
-    span.removeClass("fail");
-    span.addClass(type);
-
-    if (type !== "success") {
-      for (i = errors.length; i--;) {
-        var error = errors[i];
-        span.after(renderError(error));
+        span.next().find("img.minus").click(function(event) {
+          $(this).hide();
+          $(this).prev("img.plus").show();
+          $(this).nextAll("div.stack").hide();
+        });
       }
-
-      span.next().find("img.plus").click(function(event) {
-        $(this).hide();
-        $(this).next("img.minus").show();
-        $(this).nextAll("div.stack").show();
-      });
-
-      span.next().find("img.minus").click(function(event) {
-        $(this).hide();
-        $(this).prev("img.plus").show();
-        $(this).nextAll("div.stack").hide();
-      });
-
     }
   });
   parent.removeClass('running');
 
-  parent.find("td.tests-run").text(runCount);
-  parent.find("td.passed").text(passedCount);
-  parent.find("td.failed").text(failedCount > 0 ? failedCount : '');
+  parent.find("td.tests-run").text(assertions);
+  parent.find("td.assertions").text(assertions);
+  parent.find("td.successes").text(successes);
+  parent.find("td.failures").text(failures > 0 ? failures : '');
+  parent.find("td.errors").text(errors > 0 ? errors : '');
 
   var spinner = parent.find("span.spinner");
   spinner.hide();
@@ -221,7 +220,7 @@ function suiteSuccess(parent, xml) {
   runNextTest();
 }
 
-function suiteFailure(parent, data) {
+function testFailure(parent, data) {
   parent.after($(data).find("dl"));
   var spinner = parent.find("span.spinner");
   spinner.hide();
@@ -229,12 +228,12 @@ function suiteFailure(parent, data) {
   runNextTest();
 }
 
-function runSuite(suite) {
+runTest = function(suite) {
   var check = $("input:checked[value='" + suite + "']");
   var parent = check.parents("tr");
-  var tests = [];
+  var assertions = [];
   parent.next().find("input.test-cb:checked").each(function() {
-    tests.push($(this).val());
+    assertions.push($(this).val());
   });
 
   parent.addClass('running');
@@ -248,28 +247,29 @@ function runSuite(suite) {
     url: "run",
     cache: false,
     data: {
-      suite: suite,
-      tests: tests.join(","),
-      runsuiteteardown: suiteTearDown,
+      test: suite,
+      assertions: assertions.join(","),
       runteardown: tearDown
     },
     dataType: "xml",
     success: function(data) {
-      suiteSuccess(parent, data);
+      testSuccess(parent, data);
     },
     error: function(data) {
-      suiteFailure(parent, data);
+      testFailure(parent, data);
     }
   });
-}
+};
 
 function run() {
   $('tr.result').remove();
   $('span.outcome').text("");
-  $('span#passed-count').text("");
-  $('span#failed-count').text("");
-  $("td.failed").text("-");
-  $("td.passed").text("-");
+  $('#test-results').text("");
+  $('.setup').hide();
+  $('.teardown').hide();
+  $("td.failures").text("-");
+  $("td.errors").text("-");
+  $("td.successes").text("-");
   $('div.failure').remove();
 
   queue = [];
@@ -277,19 +277,18 @@ function run() {
     queue.push(this.value);
   });
 
-
   if (queue.length > 0) {
-    $("#failed-count").text("Running...");
+    $("#test-results").text("Running...");
     $(".runtests").hide();
     $(".canceltests").show();
     queue.reverse();
-    runSuite(queue.pop());
+    runTest(queue.pop());
   }
 }
 
 function cancel() {
   queue.length = 0;
-  $("#failed-count").text("Stopping tests...");
+  $("#test-results").text("Stopping tests...");
   $(".canceltests").hide();
 }
 
@@ -316,6 +315,7 @@ $(document).ready(function(){
   $("#checkall").click(function(event){
     $("#tests tbody").find("input.cb").each(function(){
       $(this).attr("checked", $("#checkall").is(":checked"));
+      disableParent(this, "tr");
     });
   });
 
@@ -338,9 +338,10 @@ $(document).ready(function(){
   });
 
   $("input.check-all-tests").click(function(event){
-    parentCheck = $(this);
+    var parentCheck = $(this);
     parentCheck.parent().next("ul.tests").find("input.test-cb").each(function() {
       $(this).attr("checked", parentCheck.is(":checked"));
+      disableParent(this, "li");
     });
     parentCheck.parents("tr").prev("tr").find("input.cb").attr("checked", parentCheck.is(":checked"));
   });

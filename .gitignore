@@ -1,6 +1,5 @@
 .DS_Store
 local.properties
-*.tmproj
 Thumbs.db
 .project
 .settings/
