@@ -94,6 +94,16 @@ declare function ch:set-value($key as xs:string, $value as item()*)
   map:put($ch:map, $key, $value)
 };
 
+declare function ch:set-value($key as xs:string)
+{
+  map:put($ch:map, $key, req:get($key))
+};
+
+declare function ch:get($key as xs:string)
+{
+  map:get($ch:map, $key)
+};
+
 declare function ch:set-format($new-format as xs:string)
 {
   ch:set-format($new-format, $ALL-FORMATS)
