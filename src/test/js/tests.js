@@ -98,9 +98,12 @@ function renderError(error) {
     result += '<p>' + error + '</p>';
   }
   else {
-    var formatString = error.find("[nodeName = 'error:code']").text() + ': (' + error.find("[nodeName = 'error:name']").first().text() + ') ' + error.find("[nodeName = 'error:expr']").text();
-    if (error.find("[nodeName = 'error:code']").text() !== error.find("[nodeName = 'error:message']").text()) {
-      formatString += ' -- ' + error.find("[nodeName = 'error:message']").text();
+    var formatString = error.find("[nodeName = 'error:format-string']").text();
+    if (!formatString) {
+      formatString = error.find("[nodeName = 'error:code']").text() + ': (' + error.find("[nodeName = 'error:name']").first().text() + ') ' + error.find("[nodeName = 'error:expr']").text();
+      if (error.find("[nodeName = 'error:code']").text() !== error.find("[nodeName = 'error:message']").text()) {
+        formatString += ' -- ' + error.find("[nodeName = 'error:message']").text();
+      }
     }
 
 
