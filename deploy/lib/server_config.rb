@@ -646,6 +646,18 @@ private
                                        :permissions => permissions(@properties['ml.app-role'], Roxy::ContentCapability::EXECUTE)
       end
 
+      if @properties["ml.app-type"] == 'rest'
+        r = execute_query %Q{
+          xquery version "1.0-ml";
+
+          for $uri in cts:uri-match("/marklogic.rest.*")
+          return xdmp:document-set-collections($uri, "http://marklogic.com/extension/plugin")
+        },
+        { :db_name => dest_db }
+      else
+        # Nothing special to do for MVC apps
+      end
+
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db}\n"
     end
   end
