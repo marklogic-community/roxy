@@ -34,6 +34,24 @@ declare variable $FS-PATH  as xs:string :=
 
 declare option xdmp:mapping "false";
 
+declare function t:list-from-database(
+  $database as xs:unsignedLong,
+  $root as xs:string,
+  $suite as xs:string?)
+as xs:string*
+{
+  xdmp:eval(
+    'xquery version "1.0-ml";
+    declare variable $PATH as xs:string external;
+    try { cts:uris((), (), cts:directory-query($PATH, "infinity")) }
+    catch ($ex) {
+      if ($ex/error:code ne "XDMP-URILXCNNOTFOUND") then xdmp:rethrow()
+      else xdmp:directory($PATH, "infinity")/xdmp:node-uri(.) }',
+    (xs:QName('PATH'),
+      fn:concat($root, 'test/suites/', ($suite, '')[1])),
+    <options xmlns="xdmp:eval"><database>{$database}</database></options>)
+};
+
 (:~
  : Returns a list of the available tests. This list is magically computed based on the modules
  :)
@@ -48,13 +66,7 @@ declare function t:list() {
         if ($db-id = 0) then
           xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites"))/dir:entry[dir:type = "directory" and fn:not(dir:filename = $suite-ignore-list)]/dir:filename
         else
-          let $uris :=
-            try {
-              xdmp:eval(fn:concat('cts:uri-match("', $root, 'test/suites/*")'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
-            }
-            catch($ex) {
-              xdmp:eval(fn:concat('xdmp:directory("', $root, 'test/suites/", "infinity")/xdmp:node-uri(.)'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
-            }
+          let $uris := t:list-from-database($db-id, $root, ())
           return
             fn:distinct-values(
               for $uri in $uris
@@ -67,13 +79,8 @@ declare function t:list() {
         if ($db-id = 0) then
           xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites/", $suite))/dir:entry[dir:type = "file" and fn:not(dir:filename = $test-ignore-list)]/dir:filename[fn:ends-with(., ".xqy")]
         else
-          let $uris :=
-            try {
-              xdmp:eval(fn:concat('cts:uri-match("', $root, 'test/suites/', $suite, '/*")'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
-            }
-            catch($ex) {
-              xdmp:eval(fn:concat('xdmp:directory("', $root, 'test/suites/', $suite, '/", "infinity")/xdmp:node-uri(.)'), (), <options xmlns="xdmp:eval"><database>{$db-id}</database></options>)
-            }
+          let $uris := t:list-from-database(
+            $db-id, $root, fn:concat($suite, '/'))
           return
             fn:distinct-values(
               for $uri in $uris
@@ -106,7 +113,7 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
         helper:log(" - invoking suite setup"),
         xdmp:invoke(fn:concat("suites/", $suite, "/suite-setup.xqy"))
       }
-      catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)},
+      catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else (helper:log($ex), xdmp:rethrow())},
 
       helper:log(" - invoking tests"),
 
@@ -123,7 +130,7 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
           helper:log(" - invoking suite teardown"),
           xdmp:invoke(fn:concat("suites/", $suite, "/suite-teardown.xqy"))
         }
-        catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
+        catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else (helper:log($ex), xdmp:rethrow())}
       else helper:log(" - not running suite teardown"),
       helper:log(" ")
     }
@@ -148,7 +155,7 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
       let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/setup.xqy"))
       return ()
     }
-    catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
+    catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else (helper:log($ex), xdmp:rethrow())}
   let $result :=
     try {
       helper:log("    ...running"),
@@ -164,7 +171,7 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
         let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/teardown.xqy"))
         return ()
       }
-      catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
+      catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else (helper:log($ex), xdmp:rethrow())}
     else helper:log("    ...not running teardown")
   let $end-time := xdmp:elapsed-time()
   return
