@@ -646,6 +646,7 @@ private
                                        :permissions => permissions(@properties['ml.app-role'], Roxy::ContentCapability::EXECUTE)
       end
 
+      # REST API applications need some files put into a collection.
       if @properties["ml.app-type"] == 'rest'
         r = execute_query %Q{
           xquery version "1.0-ml";
@@ -654,8 +655,6 @@ private
           return xdmp:document-set-collections($uri, "http://marklogic.com/extension/plugin")
         },
         { :db_name => dest_db }
-      else
-        # Nothing special to do for MVC apps
       end
 
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db}\n"
