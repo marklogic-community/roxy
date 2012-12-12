@@ -2,12 +2,13 @@ class Help
   def self.usage
     <<-DOC.strip_heredoc
 
-      Usage: ml COMMAND [ARGS]
+      Usage: ml ENVIRONMENT COMMAND [ARGS]
 
       Deployment Commands:
        init           Creates configuration files for you to customize
        initcpf        Creates cpf configuration files for you to customize
        info           Return settings for a given environment
+       credentials    Configures user and password for a given environment
        bootstrap      Configures your application on the MarkLogic server
        wipe           Remove your configuration from the MarkLogic server
        restart        Restart your MarkLogic server
