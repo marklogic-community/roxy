@@ -1010,6 +1010,7 @@ private
             <default-user name="@ml.default-user"/>
             <url-rewriter>@ml.url-rewriter</url-rewriter>
             <error-handler>@ml.error-handler</error-handler>
+            @ml.rewrite-resolves-globally
           </http-server>
         })
       end
@@ -1049,6 +1050,19 @@ private
         <data-directory>@ml.forest-data-dir</data-directory>
       }) if @properties['ml.forest-data-dir'].present?
 
+    if @properties['ml.rewrite-resolves-globally'].present?
+      config.gsub!("@ml.rewrite-resolves-globally",
+        %Q{
+          <rewrite-resolves-globally>#{@properties['ml.rewrite-resolves-globally']}</rewrite-resolves-globally>
+        })
+    elsif ['rest', 'hybrid'].include?(@properties["ml.app-type"])
+      config.gsub!("@ml.rewrite-resolves-globally",
+        %Q{
+          <rewrite-resolves-globally>true</rewrite-resolves-globally>
+        })
+    else
+      config.gsub!("@ml.rewrite-resolves-globally", "")
+    end
     @properties.each do |k, v|
       config.gsub!("@#{k}", v)
     end
