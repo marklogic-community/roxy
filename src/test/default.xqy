@@ -20,8 +20,6 @@ import module namespace cvt = "http://marklogic.com/cpf/convert"
 
 import module namespace m="http://marklogic.com/roxy/test-runner" at "/test/lib/test-runner.xqy";
 
-import module namespace helper="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
-
 import module namespace functx = "http://www.functx.com" at "/MarkLogic/functx/functx-1.0-nodoc-2007-01.xqy";
 
 declare namespace dir = "http://marklogic.com/xdmp/directory";
