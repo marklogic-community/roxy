@@ -65,7 +65,7 @@ begin
         Help.doHelp(@logger, command)
         break
       else
-        f = Roxy::Framework.new :logger => @logger
+        f = Roxy::Framework.new :logger => @logger, :properties => ServerConfig.properties
         f.create
       end
     #
