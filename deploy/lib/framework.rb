@@ -20,6 +20,8 @@ module Roxy
 
     def initialize(options)
       @logger = options[:logger]
+      @src_dir = options[:properties]["ml.xquery.dir"]
+      @test_dir = options[:properties]["ml.xquery-test.dir"]
     end
 
     def create
@@ -91,7 +93,7 @@ module Roxy
     end
 
     def create_model(model, filename, function)
-      target_file = File.expand_path("../../../src/app/models/#{filename}.xqy", __FILE__)
+      target_file = File.expand_path("#{@src_dir}/app/models/#{filename}.xqy", __FILE__)
       model_file = nil
       if File.exists? target_file
         if function != nil
@@ -118,7 +120,7 @@ module Roxy
     end
 
     def create_suite(suite, test)
-      suite_dir = File.expand_path("../../../src/test/suites/#{suite}/", __FILE__)
+      suite_dir = File.expand_path("#{@test_dir}/test/suites/#{suite}/", __FILE__)
       Dir.mkdir(suite_dir) unless File.directory? suite_dir
 
       if test
@@ -137,7 +139,7 @@ module Roxy
     end
 
     def create_layout(layout, format)
-      layout_dir = File.expand_path("../../../src/app/views/layouts/", __FILE__)
+      layout_dir = File.expand_path("#{@src_dir}/app/views/layouts/", __FILE__)
       Dir.mkdir(layout_dir) unless File.directory? layout_dir
 
       target_file = "#{layout_dir}/#{layout}.#{format}.xqy"
@@ -156,7 +158,7 @@ module Roxy
 
 
     def create_controller(controller, view)
-      target_file = File.expand_path("../../../src/app/controllers/#{controller}.xqy", __FILE__)
+      target_file = File.expand_path("#{@src_dir}/app/controllers/#{controller}.xqy", __FILE__)
       controller_file = nil
       if File.exists? target_file
         existing = File.read(target_file)
@@ -176,7 +178,7 @@ module Roxy
     end
 
     def create_view(controller, view, format)
-      dir = File.expand_path("../../../src/app/views/#{controller}/", __FILE__)
+      dir = File.expand_path("#{@src_dir}/app/views/#{controller}/", __FILE__)
       Dir.mkdir(dir) unless File.directory? dir
 
       out_file = "#{dir}/#{view}.#{format}.xqy"

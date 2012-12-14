@@ -693,6 +693,17 @@ private
                                        :permissions => permissions(@properties['ml.app-role'], Roxy::ContentCapability::EXECUTE)
       end
 
+      # REST API applications need some files put into a collection.
+      if @properties["ml.app-type"] == 'rest'
+        r = execute_query %Q{
+          xquery version "1.0-ml";
+
+          for $uri in cts:uri-match("/marklogic.rest.*")
+          return xdmp:document-set-collections($uri, "http://marklogic.com/extension/plugin")
+        },
+        { :db_name => dest_db }
+      end
+
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db}\n"
     end
   end
@@ -1046,6 +1057,7 @@ private
             <default-user name="@ml.default-user"/>
             <url-rewriter>@ml.url-rewriter</url-rewriter>
             <error-handler>@ml.error-handler</error-handler>
+            @ml.rewrite-resolves-globally
           </http-server>
         })
       end
@@ -1085,6 +1097,19 @@ private
         <data-directory>@ml.forest-data-dir</data-directory>
       }) if @properties['ml.forest-data-dir'].present?
 
+    if @properties['ml.rewrite-resolves-globally'].present?
+      config.gsub!("@ml.rewrite-resolves-globally",
+        %Q{
+          <rewrite-resolves-globally>#{@properties['ml.rewrite-resolves-globally']}</rewrite-resolves-globally>
+        })
+    elsif ['rest', 'hybrid'].include?(@properties["ml.app-type"])
+      config.gsub!("@ml.rewrite-resolves-globally",
+        %Q{
+          <rewrite-resolves-globally>true</rewrite-resolves-globally>
+        })
+    else
+      config.gsub!("@ml.rewrite-resolves-globally", "")
+    end
     @properties.each do |k, v|
       config.gsub!("@#{k}", v)
     end

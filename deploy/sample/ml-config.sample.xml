@@ -28,6 +28,7 @@
       <default-user name="@ml.default-user"/>
       <url-rewriter>@ml.url-rewriter</url-rewriter>
       <error-handler>@ml.error-handler</error-handler>
+      <rewrite-resolves-globally>@ml.rewrite-resolves-globally</rewrite-resolves-globally>
     </http-server>
     @ml.test-appserver
   </http-servers>
@@ -280,7 +281,7 @@
       <word-lexicons/>
       <two-character-searches>false</two-character-searches>
       <one-character-searches>false</one-character-searches>
-      <uri-lexicon>false</uri-lexicon>
+      <uri-lexicon>true</uri-lexicon>
       <collection-lexicon>false</collection-lexicon>
       <directory-creation>automatic</directory-creation>
       <maintain-last-modified>false</maintain-last-modified>
