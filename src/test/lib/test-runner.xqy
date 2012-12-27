@@ -42,7 +42,7 @@ declare function m:get-tests-from-modules-with-lexicon(
   xdmp:eval('
     declare variable $uri as xs:string external;
     cts:uri-match($uri)',
-    (xs:QName('uri'), u:join-file($root, fn:concat('*', $filter))),
+    (xs:QName('uri'), u:join-file(($root, fn:concat('*', $filter)))),
     <options xmlns="xdmp:eval">
       <database>{$MODULES-DB}</database>
     </options>)
