@@ -578,13 +578,23 @@ class ServerConfig < MLClient
 
 private
 
+  # Build an array of role/capability objects.
   def permissions(role, capabilities)
-    capabilities.map do |c|
-      {
-        :capability => c,
-        :role => role
-      }
-    end if capabilities.is_a?(Array)
+    if capabilities.is_a?(Array)
+      capabilities.map do |c|
+        {
+          :capability => c,
+          :role => role
+        }
+      end
+    else
+      [
+        {
+          :capability => capabilities,
+          :role => role
+        }
+      ]
+    end
   end
 
   def deploy_tests?(target_db)
