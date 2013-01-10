@@ -22,6 +22,8 @@ usage()
   printf "Usage: ml new app-name [--git]\n\n  use --git to automatically configure a git repo\n"
 }
 
+PARAMS=("${@}")
+
 if [ "$1" == 'new' ]
 then
   shift
@@ -38,8 +40,21 @@ then
       exit 1
     fi
 
+    BRANCH="master"
+    INIT_GIT=0
+    for (( i = 0; i < ${#PARAMS[@]}; i++ )); do
+      if [[ ${PARAMS[${i}]} == --branch=* ]]
+      then
+        splits=(${PARAMS[${i}]//=/ })
+        BRANCH=${splits[1]}
+      elif [[ ${PARAMS[${i}]} == --git* ]]
+      then
+        INIT_GIT=1
+      fi
+    done
+
     printf "\nCreating new Application: ${app_name}..."
-    git clone git://github.com/marklogic/roxy.git ${app_name}
+    git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}
     pushd ${app_name} > /dev/null
     rm -rf .git*
     ./ml init ${app_name}
@@ -47,25 +62,15 @@ then
     printf " done\n"
     if [ -e $app_name ]
     then
-      while (( $# > 0 ))
-      do
-        token="$1"
-        shift
-        case "$token" in
-          --git)
-            printf "Creating a git repository:\n"
-            cd ${app_name}
-            git init
-            git add .
-            git commit -q -m "Initial Commit"
-            printf "...done\n"
-            ;;
-        *)
-          usage
-          exit 1
-          ;;
-        esac
-      done
+      if [ ${INIT_GIT} == 1 ]
+      then
+        printf "Creating a git repository:\n"
+        cd ${app_name}
+        git init
+        git add .
+        git commit -q -m "Initial Commit"
+        printf "...done\n"
+      fi
     fi
   else
     usage
