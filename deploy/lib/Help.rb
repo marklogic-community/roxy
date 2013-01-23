@@ -128,6 +128,14 @@ class Help
     end
   end
 
+  def self.credentials
+    <<-DOC.strip_heredoc
+      Usage: ml {env} credentials
+
+      Prompts the user for admin credentials and writes them into the appropriate properties file
+    DOC
+  end
+
   def self.info
     <<-DOC.strip_heredoc
       Usage: ml {env} info [options]

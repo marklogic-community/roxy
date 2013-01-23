@@ -576,6 +576,43 @@ class ServerConfig < MLClient
     `#{runme}`
   end
 
+  def credentials
+    logger.info "credentials #{@environment}"
+    # ml will error on invalid environment
+    # ask user for admin username and password
+    puts "What is the admin username?"
+    user = gets.chomp
+    puts "What is the admin password?"
+    # we don't want to install highline
+    # we can't rely on STDIN.noecho with older ruby versions
+    system "stty -echo"
+    password = gets.chomp
+    system "stty echo"
+
+    # Create or update environment properties file
+    filename = "#{@environment}.properties"
+    properties = {}
+    properties_file = File.expand_path("../#{filename}", File.dirname(__FILE__))
+    begin
+      if (File.exists?(properties_file))
+        properties = ServerConfig.load_properties(properties_file, "")
+      else
+        logger.info "#{properties_file} does not yet exist"
+      end
+    rescue => err
+      puts "Exception: #{err}"
+    end
+    properties["user"] = user
+    properties["password"] = password
+    open(properties_file, 'w') {
+      |f|
+      properties.each do |k,v|
+        f.write "#{k}=#{v}\n"
+      end
+    }
+    logger.info "wrote #{properties_file}"
+  end
+
 private
 
   # Build an array of role/capability objects.
@@ -1107,39 +1144,6 @@ private
     properties.merge!(ServerConfig.load_properties(env_properties_file, "ml.")) if File.exists? env_properties_file
 
     properties = ServerConfig.substitute_properties(properties, properties, "ml.")
-  end
-
-  def credentials()
-    logger.info "credentials #{@environment}"
-    # ml will error on invalid environment
-    # ask user for admin username and password
-    puts "What is the admin username?"
-    user = gets.chomp
-    puts "What is the admin password?"
-    # we don't want to install highline
-    # we can't rely on STDIN.noecho with older ruby versions
-    system "stty -echo"
-    password = gets.chomp
-    system "stty echo"
-
-    # Create or update environment properties file
-    filename = "#{@environment}.properties"
-    properties = {}
-    properties_file = File.expand_path("../#{filename}", __FILE__)
-    begin
-      properties = ServerConfig.load_properties(properties_file, "")
-    rescue => err
-      puts "Exception: #{err}"
-    end
-    properties["user"] = user
-    properties["password"] = password
-    open(properties_file, 'w') {
-      |f|
-      properties.each do |k,v|
-        f.write "#{k}=#{v}\n"
-      end
-    }
-    logger.info "wrote #{properties_file}"
   end
 
 end
