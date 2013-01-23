@@ -36,6 +36,7 @@ This file describes changes made to Roxy per release
 * \#76 Deploy REST API options based on the group and appserver name
 * \#48 Made the license info more prominent
 * Added credentials action (mblakele)
+* Added ch:set-value() based on req:get() (mblakele)
 
 ### Resolved Issues
 * \#52 Skip standard users, roles during wipe
