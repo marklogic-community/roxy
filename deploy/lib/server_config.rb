@@ -657,14 +657,21 @@ private
       end
 
       # REST API applications need some files put into a collection.
-      if @properties["ml.app-type"] == 'rest'
+      if ['rest', 'hybrid'].include? @properties["ml.app-type"]
         r = execute_query %Q{
-          xquery version "1.0-ml";
+            xquery version "1.0-ml";
 
-          for $uri in cts:uri-match("/marklogic.rest.*")
-          return xdmp:document-set-collections($uri, "http://marklogic.com/extension/plugin")
-        },
-        { :db_name => dest_db }
+            for $uri in cts:uri-match("/marklogic.rest.*")
+            return xdmp:document-set-collections($uri, "http://marklogic.com/extension/plugin")
+          },
+          { :db_name => dest_db }
+
+        rest_options_dir = @properties['ml.rest-options.dir']
+        total_count += load_data rest_options_dir,
+            :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
+            :remove_prefix => rest_options_dir,
+            :db => dest_db
+
       end
 
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db}\n"
