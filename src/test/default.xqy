@@ -106,7 +106,13 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
         helper:log(" - invoking suite setup"),
         xdmp:invoke(fn:concat("suites/", $suite, "/suite-setup.xqy"))
       }
-      catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)},
+      catch($ex) {
+        if ($ex/error:code = "XDMP-MODNOTFOUND" and
+          fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.xqy$")) then
+          ()
+        else
+          xdmp:rethrow()
+      },
 
       helper:log(" - invoking tests"),
 
@@ -123,7 +129,13 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
           helper:log(" - invoking suite teardown"),
           xdmp:invoke(fn:concat("suites/", $suite, "/suite-teardown.xqy"))
         }
-        catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
+        catch($ex) {
+          if ($ex/error:code = "XDMP-MODNOTFOUND" and
+            fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.xqy$")) then
+            ()
+          else
+            xdmp:rethrow()
+        }
       else helper:log(" - not running suite teardown"),
       helper:log(" ")
     }
@@ -148,7 +160,13 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
       let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/setup.xqy"))
       return ()
     }
-    catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
+    catch($ex) {
+      if ($ex/error:code = "XDMP-MODNOTFOUND" and
+        fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.xqy$")) then
+        ()
+      else
+        xdmp:rethrow()
+    }
   let $result :=
     try {
       helper:log("    ...running"),
@@ -160,11 +178,16 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
   let $teardown :=
     if ($run-teardown eq fn:true()) then
       try {
-        let $_ := helper:log("    ...invoking teardown")
-        let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/teardown.xqy"))
-        return ()
+        helper:log("    ...invoking teardown"),
+        xdmp:invoke(fn:concat("suites/", $suite, "/teardown.xqy"))
       }
-      catch($ex) {if ($ex//error:code = ("SVC-FILOPN", "XDMP-TEXTNODE", "XDMP-MODNOTFOUND")) then () else helper:log($ex)}
+      catch($ex) {
+        if ($ex/error:code = "XDMP-MODNOTFOUND" and
+          fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.xqy$")) then
+          ()
+        else
+          xdmp:rethrow()
+      }
     else helper:log("    ...not running teardown")
   let $end-time := xdmp:elapsed-time()
   return
