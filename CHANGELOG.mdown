@@ -45,3 +45,4 @@ This file describes changes made to Roxy per release
 * \#56 Fixed Support setting in-memory-range-index-size
 * \#74 Fixed a problem with document permissions set by the deployer
 * \#73 Make "ml create" work when xquery.dir isn't the default
+* \#61 Make problems in suite-setup.xqy etc easier to detect
