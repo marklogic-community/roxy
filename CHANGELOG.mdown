@@ -33,9 +33,13 @@ This file describes changes made to Roxy per release
 ## 1.3 (branch: dev)
 
 ### New Features
+* \#76 Deploy REST API options based on the group and appserver name
+* \#48 Made the license info more prominent
 
 ### Resolved Issues
 * \#52 Skip standard users, roles during wipe
 * \#53 sample password form should set method="POST"
 * \#55 Fixed Word Lexicon bootstrapping causes an error when run twice
 * \#56 Fixed Support setting in-memory-range-index-size
+* \#74 Fixed a problem with document permissions set by the deployer
+* \#73 Make "ml create" work when xquery.dir isn't the default
