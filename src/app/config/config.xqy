@@ -17,7 +17,8 @@ xquery version "1.0-ml";
 
 module namespace c = "http://marklogic.com/roxy/config";
 
-import module namespace def = "http://marklogic.com/roxy/defaults" at "/roxy/config/defaults.xqy";
+import module namespace def = "http://marklogic.com/roxy/defaults"
+ at "/roxy/config/defaults.xqy";
 
 declare namespace rest = "http://marklogic.com/appservices/rest";
 
@@ -39,6 +40,9 @@ declare variable $c:ROXY-OPTIONS :=
     </layouts>
   </options>;
 
+(: Used to protect custom ROXY-ROUTES - see also views/helpers/user-lib.xqy. :)
+declare variable $LOGGED-IN-PRIVILEGE := 'ns://github.com/marklogic/roxy/privilege/logged-in' ;
+
 (:
  : ***********************************************
  : Overrides for the Default Roxy scheme
@@ -52,6 +56,10 @@ declare variable $c:ROXY-OPTIONS :=
  :)
 declare variable $c:ROXY-ROUTES :=
   <routes xmlns="http://marklogic.com/appservices/rest">
+    <!-- Example of a route requiring an exec privilege. -->
+    <protect uri="^/user/profile" redirect="/user/login">
+      <privilege>{ $LOGGED-IN-PRIVILEGE }</privilege>
+    </protect>
     <request uri="^/my/awesome/route" />
     {
       $def:ROXY-ROUTES/rest:request
