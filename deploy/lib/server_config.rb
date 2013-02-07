@@ -704,10 +704,12 @@ private
           { :db_name => dest_db }
 
         rest_options_dir = @properties['ml.rest-options.dir']
+        if (File.exist?(rest_options_dir))
         total_count += load_data rest_options_dir,
             :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
             :remove_prefix => rest_options_dir,
             :db => dest_db
+        end
 
       end
 

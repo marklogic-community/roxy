@@ -68,6 +68,7 @@ declare variable $ROXY-ROUTES :=
 	    <request uri="^/test$" redirect="/test/" />
 	    <request uri="^/(css|js|images)/(.*)" endpoint="/public/$1/$2"/>
 	    <request uri="^/favicon.ico$" endpoint="/public/favicon.ico"/>
+      <request uri="^/v1/.+$"/>
 	    <request uri="^/([\w\d_\-]*)/?([\w\d_\-]*)\.?(\w*)/?$" endpoint="/roxy/query-router.xqy">
 	      <uri-param name="controller" default="{$default-controller}">$1</uri-param>
 	      <uri-param name="func" default="{$default-function}">$2</uri-param>

@@ -379,7 +379,7 @@ declare function req:build-params($matching-request, $url, $path)
     "&amp;")
 };
 
-declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)) as xs:string
+declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)) as xs:string?
 {
   let $routes := req:expand-resources($routes)
   let $matching-request :=
@@ -415,7 +415,7 @@ declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)
       else ()
     else ()
   return
-    ($final-uri, $url)[1]
+    $final-uri
 };
 
 declare function req:is-ajax-request() as xs:boolean
