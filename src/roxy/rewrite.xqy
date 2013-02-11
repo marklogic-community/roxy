@@ -40,7 +40,13 @@ return
       xdmp:eval('
         import module namespace conf = "http://marklogic.com/rest-api/endpoints/config"
           at "/MarkLogic/rest-api/endpoints/config.xqy";
-        (conf:rewrite($method, $uri, $path), $uri)[1]')
+        declare variable $method external;
+        declare variable $uri external;
+        declare variable $path external;
+        (conf:rewrite($method, $uri, $path), $uri)[1]',
+        (xs:QName("method"), $method,
+         xs:QName("uri"), $uri,
+         xs:QName("path"), $path))
     }
     catch($ex) {
       if ($ex/error:code = "XDMP-MODNOTFOUND") then
