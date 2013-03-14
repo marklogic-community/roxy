@@ -30,7 +30,7 @@ This file describes changes made to Roxy per release
 * \#36 Refactored the bootstrap process. Now complete with proper failure and rollback
 * Fixed backwards compatibility with ML 4
 
-## 1.3 (branch: dev)
+## 1.3 (branch: master)
 
 ### New Features
 * \#76 Deploy REST API options based on the group and appserver name
@@ -46,3 +46,4 @@ This file describes changes made to Roxy per release
 * \#74 Fixed a problem with document permissions set by the deployer
 * \#73 Make "ml create" work when xquery.dir isn't the default
 * \#61 Make problems in suite-setup.xqy etc easier to detect
+* \#67 Reversed sense of facet-value @name and lexical
