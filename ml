@@ -42,6 +42,7 @@ then
 
     BRANCH="master"
     INIT_GIT=0
+    APPTYPE="mvc"
     for (( i = 0; i < ${#PARAMS[@]}; i++ )); do
       if [[ ${PARAMS[${i}]} == --branch=* ]]
       then
@@ -50,14 +51,31 @@ then
       elif [[ ${PARAMS[${i}]} == --git* ]]
       then
         INIT_GIT=1
+      elif [[ ${PARAMS[${i}]} == --app-type* ]]
+      then
+        splits=(${PARAMS[${i}]//=/ })
+        APPTYPE=${splits[1]}
       fi
     done
+
+    if [ "$APPTYPE" != "mvc" ] && [ "$APPTYPE" != "rest" ] && [ "$APPTYPE" != "hybrid" ]
+    then
+      printf "\nValid values for app-type are mvc, rest and hybrid. Aborting\n"
+      exit 1
+    fi
 
     printf "\nCreating new Application: ${app_name}..."
     git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}
     pushd ${app_name} > /dev/null
     rm -rf .git*
-    ./ml init ${app_name}
+    if [ "$APPTYPE" = "rest" ]
+    then
+      # For a REST application, we won't be using the MVC code. Remove it. 
+      # mvc and hybrid apps will use it. 
+      rm -rf src/*
+      printf "\nNo initial source code is provided for REST apps. You can copy code from Application Builder under the source directory."
+    fi
+    ./ml init ${app_name} --app-type=${APPTYPE}
     popd > /dev/null
     printf " done\n"
     if [ -e $app_name ]

@@ -95,10 +95,14 @@ class ServerConfig < MLClient
     sample_config = File.expand_path("../../sample/ml-config.sample.xml", __FILE__)
     sample_properties = File.expand_path("../../sample/build.sample.properties", __FILE__)
     build_properties = File.expand_path("../../build.properties", __FILE__)
+    options_dir = File.expand_path("../../../rest-api/options", __FILE__)
+    options_file = File.expand_path("../../../rest-api/options/all.xml", __FILE__)
+    sample_options = File.expand_path("../../sample/all.sample.xml", __FILE__)
 
     force = find_arg(['--force']).present?
     force_props = find_arg(['--force-properties']).present?
     force_config = find_arg(['--force-config']).present?
+    app_type = find_arg(['--app-type'])
 
     error_msg = []
     if !force && !force_props && File.exists?(build_properties)
@@ -113,6 +117,20 @@ class ServerConfig < MLClient
       name = ARGV.shift
       properties_file.gsub!(/app-name=roxy/, "app-name=#{name}") if name
 
+      # do app-type customizations
+      properties_file.gsub!(/app-type=mvc/, "app-type=#{app_type}")
+
+      # If this app will use the ML REST API, we need rewrite-resolved-globally to get those URLs to work
+      if ["rest", "hybrid"].include? app_type
+        properties_file.gsub!(/rewrite-resolves-globally=/, "rewrite-resolves-globally=true")
+      end
+
+      if app_type == "rest"
+        # rest applications don't use Roxy's MVC structure, so they can use MarkLogic's rewriter and error handler
+        properties_file.gsub!(/url-rewriter=\/roxy\/rewrite.xqy/, "url-rewriter=/MarkLogic/rest-api/rewriter.xqy")
+        properties_file.gsub!(/error-handler=\/roxy\/error.xqy/, "error-handler=/MarkLogic/rest-api/error-handler.xqy")
+      end
+
       # replace the text =random with a random string
       o = (33..126).to_a
       properties_file.gsub!(/=random/) do |match|
@@ -122,6 +140,12 @@ class ServerConfig < MLClient
 
       # save the replacements
       open(build_properties, 'w') {|f| f.write(properties_file) }
+    end
+
+    # If this is a rest or hybrid app, set up some initial options
+    if ["rest", "hybrid"].include? app_type
+      FileUtils.mkdir_p options_dir
+      FileUtils.cp sample_options, options_file
     end
 
     target_config = File.expand_path(ServerConfig.properties["ml.config.file"], __FILE__)
