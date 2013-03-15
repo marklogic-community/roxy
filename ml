@@ -73,7 +73,7 @@ then
       # For a REST application, we won't be using the MVC code. Remove it. 
       # mvc and hybrid apps will use it. 
       rm -rf src/*
-      printf "\nNo initial source code is provided for REST apps. You can copy code from Application Builder under the source directory."
+      printf "\nNo initial source code is provided for REST apps. You can copy code from Application Builder under the source directory.\n"
     fi
     ./ml init ${app_name} --app-type=${APPTYPE}
     popd > /dev/null
