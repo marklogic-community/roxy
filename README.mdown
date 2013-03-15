@@ -21,6 +21,7 @@ What good is your code if it doesn't work? Testing is paramount to the developme
   * MarkLogic 6.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
 * [Ruby](http://www.ruby-lang.org/en/) - Required for Roxy Deployer only.
 * [Java (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/index.html) - Only if you wish to run the Roxy Deployer [XQSync](http://developer.marklogic.com/code/xqsync, XQSync) or [RecordLoader](http://developer.marklogic.com/code/recordloader) commands.
+* [Git](http://git-scm.com/downloads) - Required to create a new project using "ml new".
 
 ## Getting Started (Quick Version)
 This section describes the quickest way to get started using Roxy.
