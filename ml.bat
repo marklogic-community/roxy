@@ -31,14 +31,47 @@ if not defined GITFOUND goto needgit
 
 IF EXIST %app_name% GOTO alreadyexists
 
+set BRANCH=master
+set INIT_GIT=0
+set APPTYPE=mvc
+
+:loop
+if not "%1"=="" (
+  if "%1"=="--branch" (
+	set BRANCH=%2
+	shift
+  )
+  if "%1"=="--app-type" (
+    set APPTYPE=%2
+	shift
+  )
+  shift
+  goto :loop
+)
+
+if not "%APPTYPE%"=="mvc" if not "%APPTYPE%"=="rest" if not "%APPTYPE%"=="hybrid" (
+  echo Valid values for app-type are mvc, rest and hybrid. Aborting.
+  exit /b
+)
+
 echo.
 echo Creating new Application: %app_name%...
 
-cmd /c git clone git://github.com/marklogic/roxy.git %app_name%
+cmd /c git clone git://github.com/marklogic/roxy.git -b %BRANCH% %app_name%
 pushd %app_name%
 rmdir /Q /S .git
 del /F /Q .gitignore
-cmd /c ml init %app_name%
+
+if "%APPTYPE%"=="rest" (
+  REM For a REST application, we won't be using the MVC code. Remove it. 
+  REM mvc and hybrid apps will use it. 
+  rmdir /S /Q src
+  mkdir src
+  echo.
+  echo No initial source code is provided for REST apps. You can copy code from Application Builder under the source directory.
+)
+
+cmd /c ml init %app_name% --app-type=%APPTYPE%
 popd
 echo  done
 echo.
