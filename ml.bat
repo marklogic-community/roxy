@@ -10,6 +10,8 @@ for %%e in (%PATHEXT%) do (
 )
 if not defined RUBYFOUND goto needruby
 
+if "%1"=="self-test" goto selftest
+
 IF not "%1"=="new" goto rubydeployer
 SHIFT
 IF "%1"=="" goto usage
@@ -59,6 +61,11 @@ echo.
 popd
 
 goto end
+
+:selftest
+    if NOT EXIST deploy\test\test_main.rb GOTO missingdeploy
+	ruby -Ideploy -Ideploy\lib -Ideploy\test deploy\test\test_main.rb
+	goto end
 
 :rubydeployer
 	if NOT EXIST deploy\lib\ml.rb GOTO missingdeploy
