@@ -42,54 +42,60 @@ declare variable $helper:__LINE__ as xs:int :=
     $ex/error:stack/error:frame[2]/error:line
   };
 
-declare variable $helper:__FILE__ as xs:string :=
-  try {
-   fn:error(xs:QName("boom"), "")
-  }
-  catch($ex) {
-    ($ex/error:stack/error:frame[2]/error:uri, "no file")[1]
-  };
+declare variable $helper:__CALLER_FILE__  := helper:get-caller() ;
 
-declare variable $helper:__CALLER_FILE__  :=
-  try {
-   fn:error(xs:QName("boom"), "")
+declare function helper:get-caller()
+  as xs:string
+{
+  try { fn:error((), "ROXY-BOOM") }
+  catch ($ex) {
+    if ($ex/error:code ne 'ROXY-BOOM') then xdmp:rethrow()
+    else (
+      let $uri-list := $ex/error:stack/error:frame/error:uri/fn:string()
+      let $this := $uri-list[1]
+      return (($uri-list[. ne $this])[1], 'no file')[1])
   }
-  catch($ex) {
-    ($ex/error:stack/error:frame[3]/error:uri, "no file")[1]
-  };
+};
+
+declare function helper:get-test-file($filename as xs:string)
+  as document-node()
+{
+  helper:get-modules-file(
+    fn:replace(
+      fn:concat(
+        cvt:basepath($helper:__CALLER_FILE__), "/test-data/", $filename),
+      "//", "/"))
+};
 
 declare function helper:load-test-file($filename as xs:string, $database-id as xs:unsignedLong, $uri as xs:string)
 {
-  let $dir := cvt:basepath($helper:__CALLER_FILE__)
-  let $file := helper:get-modules-file(fn:replace(fn:concat($dir, "/test-data/", $filename), "//", "/"))
-  return
-    if ($database-id eq 0) then
-      let $uri := fn:replace($uri, "//", "/")
-      let $_ :=
-        try {
-          xdmp:filesystem-directory(cvt:basepath($uri))
-        }
-        catch($ex) {
-          xdmp:filesystem-directory-create(cvt:basepath($uri),
-                      <options xmlns="xdmp:filesystem-directory-create">
-                        <create-parents>true</create-parents>
-                      </options>)
-        }
-      return
-        xdmp:save($uri, $file)
-    else
-      xdmp:eval('
-        xquery version "1.0-ml";
+  if ($database-id eq 0) then
+    let $uri := fn:replace($uri, "//", "/")
+    let $_ :=
+      try {
+        xdmp:filesystem-directory(cvt:basepath($uri))
+      }
+      catch($ex) {
+        xdmp:filesystem-directory-create(cvt:basepath($uri),
+                    <options xmlns="xdmp:filesystem-directory-create">
+                      <create-parents>true</create-parents>
+                    </options>)
+      }
+    return
+      xdmp:save($uri, helper:get-test-file($filename))
+  else
+    xdmp:eval('
+      xquery version "1.0-ml";
 
-        declare variable $uri as xs:string external;
-        declare variable $file as node() external;
-        xdmp:document-insert($uri, $file)
-      ',
-      (xs:QName("uri"), $uri,
-       xs:QName("file"), $file),
-      <options xmlns="xdmp:eval">
-        <database>{$database-id}</database>
-      </options>)
+      declare variable $uri as xs:string external;
+      declare variable $file as node() external;
+      xdmp:document-insert($uri, $file)
+    ',
+    (xs:QName("uri"), $uri,
+     xs:QName("file"), helper:get-test-file($filename)),
+    <options xmlns="xdmp:eval">
+      <database>{$database-id}</database>
+    </options>)
 };
 
 declare function helper:build-uri(
@@ -107,6 +113,7 @@ declare function helper:get-modules-file($file as xs:string) {
     let $doc :=
       xdmp:document-get(
         helper:build-uri(xdmp:modules-root(), $file),
+        (: TODO why insist on text? :)
         <options xmlns="xdmp:document-get">
           <format>text</format>
         </options>)
@@ -116,25 +123,22 @@ declare function helper:get-modules-file($file as xs:string) {
       }
       catch($ex) {$doc}
   else
-  (
-    xdmp:eval(
-      fn:concat('
-        let $doc := fn:doc("', $file, '")
-        return
-          if ($doc/*) then
-            $doc
-          else
-            try {
-              xdmp:unquote($doc)
-            }
-            catch($ex) {
-              $doc
-            }'),
-      (),
+    let $doc := xdmp:eval(
+      'declare variable $file as xs:string external; fn:doc($file)',
+      (xs:QName('file'), $file),
       <options xmlns="xdmp:eval">
         <database>{xdmp:modules-database()}</database>
       </options>)
-  )
+    return
+      if ($doc/*) then
+        $doc
+      else
+        try {
+          xdmp:unquote($doc) (: TODO WTF? :)
+        }
+        catch($ex) {
+          $doc
+        }
 };
 
 (:~
