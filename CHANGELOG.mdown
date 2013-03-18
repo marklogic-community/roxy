@@ -47,3 +47,8 @@ This file describes changes made to Roxy per release
 * \#73 Make "ml create" work when xquery.dir isn't the default
 * \#61 Make problems in suite-setup.xqy etc easier to detect
 * \#67 Reversed sense of facet-value @name and lexical
+
+## 1.4 (branch: dev)
+
+### New Features
+* \#63 Use --app-type parameter with ml new to create mvc, rest, or hybrid apps
