@@ -678,6 +678,7 @@ private
     # modules_db = @properties['ml.modules-db']
     app_config_file = File.join xquery_dir, "/app/config/config.xqy"
     test_config_file = File.join test_dir, "/test-config.xqy"
+    load_html_as_xml = @properties['ml.load-html-as-xml']
 
     modules_databases.each do |dest_db|
       ignore_us = []
@@ -689,7 +690,8 @@ private
                               :add_prefix => "/",
                               :remove_prefix => xquery_dir,
                               :db => dest_db,
-                              :ignore_list => ignore_us
+                              :ignore_list => ignore_us,
+                              :load_html_as_xml => load_html_as_xml
 
       if File.exist? app_config_file
         buffer = File.read app_config_file
