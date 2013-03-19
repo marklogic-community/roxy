@@ -2,7 +2,11 @@
 Roxy (RObust XQuerY Framework) is a lightweight framework for quickly developing well-structured, easily maintained XQuery applications. Roxy was heavily inspired by Ruby On Rails and CakePHP.
 
 ## Getting Help
-To get help with Roxy, subscribe to the [Roxy mailing list](http://developer.marklogic.com/mailman/listinfo/roxy).
+To get help with Roxy, 
+
+* Subscribe to the [Roxy mailing list](http://developer.marklogic.com/mailman/listinfo/roxy)
+* Read up on [the wiki](https://github.com/marklogic/roxy/wiki)
+* Check out the [Tutorials page](https://github.com/marklogic/roxy/wiki/Tutorials)
 
 ## Components
 ### Roxy Deployer
