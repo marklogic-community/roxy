@@ -209,7 +209,7 @@ module Roxy
       url << "&repair=none" if options[:repairlevel] == "none"
       url << "&repair=full" if options[:repairlevel] == "full"
 
-      url << "&format=xml" if options[:load_html_as_xml] && target_uri["\.html"]
+      url << "&format=xml" if options[:load_html_as_xml] && target_uri[/\.html$/]
       url << "&format=xml" if options[:format] == "xml"
       url << "&format=text" if options[:format] == "text"
       url << "&format=binary" if options[:format] == "binary"
