@@ -20,6 +20,7 @@ require 'json'
 require 'RoxyHttp'
 require 'xcc'
 require 'MLClient'
+require 'date'
 
 class ExitException < Exception; end
 
@@ -427,7 +428,7 @@ class ServerConfig < MLClient
 
     raise HelpException.new("load", "File or Directory is required!") unless dir
     count = load_data dir, :remove_prefix => remove_prefix, :add_prefix => add_prefix, :db => db, :quiet => quiet
-    logger.info "\nLoaded #{count} #{pluralize(count, "document", "documents")} from #{dir} to #{xcc.hostname}:#{xcc.port}/#{db}\n"
+    logger.info "\nLoaded #{count} #{pluralize(count, "document", "documents")} from #{dir} to #{xcc.hostname}:#{xcc.port}/#{db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
   end
 
   def load_data(dir, options = {})
@@ -739,7 +740,7 @@ private
 
       end
 
-      logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db}\n"
+      logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
     end
   end
 
