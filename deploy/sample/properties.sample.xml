@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map:map xmlns:map="http://marklogic.com/xdmp/map" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <map:entry key="content-versions">
+    <map:value xsi:type="xs:string">none</map:value>
+  </map:entry>
+  <map:entry key="validate-options">
+    <map:value xsi:type="xs:boolean">true</map:value>
+  </map:entry>
+  <map:entry key="document-transform-out">
+    <map:value xsi:type="xs:string"/>
+  </map:entry>
+  <map:entry key="debug">
+    <map:value xsi:type="xs:boolean">false</map:value>
+  </map:entry>
+  <map:entry key="error-format">
+    <map:value xsi:type="xs:string">xml</map:value>
+  </map:entry>
+  <map:entry key="validate-queries">
+    <map:value xsi:type="xs:boolean">false</map:value>
+  </map:entry>
+  <map:entry key="can-copy">
+    <map:value xsi:type="xs:boolean">true</map:value>
+  </map:entry>
+</map:map>

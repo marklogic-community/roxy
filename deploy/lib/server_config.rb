@@ -146,6 +146,9 @@ class ServerConfig < MLClient
     if ["rest", "hybrid"].include? app_type
       FileUtils.mkdir_p options_dir
       FileUtils.cp sample_options, options_file
+      FileUtils.cp(
+        File.expand_path("../../sample/properties.sample.xml", __FILE__), 
+        File.expand_path("../../../rest-api/properties.xml", __FILE__))
     end
 
     target_config = File.expand_path(ServerConfig.properties["ml.config.file"], __FILE__)
