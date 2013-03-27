@@ -21,6 +21,7 @@ require 'RoxyHttp'
 require 'xcc'
 require 'MLClient'
 require 'date'
+require 'ml_rest'
 
 class ExitException < Exception; end
 
@@ -735,16 +736,26 @@ private
 
         rest_options_dir = @properties['ml.rest-options.dir']
         if (File.exist?(rest_options_dir))
-        total_count += load_data rest_options_dir,
-            :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
-            :remove_prefix => rest_options_dir,
-            :db => dest_db
+          total_count += load_data rest_options_dir,
+              :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
+              :remove_prefix => rest_options_dir,
+              :db => dest_db
         end
 
       end
 
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
     end
+
+    if ['rest', 'hybrid'].include? @properties["ml.app-type"]
+      if (File.exist?(@properties['ml.rest-ext.dir']))
+        logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}\n"
+        mlRest.install_extensions(File.expand_path(@properties['ml.rest-ext.dir']))
+      else
+        logger.error "Could not find extensions directory: #{@properties['ml.rest-ext.dir']}\n";
+      end
+    end
+
   end
 
   def clean_modules
@@ -829,6 +840,18 @@ private
           :logger => logger
         })
       end
+  end
+
+  def mlRest
+    if (!@mlRest)
+      @mlRest = Roxy::MLRest.new({
+        :user_name => @ml_username,
+        :password => @ml_password,
+        :server => @hostname,
+        :port => @properties["ml.app-port"],
+        :logger => @logger
+      })
+    end
   end
 
   def get_config
