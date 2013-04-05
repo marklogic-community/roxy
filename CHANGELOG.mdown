@@ -53,3 +53,4 @@ This file describes changes made to Roxy per release
 ### New Features
 * \#63 Use --app-type parameter with ml new to create mvc, rest, or hybrid apps
 * \#88 Deploy REST API extensions
+* \#92 Scaffolding for REST API extensions
