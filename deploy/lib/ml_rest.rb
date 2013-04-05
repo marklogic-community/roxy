@@ -51,14 +51,16 @@ module Roxy
             args = '';
             verb = m[2]
             if (m[0] && (m[0].include? "%roxy:params"))
-              m[1].gsub!(/\"/, '').split(',').each do |p|
-                arg = p.strip
-                parts = arg.split('=')
-                param = parts[0]
-                type = parts[1]
-                @logger.debug("param: #{param}")
-                @logger.debug("type: #{type}")
-                params << "#{verb}:#{param}=#{url_encode(type)}"
+              if (m[1].match(/\"/))
+                m[1].gsub!(/\"/, '').split(',').each do |p|
+                  arg = p.strip
+                  parts = arg.split('=')
+                  param = parts[0]
+                  type = parts[1]
+                  @logger.debug("param: #{param}")
+                  @logger.debug("type: #{type}")
+                  params << "#{verb}:#{param}=#{url_encode(type)}"
+                end
               end
             end
           end

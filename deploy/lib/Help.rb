@@ -15,7 +15,6 @@ class Help
        deploy         Loads modules, data, cpf configuration into the server
        load           Loads a file or folder into the server
        clean          Removes all files from the cpf, modules, or content databases
-       info           Prints the configuration information
        test           Runs xquery unit tests
        recordloader   Runs RecordLoader
        xqsync         Runs XQSync
@@ -24,6 +23,7 @@ class Help
       Roxy MVC Commands:
        create       Creates a controller or view or model
        index        Adds an index to the configuration
+       extend       Create a REST API service extension
 
       All commands can be run with -h for more information.
 
@@ -354,6 +354,19 @@ class Help
     <<-DOC.strip_heredoc
       Usage: ml index
         ml will ask questions to help you build an index
+    DOC
+  end
+
+  def self.extend
+    <<-DOC.strip_heredoc
+      Usage: ml extend [prefix:]extension
+        Create a REST API service extension with the provided name. If a prefix
+        is provided, it will be used in the extension module.
+
+        Example:
+          $ ml extend ml:tag
+          will create a tag.xqy library module in your rest-ext directory, using 
+          the "ml" prefix for the functions. 
     DOC
   end
 

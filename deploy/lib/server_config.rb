@@ -98,6 +98,7 @@ class ServerConfig < MLClient
     sample_properties = File.expand_path("../../sample/build.sample.properties", __FILE__)
     build_properties = File.expand_path("../../build.properties", __FILE__)
     options_dir = File.expand_path("../../../rest-api/options", __FILE__)
+    rest_ext_dir = File.expand_path("../../../rest-ext", __FILE__)
     options_file = File.expand_path("../../../rest-api/options/all.xml", __FILE__)
     sample_options = File.expand_path("../../sample/all.sample.xml", __FILE__)
 
@@ -146,6 +147,7 @@ class ServerConfig < MLClient
 
     # If this is a rest or hybrid app, set up some initial options
     if ["rest", "hybrid"].include? app_type
+      FileUtils.mkdir_p rest_ext_dir
       FileUtils.mkdir_p options_dir
       FileUtils.cp sample_options, options_file
       FileUtils.cp(

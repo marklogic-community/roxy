@@ -18,6 +18,7 @@ require 'server_config'
 require 'framework'
 require 'util'
 require 'app_specific'
+require 'scaffold'
 
 def need_help?
   find_arg(['-h', '--help']) != nil
@@ -67,6 +68,14 @@ begin
       else
         f = Roxy::Framework.new :logger => @logger, :properties => ServerConfig.properties
         f.create
+      end
+    elsif command == "extend"
+      if need_help?
+        Help.doHelp(@logger, command)
+        break
+      else
+        scaffold = Roxy::Scaffold.new :logger => @logger, :properties => ServerConfig.properties
+        scaffold.extend ARGV.shift
       end
     #
     # put things in ServerConfig class methods that don't depend on environment or server info
