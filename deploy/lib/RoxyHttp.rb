@@ -401,6 +401,8 @@ module Roxy
             # We will be retrying the request, so reset the file pointer
             reset_fileptr_offset(request, mypos)
           end
+        rescue Net::HTTPBadResponse => e
+          # Ignoring 'wrong status line: "trueHTTP/1.1 204 Resource Services Updated"' because it's perfectly valid. 
         rescue Exception => e # See comment at bottom for the list of errors seen...
           @http = nil
           # if ctrl+c is pressed - we have to reraise exception to terminate proggy
