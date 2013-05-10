@@ -736,12 +736,13 @@ private
           },
           { :db_name => dest_db }
 
-        rest_options_dir = @properties['ml.rest-options.dir']
-        if (File.exist?(rest_options_dir))
-          total_count += load_data rest_options_dir,
+        if (@properties.has_value?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
+          total_count += load_data @properties['ml.rest-options.dir'],
               :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
-              :remove_prefix => rest_options_dir,
+              :remove_prefix => @properties['ml.rest-options.dir'],
               :db => dest_db
+        else
+          logger.error "Could not find REST API options directory: #{@properties['ml.rest-options.dir']}\n";
         end
 
       end
@@ -750,11 +751,9 @@ private
     end
 
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
-      if (File.exist?(@properties['ml.rest-ext.dir']))
+      if (@properties.has_value?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
         logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}\n"
         mlRest.install_extensions(File.expand_path(@properties['ml.rest-ext.dir']))
-      else
-        logger.error "Could not find extensions directory: #{@properties['ml.rest-ext.dir']}\n";
       end
     end
 
