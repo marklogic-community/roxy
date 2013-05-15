@@ -367,8 +367,18 @@ module Roxy
 
           response = @http.request(request, &block)
           if (response.code.to_i == 401)
+            # TODO: looks like we get this every time. Why not just use digest the first time?
             request.digest_auth(@user_name, @password, response)
             response = @http.request(request, &block)
+            if (response.code.to_i == 302)
+              @logger.debug("bootstrap request redirected: #{response['location']}")
+              new_uri = URI(response['location'])
+              request_params[:protocol] = new_uri.scheme
+              request_params[:server] = new_uri.host
+              request_params[:port] = new_uri.port
+              start(request_params)
+              response = @http.request(request, &block)
+            end
           end
 
           error_reset
