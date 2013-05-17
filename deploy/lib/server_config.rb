@@ -581,7 +581,7 @@ class ServerConfig < MLClient
   end
 
   def corb
-    connection_string = %Q{xcc://#{@properties['ml.app-name']}-user:#{@properties['ml.appuser-password']}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
+    connection_string = %Q{xcc://#{@properties['ml.user']}:#{@properties['ml.password']}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
     collection_name = find_arg(['--collection']) || '""'
     xquery_module = find_arg(['--modules'])
     uris_module = find_arg(['--uris']) || '""'
@@ -596,7 +596,7 @@ class ServerConfig < MLClient
     thread_count = thread_count.to_i
     module_root = find_arg(['--root']) || '"/"'
     modules_database = @properties['ml.modules-db']
-    install = find_arg(['install']) == "true"
+    install = find_arg(['--install']) == "true"
 
     matches = Dir.glob(File.expand_path("../java/*xcc*.jar", __FILE__))
     raise "Missing XCC Jar." if matches.length == 0

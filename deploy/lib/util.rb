@@ -41,7 +41,7 @@ def pluralize(count, singular, plural = nil)
 end
 
 def is_windows?
-  (Config::CONFIG['host_os'] =~ /mswin|mingw/).nil? == false
+  (RbConfig::CONFIG['host_os'] =~ /mswin|mingw/).nil? == false
 end
 
 def path_separator
