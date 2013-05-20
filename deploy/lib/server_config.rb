@@ -1040,6 +1040,17 @@ private
       </xdbc-server>
       }) if @properties['ml.xcc-port'].present?
 
+    config.gsub!("@ml.odbc-server",
+      %Q{
+      <odbc-server>
+        <odbc-server-name>@ml.app-name-odbc</odbc-server-name>
+        <port>@ml.odbc-port</port>
+        <database name="@ml.content-db"/>
+        <modules name="@ml.modules-db"/>
+        <authentication>digest</authentication>
+      </odbc-server>
+      }) if @properties['ml.odbc-port'].present?
+
     # Build the schemas db if it is provided
     if @properties['ml.schemas-db'].present?
       config.gsub!("@ml.schemas-db-xml",

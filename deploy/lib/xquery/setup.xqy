@@ -229,6 +229,63 @@ declare variable $xcc-server-settings :=
   </settings>
 ;
 
+declare variable $odbc-server-settings :=
+  <settings>
+    <setting>enabled</setting>
+    <setting>root</setting>
+    <setting>port</setting>
+    <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
+    <setting value="setup:get-appserver-database($server-config)">database</setting>
+    <setting value="setup:get-last-login($server-config)">last-login</setting>
+    <setting>display-last-login</setting>
+    <setting>address</setting>
+    <setting>backlog</setting>
+    <setting>threads</setting>
+    <setting>request-timeout</setting>
+    <setting>keep-alive-timeout</setting>
+    <setting>session-timeout</setting>
+    <setting>max-time-limit</setting>
+    <setting>default-time-limit</setting>
+    <setting>static-expires</setting>
+    <setting>pre-commit-trigger-depth</setting>
+    <setting>pre-commit-trigger-limit</setting>
+    <setting>collation</setting>
+    <setting>authentication</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting>concurrent-request-limit</setting>
+    <setting>log-errors</setting>
+    <setting>debug-allow</setting>
+    <setting>profile-allow</setting>
+    <setting>default-xquery-version</setting>
+    <setting>multi-version-concurrency-control</setting>
+    <setting>output-sgml-character-entities</setting>
+    <setting>output-encoding</setting>
+    <setting>output-method</setting>
+    <setting>output-byte-order-mark</setting>
+    <setting>output-cdata-section-namespace-uri</setting>
+    <setting>output-cdata-section-localname</setting>
+    <setting>output-doctype-public</setting>
+    <setting>output-doctype-system</setting>
+    <setting>output-escape-uri-attributes</setting>
+    <setting>output-include-content-type</setting>
+    <setting>output-indent</setting>
+    <setting>output-indent-untyped</setting>
+    <setting>output-media-type</setting>
+    <setting>output-normalization-form</setting>
+    <setting>output-omit-xml-declaration</setting>
+    <setting>output-standalone</setting>
+    <setting>output-undeclare-prefixes</setting>
+    <setting>output-version</setting>
+    <setting>output-include-default-attributes</setting>
+    <setting>ssl-certificate-template</setting>
+    <setting>ssl-allow-sslv3</setting>
+    <setting>ssl-allow-tls</setting>
+    <setting>ssl-hostname</setting>
+    <setting>ssl-ciphers</setting>
+    <setting>ssl-require-client-certificate</setting>
+  </settings>
+;
+
 declare variable $task-server-settings :=
   <settings>
     <setting>debug-allow</setting>
@@ -270,6 +327,10 @@ declare function setup:get-rollback-config()
     element gr:xdbc-servers
     {
       map:get($roll-back, "xdbc-servers")
+    },
+    element gr:odbc-servers
+    {
+      map:get($roll-back, "odbc-servers")
     },
     element db:databases
     {
@@ -336,7 +397,8 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   let $groupid := xdmp:group()
   let $remove-appservers :=
     for $as-name in ($import-config/gr:http-servers/gr:http-server/gr:http-server-name,
-                     $import-config/gr:xdbc-servers/gr:xdbc-server/gr:xdbc-server-name)
+                     $import-config/gr:xdbc-servers/gr:xdbc-server/gr:xdbc-server-name,
+                     $import-config/gr:odbc-servers/gr:odbc-server/gr:odbc-server-name)
     return
       if (admin:appserver-exists($admin-config, $groupid, $as-name)) then
         xdmp:set(
@@ -2588,7 +2650,11 @@ declare function setup:create-appservers(
 
   for $xdbc-config in $import-config/gr:xdbc-servers/gr:xdbc-server
   return
-    setup:create-xdbcserver($xdbc-config)
+    setup:create-xdbcserver($xdbc-config),
+
+  for $odbc-config in $import-config/gr:odbc-servers/gr:odbc-server
+  return
+    setup:create-odbcserver($odbc-config)
 };
 
 declare function setup:validate-appservers(
@@ -2600,7 +2666,11 @@ declare function setup:validate-appservers(
 
   for $xdbc-config in $import-config/gr:xdbc-servers/gr:xdbc-server
   return
-    setup:validate-xdbcserver($xdbc-config)
+    setup:validate-xdbcserver($xdbc-config),
+
+  for $odbc-config in $import-config/gr:odbc-servers/gr:odbc-server
+  return
+    setup:validate-odbcserver($odbc-config)
 };
 
 declare function setup:create-appserver(
@@ -2653,6 +2723,70 @@ declare function setup:validate-appserver(
       setup:validation-fail(fn:concat("Missing HTTP server: ", $server-name))
 };
 
+declare function setup:create-odbcserver(
+  $server-config as element(gr:odbc-server)) as item()*
+{
+  let $server-name as xs:string? := $server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]
+  return
+    if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then
+      fn:concat("ODBC Server ", $server-name, " already exists, not recreated..")
+    else
+      (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
+      let $admin-config := admin:get-configuration()
+      let $admin-config := 
+        try
+        {
+          xdmp:eval('
+            import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+            declare variable $admin-config external;
+            declare variable $root external;
+            declare variable $port external;
+            declare variable $content-db external;
+            declare variable $default-group external;
+            declare variable $server-name external;
+            declare variable $modules-db external;
+            admin:odbc-server-create(
+              admin:get-configuration(),
+              $default-group,
+              $server-name,
+              $root,
+              $port,
+              $modules-db,
+              $content-db)',
+            (xs:QName("admin-config"), $admin-config,
+             xs:QName("root"), ($server-config/gr:root[fn:string-length(fn:string(.)) > 0], "/")[1],
+             xs:QName("port"), xs:unsignedLong($server-config/gr:port),
+             xs:QName("content-db"), setup:get-appserver-database($server-config),
+             xs:QName("default-group"), $default-group,
+             xs:QName("server-name"), $server-name,
+             xs:QName("modules-db"), setup:get-appserver-modules-database($server-config)))
+        }
+        catch($ex)
+        {
+          if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("6.0-2"))) then 
+            fn:error(xs:QName("VERSION_NOT_SUPPORTED"), "Roxy does not support ODBC application servers for this version of MarkLogic. Use 6.0-2 or later.")
+          else
+            xdmp:rethrow()
+        }
+      return
+      (
+        if (admin:save-configuration-without-restart($admin-config)) then
+          xdmp:set($restart-needed, fn:true())
+        else (),
+        fn:concat("ODBC Server ", $server-name, " succesfully created.")
+      )
+};
+
+declare function setup:validate-odbcserver(
+  $server-config as element(gr:http-server)) as item()*
+{
+  let $server-name as xs:string? := $server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]
+  return
+    if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then ()
+    else
+      setup:validation-fail(fn:concat("Missing ODBC server: ", $server-name))
+};
+
 declare function setup:create-xdbcserver(
   $server-config as element(gr:xdbc-server)) as item()*
 {
@@ -2700,6 +2834,10 @@ declare function setup:apply-appservers-settings(
   return
     setup:configure-xdbc-server($xdbc-config),
 
+  for $odbc-config in $import-config/gr:odbc-servers/gr:odbc-server
+  return
+    setup:configure-odbc-server($odbc-config),
+
   for $task-config in $import-config/gr:task-server
   return
     setup:configure-task-server($task-config)
@@ -2715,6 +2853,10 @@ declare function setup:validate-appservers-settings(
   for $xdbc-config in $import-config/gr:xdbc-servers/gr:xdbc-server
   return
     setup:validate-xdbc-server($xdbc-config),
+
+  for $odbc-config in $import-config/gr:odbc-servers/gr:odbc-server
+  return
+    setup:validate-odbc-server($odbc-config),
 
   for $task-config in $import-config/gr:task-server
   return
@@ -2763,6 +2905,28 @@ declare function setup:validate-xdbc-server(
   setup:validate-server(
     $server-config,
     xdmp:server($server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]))
+};
+
+declare function setup:configure-odbc-server(
+  $server-config as element(gr:odbc-server)) as item()*
+{
+  let $server-name as xs:string? := $server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]
+  let $admin-config := setup:configure-server($server-config, xdmp:server($server-name), $odbc-server-settings)
+  return
+  (
+    if (admin:save-configuration-without-restart($admin-config)) then
+      xdmp:set($restart-needed, fn:true())
+    else (),
+    fn:concat("ODBC Server ", $server-name, " settings applied succesfully.")
+  )
+};
+
+declare function setup:validate-odbc-server(
+  $server-config as element(gr:odbc-server)) as item()*
+{
+  setup:validate-server(
+    $server-config,
+    xdmp:server($server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]))
 };
 
 declare function setup:configure-task-server(
@@ -3349,7 +3513,25 @@ declare function setup:get-app-servers($names as xs:string*) as element()*
               )
             )
         }
-      </xdbc-servers>
+      </xdbc-servers>,
+
+    let $odbc-servers := $groups/gr:odbc-servers/gr:odbc-server[gr:odbc-server-name = $names]
+    where $odbc-servers
+    return
+      <odbc-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns="http://marklogic.com/xdmp/group">
+        {
+          for $odbc-server in $odbc-servers
+          return
+            setup:resolve-ids-to-names(
+              setup:strip-default-properties-from-odbc-server(
+                $odbc-server
+              )
+            )
+        }
+      </odbc-servers>
+
   )
 };
 
@@ -3807,6 +3989,51 @@ declare function setup:strip-default-properties-from-xdbc-server(
     for $property in $node/*
     where fn:not($default-properties[fn:deep-equal(., $property)]) and
           fn:not($property/self::gr:xdbc-server-id)
+    return
+      $property
+  }
+};
+
+declare function setup:strip-default-properties-from-odbc-server(
+  $node as element(gr:odbc-server)) as element(gr:odbc-server)
+{
+  element { fn:node-name($node) }
+  {
+    $node/@*,
+
+    (: Wrapping this in xdmp:eval because it didn't exist until ML6 :)
+    let $default-properties :=
+      try
+      {
+        xdmp:eval('
+          import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+          declare variable $default-group external;
+          declare variable $default-modules external;
+          declare variable $default-database external;
+          admin:odbc-server-create(
+            admin:get-configuration(),
+            $default-group,
+            "default",
+            "/",
+            19999,
+            $default-modules,
+            $default-database)//gr:odbc-servers/gr:odbc-server[gr:odbc-server-name eq "default"]/*
+          ',
+          (xs:QName("default-group"), $default-group,
+           xs:QName("default-modules"), $default-modules,
+           xs:QName("default-database"), $default-database))
+      }
+      catch($ex)
+      {
+        if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("6.0-2"))) then 
+          (: If we're not using a recent enough version of ML, then the properties are irrelevant. :)
+          ()
+        else
+          xdmp:rethrow()
+      }
+    for $property in $node/*
+    where fn:not($default-properties[fn:deep-equal(., $property)]) and
+          fn:not($property/self::gr:odbc-server-id)
     return
       $property
   }
