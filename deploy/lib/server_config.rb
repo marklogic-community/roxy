@@ -1116,6 +1116,7 @@ private
             <default-user name="@ml.default-user"/>
             <url-rewriter>@ml.url-rewriter</url-rewriter>
             <error-handler>@ml.error-handler</error-handler>
+            @ml.rewrite-resolves-globally
           </http-server>
         })
       else
