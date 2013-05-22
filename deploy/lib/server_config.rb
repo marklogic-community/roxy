@@ -736,7 +736,7 @@ private
           },
           { :db_name => dest_db }
 
-        if (@properties.has_value?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
+        if (@properties.has_key?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
           total_count += load_data @properties['ml.rest-options.dir'],
               :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
               :remove_prefix => @properties['ml.rest-options.dir'],
@@ -751,7 +751,7 @@ private
     end
 
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
-      if (@properties.has_value?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
+      if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
         logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}\n"
         mlRest.install_extensions(File.expand_path(@properties['ml.rest-ext.dir']))
       end
