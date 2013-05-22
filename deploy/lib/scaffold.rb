@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
+
+require 'fileutils'
+
 module Roxy
   class Scaffold
 
@@ -40,6 +43,9 @@ module Roxy
       ext.gsub!(/(http:\/\/marklogic.com\/rest-api\/resource\/)extension/, "\\1#{resource}")
       ext.gsub!(/yourNSAlias/, prefix)
 
+      # Create the rest extension directory if it doesn't already exist
+      FileUtils.mkdir_p "#{@rest_ext_dir}"
+      # Create the extension
       new_ext = File.expand_path("#{@rest_ext_dir}/#{resource}.xqy", __FILE__)
 
       open(new_ext, 'w') {|f| f.write(ext) }
