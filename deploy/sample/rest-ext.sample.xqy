@@ -61,8 +61,7 @@ declare
 %roxy:params("")
 function yourNSAlias:delete(
     $context as map:map,
-    $params  as map:map,
-    $input   as document-node()?
+    $params  as map:map
 ) as document-node()?
 {
   map:put($context, "output-types", "application/xml"),
