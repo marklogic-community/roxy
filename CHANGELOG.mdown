@@ -54,3 +54,8 @@ This file describes changes made to Roxy per release
 * \#63 Use --app-type parameter with ml new to create mvc, rest, or hybrid apps
 * \#88 Deploy REST API extensions
 * \#92 Scaffolding for REST API extensions
+* \#82 Use Corb with the deployer
+* \#94 Create ODBC app servers
+
+### Resolved Issues
+* \#93 Fixed the deployer so it works with ML7 EA1. 
