@@ -151,7 +151,7 @@ class ServerConfig < MLClient
       FileUtils.mkdir_p options_dir
       FileUtils.cp sample_options, options_file
       FileUtils.cp(
-        File.expand_path("../../sample/properties.sample.xml", __FILE__), 
+        File.expand_path("../../sample/properties.sample.xml", __FILE__),
         File.expand_path("../../../rest-api/properties.xml", __FILE__))
     end
 
@@ -416,6 +416,8 @@ class ServerConfig < MLClient
         deploy_content
       when 'modules'
         deploy_modules
+      when 'schemas'
+        deploy_schemas
       when 'cpf'
         deploy_cpf
       else
@@ -756,7 +758,20 @@ private
         mlRest.install_extensions(File.expand_path(@properties['ml.rest-ext.dir']))
       end
     end
+  end
 
+  def deploy_schemas
+    if @properties.has_key?('ml.schemas-db')
+      schema_db = @properties['ml.schemas-db']
+    else
+      logger.info "\nWarning: app-specific schemas database not defined. Deploying schemas to the Schemas database. The clean and wipe commands will not remove these schemas.\n"
+      schema_db = "Schemas"
+    end
+    total_count = load_data @properties["ml.schemas.dir"],
+      :add_prefix => @properties["ml.schemas-root"],
+      :remove_prefix => @properties["ml.schemas.dir"],
+      :db => schema_db
+    logger.info "\nLoaded #{total_count} #{pluralize(total_count, "schema", "schemas")} from #{@properties["ml.schemas.dir"]} to #{xcc.hostname}:#{xcc.port}/#{schema_db}\n"
   end
 
   def clean_modules

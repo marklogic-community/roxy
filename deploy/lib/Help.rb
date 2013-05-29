@@ -15,6 +15,7 @@ class Help
        deploy         Loads modules, data, cpf configuration into the server
        load           Loads a file or folder into the server
        clean          Removes all files from the cpf, modules, or content databases
+       info           Prints the environment-specific configuration information
        test           Runs xquery unit tests
        recordloader   Runs RecordLoader
        xqsync         Runs XQSync
@@ -227,6 +228,7 @@ class Help
 
         modules # deploys code to your modules db in the given environment
         content # deploys content to your content db in the given environment
+        schemas # deploys schemas to your schemas db in the given environment
         cpf     # deploys your cpf config to the server in the given environment
     DOC
   end
@@ -253,7 +255,8 @@ class Help
       Please choose a WHAT below.
 
         modules # removes all data from the modules db in the given environment
-        content # removes all data from the content dv in the given environment
+        content # removes all data from the content db in the given environment
+        schemas # removes all data from the schemas db in the given environment
         cpf     # removes your cpf config from the server in the given environment
     DOC
   end
@@ -365,8 +368,8 @@ class Help
 
         Example:
           $ ml extend ml:tag
-          will create a tag.xqy library module in your rest-ext directory, using 
-          the "ml" prefix for the functions. 
+          will create a tag.xqy library module in your rest-ext directory, using
+          the "ml" prefix for the functions.
     DOC
   end
 
