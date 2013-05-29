@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
+require 'io/console'
+
 class MLClient
   def initialize(options)
     @ml_username = options[:user_name]
@@ -97,7 +99,9 @@ class MLClient
 
   def password_prompt
     if (@ml_password == "") then
-      @ml_password = prompt "Password for admin user: "
+      print "Password for admin user: "
+      @ml_password = STDIN.noecho(&:gets).chomp
+      print "\n"
     end
   end
 end
