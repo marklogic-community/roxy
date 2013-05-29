@@ -56,6 +56,7 @@ This file describes changes made to Roxy per release
 * \#92 Scaffolding for REST API extensions
 * \#82 Use Corb with the deployer
 * \#94 Create ODBC app servers
+* \#101 Deploy schemas command
 
 ### Resolved Issues
-* \#93 Fixed the deployer so it works with ML7 EA1. 
+* \#93 Fixed the deployer so it works with ML7 EA1.
