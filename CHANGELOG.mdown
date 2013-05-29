@@ -57,6 +57,7 @@ This file describes changes made to Roxy per release
 * \#82 Use Corb with the deployer
 * \#94 Create ODBC app servers
 * \#101 Deploy schemas command
+* \#102 Hide password characters as they are typed
 
 ### Resolved Issues
 * \#93 Fixed the deployer so it works with ML7 EA1.
