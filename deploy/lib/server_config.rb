@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright 2012 MarkLogic Corporation
+# Copyright 2012-2013 MarkLogic Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -413,6 +413,64 @@ class ServerConfig < MLClient
     options[:batch_commit] = batch
     options[:permissions] = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER) unless options[:permissions]
     xcc.load_files(File.expand_path(dir), options)
+  end
+
+  def setup_tls()
+    logger.info "setup_tls #{@environment} #{@properties['ml.ssl-certificate-template']}"
+
+    if @properties['ml.ssl-certificate-template'].length < 1
+      logger.info "ssl-certificate-template undefined in this environment!"
+      return
+    end
+
+    # Do we already have the certificate?
+    r = execute_query %Q{
+      xquery version "1.0-ml";
+      (: Create a new certificate template, if needed. :)
+      import module namespace pki = "http://marklogic.com/xdmp/pki"
+        at "/MarkLogic/pki.xqy";
+      pki:get-template-by-name(
+        "#{@properties['ml.ssl-certificate-template']}")
+    },
+    { :db_name => "Security" }
+    logger.debug(r.body.length)
+
+    # This will throw PKI-DUPNAME if the name already exists.
+    if (r.body.length < 16)
+      r = execute_query %Q{
+        xquery version "1.0-ml";
+        (: Create a new certificate template, if needed. :)
+        import module namespace pki = "http://marklogic.com/xdmp/pki"
+          at "/MarkLogic/pki.xqy";
+         pki:insert-template(
+           pki:create-template(
+             "#{@properties['ml.ssl-certificate-template']}",
+             "Self-signed certificate",
+             "rsa",
+             <pki:key-options xmlns="ssl:options">
+               <key-length>2048</key-length>
+             </pki:key-options>,
+             <req xmlns="http://marklogic.com/xdmp/x509">
+               <version>2</version>
+               <subject>
+                 <countryName>{ @ml.ssl-certificate-countryName }</countryName>
+                 <stateOrProvinceName>{ @ml.ssl-certificate-stateOrProvinceName }</stateOrProvinceName>
+                 <localityName>{ @ml.ssl-certificate-localityName }</localityName>
+                 <organizationName>{ @ml.ssl-certificate-organizationName }</organizationName>
+                 <organizationalUnitName>{ @ml.ssl-certificate-organizationalUnitName }</organizationalUnitName>
+                 <commonName>{ xdmp:hostname() }</commonName>
+                 <emailAddress>{ @ml.ssl-certificate-emailAddress }</emailAddress>
+               </subject>
+               <v3ext>
+                 <basicConstraints critical="false">CA:TRUE</basicConstraints>
+                 <keyUsage critical="false">Certificate Sign, CRL Sign</keyUsage>
+                 <nsCertType critical="false">SSL Server</nsCertType>
+               </v3ext>
+             </req>))
+      },
+      { :db_name => "Security" }
+    end
+
   end
 
   #

@@ -15,8 +15,12 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+import module namespace admin = "http://marklogic.com/xdmp/admin"
+  at "/MarkLogic/admin.xqy";
+import module namespace sec="http://marklogic.com/xdmp/security"
+  at "/MarkLogic/security.xqy";
+import module namespace pki = "http://marklogic.com/xdmp/pki"
+  at "/MarkLogic/pki.xqy";
 
 declare namespace setup = "http://marklogic.com/roxy/setup";
 declare namespace xdmp="http://marklogic.com/xdmp";
@@ -28,7 +32,6 @@ declare namespace ho="http://marklogic.com/xdmp/hosts";
 declare namespace as="http://marklogic.com/xdmp/assignments";
 declare namespace fs="http://marklogic.com/xdmp/status/forest";
 declare namespace mt="http://marklogic.com/xdmp/mimetypes";
-declare namespace pki="http://marklogic.com/xdmp/pki";
 
 declare option xdmp:mapping "false";
 
@@ -163,7 +166,9 @@ declare variable $http-server-settings :=
     <setting>error-handler</setting>
     <setting>url-rewriter</setting>
     <setting>rewrite-resolves-globally</setting>
-    <setting>ssl-certificate-template</setting>
+    <setting
+     value="setup:get-ssl-certificate-template($server-config)"
+     >ssl-certificate-template</setting>
     <setting>ssl-allow-sslv3</setting>
     <setting>ssl-allow-tls</setting>
     <setting>ssl-hostname</setting>
@@ -3457,6 +3462,17 @@ declare function setup:get-appserver-default-user($server-config as element()) a
   return
     if ($user) then xdmp:user($user)
     else $default-user
+};
+
+declare function setup:get-ssl-certificate-template(
+  $server-config as element())
+ as xs:unsignedLong
+{
+  let $v as xs:string? := $server-config/gr:ssl-certificate-template/(
+    @name|text())
+  return (
+    if (not($v)) then 0
+    else pki:template-get-id(pki:get-template-by-name($v)))
 };
 
 declare function setup:get-role-name($id as xs:unsignedLong) as xs:string? {
