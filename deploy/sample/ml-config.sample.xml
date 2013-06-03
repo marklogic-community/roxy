@@ -68,7 +68,7 @@
       @ml.triggers-mapping
       <forests>
         <forest-id name="@ml.content-db"/>
-	@ml.forest-data-dir-xml
+        @ml.forest-data-dir-xml
       </forests>
       <uri-lexicon>true</uri-lexicon>
       <collection-lexicon>true</collection-lexicon>
