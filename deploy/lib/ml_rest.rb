@@ -14,7 +14,7 @@ module Roxy
     def get_files(path, data = [])
       @logger.debug "getting files for #{path}"
       if (File.directory?(path))
-        Dir.glob("#{path}/*.xqy") do |entry|
+        Dir.glob("#{path}/*.{xqy,xslt,xsl}") do |entry|
           if File.directory?(entry)
             get_files(entry, data)
           else
@@ -80,6 +80,95 @@ module Roxy
             @logger.error("code: #{r.code.to_i} body:#{r.body}")
           end
         end
+      else
+        @logger.error "#{path} does not exist"
+      end
+    end
+
+    def install_transforms(path)
+      if (File.exists?(path))
+
+
+        data = get_files(path)
+        size = data.length
+
+        data.each_with_index do |d, i|
+
+          if (File.extname(d).include?("xq"))
+            file_type = 'xquery'
+            headers = {
+                'Content-Type' => 'application/xquery'
+            }
+          elsif (File.extname(d).include?("xsl"))
+            file_type = 'xslt'
+            headers = {
+                'Content-Type' => 'application/xslt+xml'
+            }
+          end
+
+          file = open(d, "rb")
+          contents = file.read
+          transformName = File.basename(d).gsub(/(.xqy|.xquery|.xq|.xslt|.xsl)$/, '')
+          params = []
+
+
+          # TODO: I'm assuming there's a way to consolidate the following if/elsif but I'm a Ruby newbie and I'm being conservative
+          if (file_type == 'xquery')
+            # look for annotations of this form:
+            # %roxy:params("argname=type", "anotherarg=type")
+            contents.scan(/declare\s+(\%\w+:\w+\(([\"\w\-\=\,\s:]*)\))*\s*function/m).each do |m|
+              args = '';
+              if (m[0] && (m[0].include? "%roxy:params"))
+                if (m[1].match(/\"/))
+                  m[1].gsub!(/\"/, '').split(',').each do |p|
+                    arg = p.strip
+                    parts = arg.split('=')
+                    param = parts[0]
+                    type = parts[1]
+                    @logger.debug("param: #{param}")
+                    @logger.debug("type: #{type}")
+                    params << "trans:#{param}=#{url_encode(type)}"
+                  end
+                end
+              end
+            end
+          elsif (file_type == 'xslt')
+            # look for annotations of this form:
+            # %roxy:params("argname=type", "anotherarg=type")
+            contents.scan(/<!--\s*(\%\w+:\w+\(([\"\w\-\=\,\s:]*)\))*\s*-->/m).each do |m|
+              args = '';
+              if (m[0] && (m[0].include? "%roxy:params"))
+                if (m[1].match(/\"/))
+                  m[1].gsub!(/\"/, '').split(',').each do |p|
+                    arg = p.strip
+                    parts = arg.split('=')
+                    param = parts[0]
+                    type = parts[1]
+                    @logger.debug("param: #{param}")
+                    @logger.debug("type: #{type}")
+                    params << "trans:#{param}=#{url_encode(type)}"
+                  end
+                end
+              end
+            end
+          end
+
+          @logger.debug "params: #{params}"
+          @logger.debug "transformName: #{transformName}"
+          # @logger.debug "methods: #{methods}"
+          url = "http://#{@hostname}:#{@port}/v1/config/transforms/#{transformName}"
+          if (params.length > 0)
+            url << "?" << params.join("&")
+          end
+          @logger.debug "loading: #{d}"
+
+          @logger.debug "url: #{url}"
+          r = go url, "put", headers, nil, contents
+          if (r.code.to_i < 200 && r.code.to_i > 206)
+            @logger.error("code: #{r.code.to_i} body:#{r.body}")
+          end
+        end
+
       else
         @logger.error "#{path} does not exist"
       end
