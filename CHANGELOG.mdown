@@ -58,6 +58,8 @@ This file describes changes made to Roxy per release
 * \#94 Create ODBC app servers
 * \#101 Deploy schemas command
 * \#102 Hide password characters as they are typed
+* \#107 Deploy REST API transformations
 
 ### Resolved Issues
 * \#93 Fixed the deployer so it works with ML7 EA1.
+* \#104 Deployer was ignoring the forest-data-dir property
