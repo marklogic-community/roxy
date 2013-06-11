@@ -56,10 +56,12 @@ This file describes changes made to Roxy per release
 * \#92 Scaffolding for REST API extensions
 * \#82 Use Corb with the deployer
 * \#94 Create ODBC app servers
+* \#97 Added a test-authentication-method property, allowing for different methods between test and main
 * \#101 Deploy schemas command
 * \#102 Hide password characters as they are typed
 * \#107 Deploy REST API transformations
 
 ### Resolved Issues
 * \#93 Fixed the deployer so it works with ML7 EA1.
+* \#97 Test app server now gets same config as the main one, except where differentiated
 * \#104 Deployer was ignoring the forest-data-dir property
