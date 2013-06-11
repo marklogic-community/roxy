@@ -29,6 +29,7 @@
       <url-rewriter>@ml.url-rewriter</url-rewriter>
       <error-handler>@ml.error-handler</error-handler>
       <rewrite-resolves-globally>@ml.rewrite-resolves-globally</rewrite-resolves-globally>
+      <!-- <ssl-certificate-template>@ml.cert-template</ssl-certificate-template> -->
     </http-server>
     @ml.test-appserver
   </http-servers>
