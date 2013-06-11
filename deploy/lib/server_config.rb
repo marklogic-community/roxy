@@ -1126,40 +1126,26 @@ private
         </assignment>
       })
 
-      if @properties['ml.test-modules-db'].present? &&
-         @properties['ml.test-modules-db'] != @properties['ml.app-modules-db']
-        config.gsub!("@ml.test-appserver",
-        %Q{
-          <http-server>
-            <http-server-name>@ml.app-name-test</http-server-name>
-            <port>@ml.test-port</port>
-            <database name="@ml.test-content-db"/>
-            <modules name="@ml.test-modules-db"/>
-            <root>@ml.modules-root</root>
-            <authentication>@ml.authentication-method</authentication>
-            <default-user name="@ml.default-user"/>
-            <url-rewriter>@ml.url-rewriter</url-rewriter>
-            <error-handler>@ml.error-handler</error-handler>
-            @ml.rewrite-resolves-globally
-          </http-server>
-        })
-      else
-        config.gsub!("@ml.test-appserver",
-        %Q{
-          <http-server>
-            <http-server-name>@ml.app-name-test</http-server-name>
-            <port>@ml.test-port</port>
-            <database name="@ml.test-content-db"/>
-            <modules name="@ml.modules-db"/>
-            <root>@ml.modules-root</root>
-            <authentication>@ml.authentication-method</authentication>
-            <default-user name="@ml.default-user"/>
-            <url-rewriter>@ml.url-rewriter</url-rewriter>
-            <error-handler>@ml.error-handler</error-handler>
-            @ml.rewrite-resolves-globally
-          </http-server>
-        })
+      # The modules database for the test server can be different from the app one
+      test_modules_db = @properties['ml.test-modules-db']
+      if !@properties['ml.test-modules-db'].present?
+        test_modules_db = @properties['ml.app-modules-db']
       end
+      test_auth_method = @properties['ml.authentication-method']
+      if @properties['ml.test-authentication-method'].present?
+        test_auth_method = @properties['ml.test-authentication-method']
+      end
+
+      config.gsub!("@ml.test-appserver",
+      %Q{
+        <http-server import="@ml.app-name">
+          <http-server-name>@ml.app-name-test</http-server-name>
+          <port>@ml.test-port</port>
+          <database name="@ml.test-content-db"/>
+          <modules name="#{test_modules_db}"/>
+          <authentication>#{test_auth_method}</authentication>
+        </http-server>
+      })
 
     else
       config.gsub!("@ml.test-content-db-xml", "")

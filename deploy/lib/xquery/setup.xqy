@@ -2644,7 +2644,7 @@ declare function setup:validate-security-database(
 declare function setup:create-appservers(
   $import-config as element(configuration)) as item()*
 {
-  for $http-config in $import-config/gr:http-servers/gr:http-server
+  for $http-config in setup:get-http-appservers-from-config($import-config)
   return
     setup:create-appserver($http-config),
 
@@ -2657,10 +2657,28 @@ declare function setup:create-appservers(
     setup:create-odbcserver($odbc-config)
 };
 
+(: Allow one HTTP app server to import most of its config from another :)
+declare function setup:get-http-appservers-from-config(
+  $import-config as element(configuration)) as element(gr:http-server)*
+{
+  for $server in $import-config/gr:http-servers/gr:http-server
+  return
+    if (fn:exists($server/@import)) then
+      element gr:http-server
+      {
+        $server/*,
+        let $ignore := $server/*/fn:node-name(.)
+        return
+          $import-config/gr:http-servers/gr:http-server[gr:http-server-name eq $server/@import]/*[fn:not(fn:node-name(.) = $ignore)]
+      }
+    else
+      $server
+};
+
 declare function setup:validate-appservers(
   $import-config as element(configuration)) as item()*
 {
-  for $http-config in $import-config/gr:http-servers/gr:http-server
+  for $http-config in setup:get-http-appservers-from-config($import-config)
   return
     setup:validate-appserver($http-config),
 
@@ -2733,7 +2751,7 @@ declare function setup:create-odbcserver(
     else
       (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
       let $admin-config := admin:get-configuration()
-      let $admin-config := 
+      let $admin-config :=
         try
         {
           xdmp:eval('
@@ -2763,7 +2781,7 @@ declare function setup:create-odbcserver(
         }
         catch($ex)
         {
-          if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("6.0-2"))) then 
+          if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("6.0-2"))) then
             fn:error(xs:QName("VERSION_NOT_SUPPORTED"), "Roxy does not support ODBC application servers for this version of MarkLogic. Use 6.0-2 or later.")
           else
             xdmp:rethrow()
@@ -2826,7 +2844,7 @@ declare function setup:validate-xdbcserver(
 declare function setup:apply-appservers-settings(
   $import-config as element(configuration)) as item()*
 {
-  for $http-config in $import-config/gr:http-servers/gr:http-server
+  for $http-config in setup:get-http-appservers-from-config($import-config)
   return
     setup:configure-http-server($http-config),
 
@@ -2846,7 +2864,7 @@ declare function setup:apply-appservers-settings(
 declare function setup:validate-appservers-settings(
   $import-config as element(configuration)) as item()*
 {
-  for $http-config in $import-config/gr:http-servers/gr:http-server
+  for $http-config in setup:get-http-appservers-from-config($import-config)
   return
     setup:validate-http-server($http-config),
 
@@ -4025,7 +4043,7 @@ declare function setup:strip-default-properties-from-odbc-server(
       }
       catch($ex)
       {
-        if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("6.0-2"))) then 
+        if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("6.0-2"))) then
           (: If we're not using a recent enough version of ML, then the properties are irrelevant. :)
           ()
         else
