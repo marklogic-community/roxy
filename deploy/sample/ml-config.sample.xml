@@ -29,7 +29,7 @@
       <url-rewriter>@ml.url-rewriter</url-rewriter>
       <error-handler>@ml.error-handler</error-handler>
       <rewrite-resolves-globally>@ml.rewrite-resolves-globally</rewrite-resolves-globally>
-      <!-- <ssl-certificate-template>@ml.cert-template</ssl-certificate-template> -->
+      <!-- <ssl-certificate-template>@ml.ssl-certificate-template</ssl-certificate-template> -->
     </http-server>
     @ml.test-appserver
   </http-servers>
@@ -298,6 +298,15 @@
     @ml.triggers-db-xml
     @ml.schemas-db-xml
   </databases>
+  <certificate xmlns="http://marklogic.com/xdmp/pki">
+    <name>@ml.ssl-certificate-template</name>
+    <countryName>@ml.ssl-certificate-countryName</countryName>
+    <stateOrProvinceName>@ml.ssl-certificate-stateOrProvinceName</stateOrProvinceName>
+    <localityName>@ml.ssl-certificate-localityName</localityName>
+    <organizationName>@ml.ssl-certificate-organizationName</organizationName>
+    <organizationalUnitName>@ml.ssl-certificate-organizationalUnitName</organizationalUnitName>
+    <emailAddress>@ml.ssl-certificate-emailAddress</emailAddress>
+  </certificate>
   <roles xmlns="http://marklogic.com/xdmp/security">
     <role>
       <role-name>@ml.app-role</role-name>

@@ -367,6 +367,7 @@ declare function setup:do-setup($import-config as element(configuration)) as ite
 {
   try
   {
+    setup:create-ssl-certificate-templates($import-config),
     setup:create-privileges($import-config),
     setup:create-roles($import-config),
     setup:create-users($import-config),
@@ -411,6 +412,26 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
     if (admin:save-configuration-without-restart($admin-config)) then
       xdmp:set($restart-needed, fn:true())
     else (),
+
+  (: remove certificates :)
+  let $certificates := $import-config/pki:certificates
+  where $certificates
+  return
+    xdmp:eval('
+      import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
+
+      declare variable $certificates external;
+
+      for $cert-name in $certificates/pki:certificate/pki:name/fn:string()
+      let $cert := pki:get-template-by-name($cert-name)
+      where $cert
+      return pki:delete-template(pki:template-get-id($cert))
+      ',
+      (xs:QName("certificates"), $certificates),
+      <options xmlns="xdmp:eval">
+        <database>{xdmp:security-database()}</database>
+      </options>
+    ),
 
   let $admin-config := admin:get-configuration()
   for $amp in $import-config/sec:amps/sec:amp
@@ -3327,6 +3348,7 @@ declare function setup:create-users($import-config as element(configuration))
   let $eval-options :=
     <options xmlns="xdmp:eval">
       <database>{$default-security}</database>
+      <isolation>different-transaction</isolation>
     </options>
   return
     if (setup:get-users(())/sec:user[sec:user-name = $user-name]) then
@@ -3655,7 +3677,12 @@ declare function setup:get-appserver-default-user($server-config as element()) a
 {
   let $user as xs:string? := fn:data($server-config/gr:default-user/(@name|text()))
   return
-    if ($user) then xdmp:user($user)
+    if ($user) then
+      xdmp:eval('
+        declare variable $username external;
+        xdmp:user($username)',
+        (xs:QName("username"), $user)
+      )
     else $default-user
 };
 
@@ -4222,3 +4249,56 @@ declare function setup:validate-install($import-config as element(configuration)
     $ex
   }
 };
+
+declare function setup:create-ssl-certificate-templates($import-config as element(configuration))
+{
+  xdmp:log("timestamp: " || xdmp:request-timestamp(  )),
+  for $cert in $import-config/pki:certificates/pki:certificate[fn:exists(pki:name/text())]
+  return
+    if (fn:empty(pki:get-template-by-name($cert/pki:name))) then
+      xdmp:eval(
+        '
+        import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
+        declare variable $cert external;
+        pki:insert-template(
+          pki:create-template(
+            $cert/pki:name,
+            "Self-signed certificate",
+            "rsa",
+            <pki:key-options xmlns="ssl:options">
+              <key-length>2048</key-length>
+            </pki:key-options>,
+            <req xmlns="http://marklogic.com/xdmp/x509">
+              <version>0</version>
+              <subject>
+                <countryName>{ $cert/pki:countryName/fn:string() }</countryName>
+                <stateOrProvinceName>{ $cert/pki:stateOrProvinceName/fn:string() }</stateOrProvinceName>
+                <localityName>{ $cert/pki:localityName/fn:string() }</localityName>
+                <organizationName>{ $cert/pki:organizationName/fn:string() }</organizationName>
+                <organizationalUnitName>{ $cert/pki:organizationalUnitName/fn:string() }</organizationalUnitName>
+                <commonName>{ xdmp:hostname() }</commonName>
+                <emailAddress>{ $cert/pki:emailAddress/fn:string() }</emailAddress>
+              </subject>
+              <v3ext>
+                <basicConstraints critical="false">CA:TRUE</basicConstraints>
+                <keyUsage critical="false">Certificate Sign, CRL Sign</keyUsage>
+                <nsCertType critical="false">SSL Server</nsCertType>
+              </v3ext>
+            </req>))',
+        (xs:QName("cert"), $cert),
+        <options xmlns="xdmp:eval">
+          <database>{xdmp:security-database()}</database>
+          <isolation>different-transaction</isolation>
+        </options>
+      )
+    else ()
+
+};
+
+(:
+ : Force update mode. This is so that we can create an SSL certificate template
+ : and then tell an app server to use it.
+ :)
+if ( 1 = 2 )
+then ( xdmp:document-insert("fake.xml", <a/>) ) else (),
+
