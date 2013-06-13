@@ -53,10 +53,6 @@ This section describes the quickest way to get started using Roxy.
   authentication-method=application-level  
   \# the default user to authenticate with. defaults to nobody  
   default-user=nobody  
-  \# the root path of your modules. Use this to override the modules db and use your filesystem location  
-  modules-root=/the/path/to/your/files/on/the/filesystem  
-  \# either 'filesystem' or 'name of db'  
-  app-modules-db=filesystem  
   \# Specify the server(s) you wish to deploy to here. This tutorial assumes you are using localhost.  
   local-server=localhost  
   \#dev-server=  
