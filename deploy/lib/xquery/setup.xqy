@@ -162,7 +162,7 @@ declare variable $http-server-settings :=
     <setting>output-include-default-attributes</setting>
     <setting>error-handler</setting>
     <setting>url-rewriter</setting>
-    <setting>rewrite-resolves-globally</setting>
+    <setting min-version="6.0-1">rewrite-resolves-globally</setting>
     <setting value="setup:get-ssl-certificate-template($server-config)">ssl-certificate-template</setting>
     <setting>ssl-allow-sslv3</setting>
     <setting>ssl-allow-tls</setting>
@@ -3044,10 +3044,13 @@ declare function setup:configure-server(
         xdmp:value($setting/@value)
       else
         fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(fn:string(.)) > 0]")))
+    let $min-version as xs:string? := $setting/@min-version
     where (fn:exists($value))
     return
-      xdmp:set($admin-config,
-        xdmp:value(fn:concat("admin:appserver-set-", $setting, "($admin-config, $server-id, $value)")))
+      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+        xdmp:set($admin-config,
+          xdmp:value(fn:concat("admin:appserver-set-", $setting, "($admin-config, $server-id, $value)")))
+      else ()
 
   let $namespaces := $server-config/gr:namespaces/gr:namespace
   let $admin-config :=
@@ -4252,7 +4255,7 @@ declare function setup:validate-install($import-config as element(configuration)
 
 declare function setup:create-ssl-certificate-templates($import-config as element(configuration))
 {
-  xdmp:log("timestamp: " || xdmp:request-timestamp(  )),
+  xdmp:log(fn:concat("timestamp: ", xdmp:request-timestamp(  ))),
   for $cert in $import-config/pki:certificates/pki:certificate[fn:exists(pki:name/text())]
   return
     if (fn:empty(pki:get-template-by-name($cert/pki:name))) then
