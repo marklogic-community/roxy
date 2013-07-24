@@ -295,8 +295,10 @@ class ServerConfig < MLClient
     r = nil
     if @server_version == 4
       r = execute_query_4 query, properties
-    else
+    elsif @server_version == 5 || @server_version == 6
       r = execute_query_5 query, properties
+    else
+      r = execute_query_7 query, properties
     end
 
     raise ExitException.new(r.body) unless r.code.to_i == 200
@@ -961,6 +963,47 @@ private
         :q => query
       }
       logger.debug r.body
+    end
+
+    raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
+
+    r
+  end
+
+  def execute_query_7(query, properties = {})
+    # We need a context for this query. Here's what we look for, in order of preference:
+    # 1. A caller-specified database
+    # 2. A caller-specified application server
+    # 3. An application server that is present by default
+    # 4. Any database
+    if properties[:db_name] != nil
+      db_id = get_db_id(properties[:db_name])
+    elsif properties[:app_name] != nil
+      sid = get_sid(properties[:app_name])
+    else
+      sid = get_sid("Manage")
+    end
+
+    db_id = get_any_db_id if db_id.nil? && sid.nil?
+
+    if db_id.present?
+      logger.debug "using dbid: #{db_id}"
+      r = go_7 "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy", "post", {}, {
+        :dbid => db_id,
+        :resulttype => "text",
+        :action => "eval",
+        :querytype => "xquery"
+      },
+      query
+    else
+      logger.debug "using sid: #{sid}"
+      r = go_7 "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy", "post", {}, {
+        :sid => sid,
+        :resulttype => "text",
+        :action => "eval",
+        :querytype => "xquery"
+      },
+      query
     end
 
     raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
