@@ -2,7 +2,7 @@
 Roxy (RObust XQuerY Framework) is a lightweight framework for quickly developing well-structured, easily maintained XQuery applications. Roxy was heavily inspired by Ruby On Rails and CakePHP.
 
 ## Getting Help
-To get help with Roxy, 
+To get help with Roxy,
 
 * Subscribe to the [Roxy mailing list](http://developer.marklogic.com/mailman/listinfo/roxy)
 * Read up on [the wiki](https://github.com/marklogic/roxy/wiki)
@@ -19,11 +19,11 @@ The meat and potatoes of Roxy, the mVC (with a de-emphasis on m) is a light-weig
 What good is your code if it doesn't work? Testing is paramount to the development process. The Roxy Unit Tester tests XQuery with XQuery. Write your tests in XQuery and run them from the UI or from the command line. Roxy Unit Tester produces JUnit XML output so you can use it with your favorite continuous testing tool.
 
 ## Requirements
-* MarkLogic:
+* MarkLogic ([notes on supported versions](https://github.com/marklogic/roxy/wiki/Supported-MarkLogic-versions)):
   * MarkLogic 4.x - You need the **Docs** appserver running on port 8000 - this port can be overridden in build.properties
   * MarkLogic 5.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
   * MarkLogic 6.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
-* [Ruby](http://www.ruby-lang.org/en/) - Required for Roxy Deployer only.
+* [Ruby 1.9.3+](http://www.ruby-lang.org/en/) - Required for Roxy Deployer only.
 * [Java (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/index.html) - Only if you wish to run the Roxy Deployer [XQSync](http://developer.marklogic.com/code/xqsync, XQSync) or [RecordLoader](http://developer.marklogic.com/code/recordloader) commands.
 * [Git](http://git-scm.com/downloads) - Required to create a new project using "ml new".
 
@@ -31,55 +31,54 @@ What good is your code if it doesn't work? Testing is paramount to the developme
 This section describes the quickest way to get started using Roxy.
 
 ### Assumptions
-* You already have one or more MarkLogic Servers running somewhere that you can access from your computer. If not, get it [here](http://community.marklogic.com/products).* 
+* You already have one or more MarkLogic Servers running somewhere that you can access from your computer. If not, get it [here](http://developer.marklogic.com/products).*
 * You know the admin logon to your MarkLogic Server(s)
 
 ### Download Roxy
-`> git clone git://github.com/marklogic/roxy.git`
+`$ git clone git://github.com/marklogic/roxy.git`
 
 ### Configure your application
 1. Open a command prompt in the root folder of Roxy
 2. Run ml init to create sample configuration files
-
-  `> ml init app-name`
+  <pre><code>$ ml init app-name</code></pre>
 3. Modify deploy/build.properties with your application's settings.
 
-  <code>
-  \# Username to authenticate to ML  
-  user=your-ml-admin-username  
-  \# password for ML authentication  
-  password=your-ml-admin-password  
-  \# the authentication type for the appserver (digest|basic|application-level)  
-  authentication-method=application-level  
-  \# the default user to authenticate with. defaults to nobody  
-  default-user=nobody  
-  \# Specify the server(s) you wish to deploy to here. This tutorial assumes you are using localhost.  
-  local-server=localhost  
-  \#dev-server=  
-  \#cert-server=  
-  \#prod-server=  
-  </code>
+<pre><code># Username to authenticate to ML
+user=your-ml-admin-username
+# password for ML authentication
+password=your-ml-admin-password
+# the authentication type for the appserver (digest|basic|application-level)
+authentication-method=application-level
+# the default user to authenticate with. defaults to nobody
+default-user=nobody
+# Specify the server(s) you wish to deploy to here. This tutorial assumes you are using localhost.
+local-server=localhost
+#dev-server=
+#cert-server=
+#prod-server=
+</code></pre>
 
 ### Configure MarkLogic Server
 *This step is only needed when database configurations have changed or on a fresh install. In most cases you will not need to restart your server.*
 
-1. Open a command prompt in the root folder of Roxy  
+1. Open a command prompt in the root folder of Roxy.
   *If your server is not configured as local-server in build.properties then substitute your environment here ( local | dev | prod )*
-2. `> ml local bootstrap`
-3. Depending on what, if anything, you changed you may need to restart MarkLogic in order to proceed. If you see output telling you to restart...  
-  `> ml local restart`
+2. `$ ml local bootstrap`
+3. Depending on what, if anything, you changed you may need to restart MarkLogic in order to proceed. If you see output telling you to restart...
+  <pre><code>$ ml local restart</code></pre>
 
 ### Deploying Code
 *This step describes how to deploy your Roxy application into your MarkLogic Server modules database. If you have elected to run your code locally out of the filesystem you do not need to do this.*
 
 1. Open a command prompt in the root folder of Roxy
-2. `> ml local deploy modules`
-3. Open your favorite web browser to http://localhost:port  
+2. `$ ml local deploy modules`
+3. Open your favorite web browser to http://localhost:port
+
   *Sub in your hostname and port from build.properties*
 
 ### Congratulations
 **Congratulations!** You have Roxy running on your server. Now you need to start customizing it.
 
 ## Getting Help
-For more information run:  
-  `> ml -h`
+For more information run:
+  `$ ml -h`
