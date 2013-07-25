@@ -990,7 +990,6 @@ private
       logger.debug "using dbid: #{db_id}"
       r = go_7 "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy", "post", {}, {
         :dbid => db_id,
-        :resulttype => "text",
         :action => "eval",
         :querytype => "xquery"
       },
@@ -999,7 +998,6 @@ private
       logger.debug "using sid: #{sid}"
       r = go_7 "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy", "post", {}, {
         :sid => sid,
-        :resulttype => "text",
         :action => "eval",
         :querytype => "xquery"
       },
