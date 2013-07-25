@@ -67,3 +67,4 @@ This file describes changes made to Roxy per release
 * \#93 Fixed the deployer so it works with ML7 EA1.
 * \#97 Test app server now gets same config as the main one, except where differentiated
 * \#104 Deployer was ignoring the forest-data-dir property
+* \#110 Updated bootstrap procedure to work with new ML7 endpoint
