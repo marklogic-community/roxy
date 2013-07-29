@@ -109,6 +109,11 @@ declare variable $database-settings :=
     <setting>merge-min-size</setting>
     <setting>merge-min-ratio</setting>
     <setting>merge-timestamp</setting>
+    <setting min-version="7.0-0">triple-index</setting>
+    <setting min-version="7.0-0">rebalancer-enable</setting>
+    <setting min-version="7.0-0">rebalancer-throttle</setting>
+    <setting min-version="7.0-0">in-memory-triple-index-size</setting>
+    <setting min-version="7.0-0">journal-count</setting>
   </settings>;
 
 declare variable $http-server-settings :=
@@ -1001,11 +1006,14 @@ declare function setup:apply-database-settings($import-config as element(configu
   let $apply-settings :=
     for $setting in $database-settings/*:setting
     let $value := fn:data(xdmp:value(fn:concat("$db-config/db:", $setting)))
+    let $min-version as xs:string? := $setting/@min-version
     where fn:exists($value)
     return
-      xdmp:set(
-        $admin-config,
-        xdmp:value(fn:concat("admin:database-set-", $setting, "($admin-config, $database, $value)")))
+      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+        xdmp:set(
+          $admin-config,
+          xdmp:value(fn:concat("admin:database-set-", $setting, "($admin-config, $database, $value)")))
+      else ()
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
