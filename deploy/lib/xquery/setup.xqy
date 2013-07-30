@@ -306,6 +306,23 @@ declare variable $task-server-settings :=
     <setting>threads</setting>
   </settings>;
 
+declare variable $field-settings :=
+  <settings>
+    <setting>fast-case-sensitive-searches</setting>
+    <setting>fast-diacritic-sensitive-searches</setting>
+    <setting>fast-phrase-searches</setting>
+    <setting>one-character-searches</setting>
+    <setting>stemmed-searches</setting>
+    <setting>three-character-searches</setting>
+    <setting>three-character-word-positions</setting>
+    <setting>trailing-wildcard-searches</setting>
+    <setting>trailing-wildcard-word-positions</setting>
+    <setting>two-character-searches</setting>
+    <setting min-version="6.0-1">value-positions</setting>
+    <setting min-version="6.0-1">value-searches</setting>
+    <setting>word-searches</setting>
+  </settings>;
+
 (: A note on naming conventions:
   $admin-config refers to the configuration passed around by the Admin APIs
   $import-config is the import/export configuration format that setup:get-configuration() generates
@@ -1078,6 +1095,7 @@ declare function setup:configure-databases($import-config as element(configurati
   let $admin-config := setup:add-geospatial-element-pair-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-geospatial-element-child-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-fields($admin-config, $database, $db-config)
+  let $admin-config := setup:apply-field-settings($admin-config, $database, $db-config)
   let $admin-config := setup:add-field-includes($admin-config, $database, $db-config)
   let $admin-config := setup:add-field-excludes($admin-config, $database, $db-config)
   let $admin-config := setup:add-field-word-lexicons($admin-config, $database, $db-config)
@@ -1177,6 +1195,28 @@ declare function setup:validate-fields($admin-config, $database, $db-config)
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
       setup:validation-fail(fn:concat("Database mismatched field: ", $expected/db:field-name))
+};
+
+declare function setup:apply-field-settings(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database)) as element(configuration)
+{
+  let $apply-settings :=
+    for $field in $db-config/db:fields/db:field
+    let $field-name as xs:string := $field/db:field-name
+    for $setting in $field-settings/setting
+    let $value := fn:data(xdmp:value(fn:concat("$field/db:", $setting)))
+    let $min-version as xs:string? := $setting/@min-version
+    let $_ := xdmp:log("applying " || $setting || " setting; min-version=" || $min-version || "; apply?=" ||
+      (fn:exists($value) and (fn:empty($min-version) or setup:at-least-version($min-version))))
+    where fn:exists($value) and (fn:empty($min-version) or setup:at-least-version($min-version))
+    return
+      xdmp:set(
+        $admin-config,
+        xdmp:value(fn:concat("admin:database-set-field-", $setting, "($admin-config, $database, $field-name, $value)")))
+  return
+    $admin-config
 };
 
 declare function setup:add-field-includes(

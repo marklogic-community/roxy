@@ -62,9 +62,11 @@ This file describes changes made to Roxy per release
 * \#103 Bootstrap an HTTP server with SSL
 * \#107 Deploy REST API transformations
 * \#113 Override response types
+* \#117 Support new ML7 database settings
 
 ### Resolved Issues
 * \#93 Fixed the deployer so it works with ML7 EA1.
 * \#97 Test app server now gets same config as the main one, except where differentiated
 * \#104 Deployer was ignoring the forest-data-dir property
 * \#110 Updated bootstrap procedure to work with new ML7 endpoint
+* \#118 Apply field settings
