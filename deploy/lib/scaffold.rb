@@ -24,6 +24,7 @@ module Roxy
     def initialize(options)
       @logger = options[:logger]
       @rest_ext_dir = options[:properties]["ml.rest-ext.dir"]
+      @rest_trans_dir = options[:properties]["ml.rest-transforms.dir"]
     end
 
     def extend(resource)
@@ -49,6 +50,42 @@ module Roxy
       new_ext = File.expand_path("#{@rest_ext_dir}/#{resource}.xqy", __FILE__)
 
       open(new_ext, 'w') {|f| f.write(ext) }
+
+    end
+
+    def transform(transform, type = nil)
+      raise HelpException.new("extend", "Missing resource name") unless transform
+      if type == nil
+        type = 'xslt'
+      end
+      if type != 'xslt' && type != 'xqy'
+        Help.doHelp(@logger, 'transform')
+        return
+      end
+
+      prefix = nil
+      if transform.match(':')
+        parts = transform.split(':')
+        prefix = parts[0]
+        transform = parts[1]
+      end
+
+      puts "Creating REST transformation #{transform} of type #{type} in #{@rest_trans_dir}\n"
+
+      sample_trans = File.expand_path("../../sample/rest-transform.sample.#{type}", __FILE__)
+      trans = File.read sample_trans
+
+      trans.gsub!(/(http:\/\/marklogic.com\/rest-api\/transform\/)sample/, "\\1#{transform}")
+      if prefix != nil
+        trans.gsub!(/trns/, prefix)
+      end
+
+      # Create the rest extension directory if it doesn't already exist
+      FileUtils.mkdir_p "#{@rest_trans_dir}"
+      # Create the extension
+      new_trans = File.expand_path("#{@rest_trans_dir}/#{transform}.#{type}", __FILE__)
+
+      open(new_trans, 'w') {|f| f.write(trans) }
 
     end
 

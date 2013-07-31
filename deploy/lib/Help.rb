@@ -21,10 +21,11 @@ class Help
        xqsync         Runs XQSync
        corb           Runs Corb
 
-      Roxy MVC Commands:
+      Roxy Scaffolding commands:
        create       Creates a controller or view or model
        index        Adds an index to the configuration
        extend       Create a REST API service extension
+       transform    Create a REST API transformation
 
       All commands can be run with -h for more information.
 
@@ -370,6 +371,38 @@ class Help
           $ ml extend ml:tag
           will create a tag.xqy library module in your rest-ext directory, using
           the "ml" prefix for the functions.
+    DOC
+  end
+
+  def self.transform
+    <<-DOC.strip_heredoc
+      Usage: ml transform [prefix:]name [type]
+        Create a REST API transformation with the provided name. By default,
+        the transform will be XSLT.
+
+      prefix:
+        The prefix will be used as the namespace prefix.
+
+      name:
+        This name will be used for the file in which the transform is stored
+        and the name used when deploying to MarkLogic.
+
+      type:
+        (xslt|xqy)
+
+      Example:
+        $ ml transform ex:sample
+        will create a sample.xsl file in your rest-transform directory,
+        using the "ex" namespace prefix.
+
+      Example:
+        $ ml transform sample
+        will create a sample.xsl file in your rest-transform directory.
+
+      Example:
+        $ ml transform sample xqy
+        will create a sample.xqy library module in your rest-transform directory,
+        using a built-in value as the prefix for the functions.
     DOC
   end
 

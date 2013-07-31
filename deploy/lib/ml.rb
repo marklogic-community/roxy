@@ -77,6 +77,14 @@ begin
         scaffold = Roxy::Scaffold.new :logger => @logger, :properties => ServerConfig.properties
         scaffold.extend ARGV.shift
       end
+    elsif command == "transform"
+      if need_help?
+        Help.doHelp(@logger, command)
+        break
+      else
+        scaffold = Roxy::Scaffold.new :logger => @logger, :properties => ServerConfig.properties
+        scaffold.transform ARGV.shift, ARGV.shift
+      end
     #
     # put things in ServerConfig class methods that don't depend on environment or server info
     #

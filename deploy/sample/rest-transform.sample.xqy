@@ -1,5 +1,5 @@
 xquery version "1.0-ml";
-module namespace example = "http://marklogic.com/rest-api/transform/add-attr";
+module namespace trns = "http://marklogic.com/rest-api/transform/sample";
 
 declare namespace roxy = "http://marklogic.com/roxy";
 
@@ -18,28 +18,17 @@ declare namespace roxy = "http://marklogic.com/roxy";
 
 %roxy:params("uri=xs:string", "priority=xs:int")
 
+These can be retrieved with map:get($params, "uri"), for example.
+
 :)
 
 declare
-%roxy:params("uri=xs:string", "priority=xs:int")
-function example:transform(
- $context as map:map,
- $params as map:map,
- $content as document-node()
+%roxy:params()
+function trns:transform(
+  $context as map:map,
+  $params as map:map,
+  $content as document-node()
 ) as document-node()
 {
- if (fn:empty($content/*)) then $content
- else
- let $value := (map:get($params,"value"),"UNDEFINED")[1]
- let $name := (map:get($params, "name"), "transformed")[1]
- let $root := $content/*
- return document {
- $root/preceding-sibling::node(),
- element {fn:name($root)} {
-attribute { fn:QName("", $name) } {$value},
- $root/@*,
- $root/node()
- },
- $root/following-sibling::node()
- }
+  $content
 };
