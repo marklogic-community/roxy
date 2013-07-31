@@ -94,6 +94,8 @@ module Roxy
 
         data.each_with_index do |d, i|
 
+          @logger.debug "Deploying #{File.basename(d)}"
+
           if (File.extname(d).include?("xq"))
             file_type = 'xquery'
             headers = {
