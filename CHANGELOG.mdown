@@ -61,6 +61,7 @@ This file describes changes made to Roxy per release
 * \#102 Hide password characters as they are typed
 * \#103 Bootstrap an HTTP server with SSL
 * \#107 Deploy REST API transformations
+* \#108 Create skeleton REST API transformations
 * \#113 Override response types
 * \#117 Support new ML7 database settings
 
