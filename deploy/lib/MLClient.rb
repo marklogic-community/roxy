@@ -13,7 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
+begin
 require 'io/console'
+rescue LoadError
+end
+
 require 'uri'
 
 class MLClient
@@ -151,9 +155,13 @@ class MLClient
 
   def password_prompt
     if (@ml_password == "") then
+      if STDIN.respond_to?(:noecho)
       print "Password for admin user: "
       @ml_password = STDIN.noecho(&:gets).chomp
       print "\n"
+      else
+        raise ExitException.new("Upgrade to Ruby >= 1.9 for password prompting on the shell. Or you can set password= in your properties file")
+      end
     end
   end
 end
