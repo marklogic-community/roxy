@@ -165,8 +165,8 @@ declare variable $http-server-settings :=
     <setting>output-undeclare-prefixes</setting>
     <setting>output-version</setting>
     <setting>output-include-default-attributes</setting>
-    <setting>error-handler</setting>
-    <setting>url-rewriter</setting>
+    <setting accept-blank="true">error-handler</setting>
+    <setting accept-blank="true">url-rewriter</setting>
     <setting min-version="6.0-1">rewrite-resolves-globally</setting>
     <setting value="setup:get-ssl-certificate-template($server-config)">ssl-certificate-template</setting>
     <setting>ssl-allow-sslv3</setting>
@@ -3087,11 +3087,16 @@ declare function setup:configure-server(
   let $admin-config := admin:get-configuration()
   let $apply-settings :=
     for $setting in $settings/*:setting
+    let $setting-test :=
+      if ($setting/@accept-blank = "true") then
+        ""
+      else
+        "[fn:string-length(fn:string(.)) > 0]"
     let $value :=
       if ($setting/@value) then
         xdmp:value($setting/@value)
       else
-        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(fn:string(.)) > 0]")))
+        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, $setting-test)))
     let $min-version as xs:string? := $setting/@min-version
     where (fn:exists($value))
     return
