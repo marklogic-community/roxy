@@ -27,6 +27,9 @@ class Help
        extend       Create a REST API service extension
        transform    Create a REST API transformation
 
+      Other commands:
+       upgrade      Upgrades the Roxy files
+
       All commands can be run with -h for more information.
 
     DOC
@@ -403,6 +406,19 @@ class Help
         $ ml transform sample xqy
         will create a sample.xqy library module in your rest-transform directory,
         using a built-in value as the prefix for the functions.
+    DOC
+  end
+
+  def self.upgrade
+    <<-DOC.strip_heredoc
+      Usage: ml upgrade --branch=[dev|master]
+        Upgrades Roxy files in the current project, using files from the
+        specified branch on GitHub. Any project will have its deploy directory
+        upgraded. Projects of app-type "mvc" or "hybrid" will also have their
+        src/roxy/ directory upgraded.
+
+      branch: (required)
+        The name of the Roxy GitHub branch to use for the upgrade.
     DOC
   end
 

@@ -18,6 +18,7 @@ require 'server_config'
 require 'framework'
 require 'util'
 require 'app_specific'
+require 'upgrader'
 require 'scaffold'
 
 def need_help?
@@ -84,6 +85,14 @@ begin
       else
         scaffold = Roxy::Scaffold.new :logger => @logger, :properties => ServerConfig.properties
         scaffold.transform ARGV.shift, ARGV.shift
+      end
+    elsif command == "upgrade"
+      if need_help?
+        Help.doHelp(@logger, command)
+        break
+      else
+        upgrader = Roxy::Upgrader.new :logger => @logger, :properties => ServerConfig.properties
+        upgrader.upgrade(ARGV)
       end
     #
     # put things in ServerConfig class methods that don't depend on environment or server info
