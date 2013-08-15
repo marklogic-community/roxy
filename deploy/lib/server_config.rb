@@ -650,7 +650,60 @@ class ServerConfig < MLClient
     logger.info "wrote #{properties_file}"
   end
 
+  def capture
+
+    if @properties['ml.app-type'] != 'rest'
+      raise ExitException.new("This is a #{@properties['ml.app-type']} application; capture only works for app-type=rest")
+    end
+
+    target_db = find_arg(['--modules-db'])
+
+    if target_db == nil
+      raise HelpException.new("capture", "modules-db is required")
+    end
+
+    tmp_dir = Dir.mktmpdir
+    puts "using temp dir " + tmp_dir
+    prop_string = "-DINPUT_CONNECTION_STRING=xcc://#{@properties['ml.user']}:#{@properties['ml.password']}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{target_db} -DOUTPUT_PACKAGE=#{tmp_dir}/ab.zip"
+    runme = %Q{java -Xmx2048m -cp #{File.expand_path("../java/xqsync.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/marklogic-xcc-5.0.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xstream-1.4.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xpp3-1.1.4c.jar", __FILE__)} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
+    logger.info runme
+    `#{runme}`
+
+    Dir.mkdir("#{tmp_dir}/src")
+    system("unzip -qq -d #{tmp_dir}/src #{tmp_dir}/ab-000.zip")
+
+    recursive_delete("#{tmp_dir}/src", '.metadata')
+
+    # set up the options
+    puts "copy from #{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/* to #{@properties['ml.rest-options.dir']}"
+    FileUtils.cp_r(
+      "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
+      @properties['ml.rest-options.dir']
+    )
+    FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
+
+    FileUtils.cp_r("#{tmp_dir}/src/.", @properties["ml.xquery.dir"])
+
+    FileUtils.rm_rf(tmp_dir)
+  end
+
 private
+
+  def recursive_delete(dir, suffix)
+    Dir.entries(dir).each do |entry|
+      if (Dir.exist? ("#{dir}/#{entry}"))
+        # directory
+        if !['.', '..'].include? entry
+          recursive_delete("#{dir}/#{entry}", suffix)
+        end
+      else
+        # file
+        if entry.end_with? suffix
+          File.delete("#{dir}/#{entry}")
+        end
+      end
+    end
+  end
 
   # Build an array of role/capability objects.
   def permissions(role, capabilities)

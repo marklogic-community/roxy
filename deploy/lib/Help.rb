@@ -29,6 +29,7 @@ class Help
 
       Other commands:
        upgrade      Upgrades the Roxy files
+       capture      Capture the source code of an existing App Builder application
 
       All commands can be run with -h for more information.
 
@@ -419,6 +420,17 @@ class Help
 
       branch: (required)
         The name of the Roxy GitHub branch to use for the upgrade.
+    DOC
+  end
+
+  def self.capture
+    <<-DOC.strip_heredoc
+      Usage: ml {env} capture --modules-db=[name of modules database]
+        Captures the source and REST API configuration for an existing
+        Application Builder-based application.
+
+      modules-db: (required)
+        The modules database of the App Builder application.
     DOC
   end
 
