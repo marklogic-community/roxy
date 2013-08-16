@@ -72,3 +72,4 @@ This file describes changes made to Roxy per release
 * \#104 Deployer was ignoring the forest-data-dir property
 * \#110 Updated bootstrap procedure to work with new ML7 endpoint
 * \#118 Apply field settings
+* \#123 Accept a broader range of affirmative responses when upgrading

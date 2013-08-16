@@ -58,30 +58,30 @@ module Roxy
       print "into a source code repository, such as Git or Subversion. Doing so\n"
       print "will make it much easier to fix problems if something goes wrong.\n"
 
-      print "\nAre you ready to proceed?\n"
+      print "\nAre you ready to proceed? [y/N]\n"
       confirm = gets.chomp
 
-      if confirm == 'y'
-        puts "time to upgrade to the #{branch} branch"
+      if confirm.match(/^y(es)?$/i)
+        @logger.info "Upgrading to the #{branch} branch"
         tmp_dir = Dir.mktmpdir
 
-        puts "Cloning Roxy in a temp directory..."
+        @logger.info "Cloning Roxy in a temp directory..."
         system("git clone git://github.com/marklogic/roxy.git -b #{branch} #{tmp_dir}")
 
-        puts "Upgrading base project files\n"
+        @logger.info "Upgrading base project files\n"
         upgrade_base(tmp_dir)
 
-        puts "Upgrading deploy/ files\n"
+        @logger.info "Upgrading deploy/ files\n"
         upgrade_deploy(tmp_dir)
 
         if (["mvc", "hybrid"].include? @app_type)
-          puts "Upgrading src/roxy files\n"
+          @logger.info "Upgrading src/roxy files\n"
           upgrade_src(tmp_dir)
         end
 
         FileUtils.rm_rf(tmp_dir)
       else
-        puts "later"
+        puts "Aborting upgrade"
       end
 
     end
