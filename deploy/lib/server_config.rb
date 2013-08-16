@@ -663,19 +663,12 @@ class ServerConfig < MLClient
     end
 
     tmp_dir = Dir.mktmpdir
-    puts "using temp dir " + tmp_dir
-    prop_string = "-DINPUT_CONNECTION_STRING=xcc://#{@properties['ml.user']}:#{@properties['ml.password']}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{target_db} -DOUTPUT_PACKAGE=#{tmp_dir}/ab.zip"
-    runme = %Q{java -Xmx2048m -cp #{File.expand_path("../java/xqsync.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/marklogic-xcc-5.0.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xstream-1.4.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xpp3-1.1.4c.jar", __FILE__)} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
-    logger.info runme
-    `#{runme}`
+    logger.debug "using temp dir " + tmp_dir
+    logger.info "Retrieving source and REST config from #{target_db}..."
 
-    Dir.mkdir("#{tmp_dir}/src")
-    system("unzip -qq -d #{tmp_dir}/src #{tmp_dir}/ab-000.zip")
-
-    recursive_delete("#{tmp_dir}/src", '.metadata')
+    save_files_to_fs(target_db, "#{tmp_dir}/src")
 
     # set up the options
-    puts "copy from #{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/* to #{@properties['ml.rest-options.dir']}"
     FileUtils.cp_r(
       "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
       @properties['ml.rest-options.dir']
@@ -689,20 +682,34 @@ class ServerConfig < MLClient
 
 private
 
-  def recursive_delete(dir, suffix)
-    Dir.entries(dir).each do |entry|
-      if (Dir.exist? ("#{dir}/#{entry}"))
-        # directory
-        if !['.', '..'].include? entry
-          recursive_delete("#{dir}/#{entry}", suffix)
-        end
+  def save_files_to_fs(target_db, target_dir)
+    # Get the list of URIs. We get them in order because Ruby's Dir.mkdir
+    # command doesn't have a -p option (create parent).
+    dirs = execute_query %Q{
+      xquery version "1.0-ml";
+
+      for $uri in cts:uris()
+      order by $uri
+      return $uri
+    },
+    { :db_name => target_db }
+
+    # target_dir gets created when we do mkdir on "/"
+    dirs.body.split(/\r?\n/).each do |uri|
+      if (uri.end_with?("/"))
+        # create the directory so that it will exist when we try to save files
+        Dir.mkdir("#{target_dir}" + uri)
       else
-        # file
-        if entry.end_with? suffix
-          File.delete("#{dir}/#{entry}")
-        end
+        r = execute_query %Q{
+          fn:doc("#{uri}")
+        },
+        { :db_name => target_db }
+
+        File.open("#{target_dir}#{uri}", 'w') { |file| file.write(r.body) }
       end
     end
+
+
   end
 
   # Build an array of role/capability objects.
