@@ -1208,8 +1208,6 @@ declare function setup:apply-field-settings(
     for $setting in $field-settings/setting
     let $value := fn:data(xdmp:value(fn:concat("$field/db:", $setting)))
     let $min-version as xs:string? := $setting/@min-version
-    let $_ := xdmp:log("applying " || $setting || " setting; min-version=" || $min-version || "; apply?=" ||
-      (fn:exists($value) and (fn:empty($min-version) or setup:at-least-version($min-version))))
     where fn:exists($value) and (fn:empty($min-version) or setup:at-least-version($min-version))
     return
       xdmp:set(
