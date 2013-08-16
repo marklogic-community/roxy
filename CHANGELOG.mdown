@@ -62,6 +62,7 @@ This file describes changes made to Roxy per release
 * \#103 Bootstrap an HTTP server with SSL
 * \#107 Deploy REST API transformations
 * \#108 Create skeleton REST API transformations
+* \#112 Added ml capture command
 * \#113 Override response types
 * \#117 Support new ML7 database settings
 
