@@ -73,3 +73,4 @@ This file describes changes made to Roxy per release
 * \#110 Updated bootstrap procedure to work with new ML7 endpoint
 * \#118 Apply field settings
 * \#123 Accept a broader range of affirmative responses when upgrading
+* \#124 Fixed corb integration bug
