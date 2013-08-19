@@ -602,15 +602,27 @@ class ServerConfig < MLClient
     thread_count = thread_count.to_i
     module_root = find_arg(['--root']) || '"/"'
     modules_database = @properties['ml.modules-db']
-    install = find_arg(['--install']) == "true"
+    install = find_arg(['--install']) == "true" || uris_module == '""'
 
+    # Find the XCC jar
     matches = Dir.glob(File.expand_path("../java/*xcc*.jar", __FILE__))
     raise "Missing XCC Jar." if matches.length == 0
-
     xcc_file = matches[0]
-    runme = %Q{java -cp #{File.expand_path("../java/corb.jar", __FILE__)}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
-    logger.info runme
-    `#{runme}`
+
+    if install
+      # If we're installing, we need to change directories to the source
+      # directory, so that the xquery_modules will be visible with the
+      # same path that will be used to see it in the modules database.
+      Dir.chdir(@properties['ml.xquery.dir']) do
+        runme = %Q{java -cp #{File.expand_path("../java/corb.jar", __FILE__)}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
+        logger.info runme
+        `#{runme}`
+      end
+    else
+      runme = %Q{java -cp #{File.expand_path("../java/corb.jar", __FILE__)}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
+      logger.info runme
+      `#{runme}`
+    end
   end
 
   def credentials
