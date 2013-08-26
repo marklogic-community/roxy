@@ -1060,20 +1060,18 @@ private
 
     if db_id.present?
       logger.debug "using dbid: #{db_id}"
-      r = go_7 "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy", "post", {}, {
-        :dbid => db_id,
-        :action => "eval",
-        :querytype => "xquery"
-      },
-      query
+      r = go("http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy?dbid=#{db_id}&action=eval&querytype=xquery",
+             "post",
+             {},
+             nil,
+             query)
     else
       logger.debug "using sid: #{sid}"
-      r = go_7 "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy", "post", {}, {
-        :sid => sid,
-        :action => "eval",
-        :querytype => "xquery"
-      },
-      query
+      r = go("http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy?sid=#{sid}&action=eval&querytype=xquery",
+             "post",
+             {},
+             nil,
+             query)
     end
 
     raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
@@ -1248,6 +1246,10 @@ private
       if @properties['ml.test-authentication-method'].present?
         test_auth_method = @properties['ml.test-authentication-method']
       end
+      test_default_user = @properties['ml.default-user']
+      if @properties['ml.test-default-user'].present?
+        test_default_user = @properties['ml.test-default-user']
+      end
 
       config.gsub!("@ml.test-appserver",
       %Q{
@@ -1257,6 +1259,7 @@ private
           <database name="@ml.test-content-db"/>
           <modules name="#{test_modules_db}"/>
           <authentication>#{test_auth_method}</authentication>
+          <default-user name="#{test_default_user}"/>
         </http-server>
       })
 
