@@ -745,7 +745,8 @@ private
           },
           { :db_name => target_db }
 
-          File.open("#{target_dir}#{uri}", 'w') { |file| file.write(r.body) }
+          body = JSON.parse(r.body)[0]['result']
+          File.open("#{target_dir}#{uri}", 'w') { |file| file.write(body) }
         end
       end
     end
