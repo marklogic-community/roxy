@@ -76,6 +76,12 @@ class ServerConfig < MLClient
         @properties["ml.bootstrap-port"] = @bootstrap_port
       end
     end
+
+    if @properties['ml.qconsole-port']
+      @qconsole_port = @properties['ml.qconsole-port']
+    else
+      @qconsole_port = @bootstrap_port
+    end
   end
 
   def self.pwd
@@ -707,20 +713,42 @@ private
     { :db_name => target_db }
 
     # target_dir gets created when we do mkdir on "/"
-    dirs.body.split(/\r?\n/).each do |uri|
-      if (uri.end_with?("/"))
-        # create the directory so that it will exist when we try to save files
-        Dir.mkdir("#{target_dir}" + uri)
-      else
-        r = execute_query %Q{
-          fn:doc("#{uri}")
-        },
-        { :db_name => target_db }
+    if ['5', '6'].include? @properties['ml.server-version']
+      # In ML5 and ML6, the response was a bunch of text. Split on the newlines.
+      dirs.body.split(/\r?\n/).each do |uri|
+        if (uri.end_with?("/"))
+          # create the directory so that it will exist when we try to save files
+          Dir.mkdir("#{target_dir}" + uri)
+        else
+          r = execute_query %Q{
+            fn:doc("#{uri}")
+          },
+          { :db_name => target_db }
 
-        File.open("#{target_dir}#{uri}", 'w') { |file| file.write(r.body) }
+          File.open("#{target_dir}#{uri}", 'w') { |file| file.write(r.body) }
+        end
+      end
+    else
+      # In ML7, the response is JSON
+      # [
+      #  {"qid":null, "type":"string", "result":"\/"},
+      #  {"qid":null, "type":"string", "result":"\/application\/"}
+      #  ...
+      JSON.parse(dirs.body).each do |item|
+        uri = item['result']
+        if (uri.end_with?("/"))
+          # create the directory so that it will exist when we try to save files
+          Dir.mkdir("#{target_dir}" + uri)
+        else
+          r = execute_query %Q{
+            fn:doc("#{uri}")
+          },
+          { :db_name => target_db }
+
+          File.open("#{target_dir}#{uri}", 'w') { |file| file.write(r.body) }
+        end
       end
     end
-
 
   end
 
@@ -1021,7 +1049,7 @@ private
 
     if db_id.present?
       logger.debug "using dbid: #{db_id}"
-      r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
+      r = go "http://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy", "post", {}, {
         :dbid => db_id,
         :resulttype => "text",
         :q => query
@@ -1029,7 +1057,7 @@ private
       logger.debug r.body
     else
       logger.debug "using sid: #{sid}"
-      r = go "http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/eval.xqy", "post", {}, {
+      r = go "http://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy", "post", {}, {
         :sid => sid,
         :resulttype => "text",
         :q => query
@@ -1060,14 +1088,14 @@ private
 
     if db_id.present?
       logger.debug "using dbid: #{db_id}"
-      r = go("http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy?dbid=#{db_id}&action=eval&querytype=xquery",
+      r = go("http://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?dbid=#{db_id}&action=eval&querytype=xquery",
              "post",
              {},
              nil,
              query)
     else
       logger.debug "using sid: #{sid}"
-      r = go("http://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/evaler.xqy?sid=#{sid}&action=eval&querytype=xquery",
+      r = go("http://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?sid=#{sid}&action=eval&querytype=xquery",
              "post",
              {},
              nil,

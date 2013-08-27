@@ -371,7 +371,7 @@ module Roxy
             request.digest_auth(@user_name, @password, response)
             response = @http.request(request, &block)
             if (response.code.to_i == 302)
-              @logger.debug("bootstrap request redirected: #{response['location']}")
+              @logger.debug("request redirected: #{response['location']}")
               new_uri = URI(response['location'])
               request_params[:protocol] = new_uri.scheme
               request_params[:server] = new_uri.host
@@ -379,6 +379,15 @@ module Roxy
               start(request_params)
               response = @http.request(request, &block)
             end
+          elsif (response.code.to_i == 302)
+            puts "time for a redirect"
+            @logger.debug("request redirected: #{response['location']}")
+            new_uri = URI(response['location'])
+            request_params[:protocol] = new_uri.scheme
+            request_params[:server] = new_uri.host
+            request_params[:port] = new_uri.port
+            start(request_params)
+            response = @http.request(request, &block)
           end
 
           error_reset
@@ -412,7 +421,7 @@ module Roxy
             reset_fileptr_offset(request, mypos)
           end
         rescue Net::HTTPBadResponse => e
-          # Ignoring 'wrong status line: "trueHTTP/1.1 204 Resource Services Updated"' because it's perfectly valid. 
+          # Ignoring 'wrong status line: "trueHTTP/1.1 204 Resource Services Updated"' because it's perfectly valid.
         rescue Exception => e # See comment at bottom for the list of errors seen...
           @http = nil
           # if ctrl+c is pressed - we have to reraise exception to terminate proggy
