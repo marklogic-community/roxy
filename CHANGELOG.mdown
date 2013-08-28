@@ -54,6 +54,7 @@ This file describes changes made to Roxy per release
 * \#63 Use --app-type parameter with ml new to create mvc, rest, or hybrid apps
 * \#82 Use Corb with the deployer
 * \#88 Deploy REST API extensions
+* \#90 Allowed setting rewriter and error handler to blank
 * \#92 Scaffolding for REST API extensions
 * \#94 Create ODBC app servers
 * \#97 Added a test-authentication-method property, allowing for different methods between test and main
@@ -65,6 +66,7 @@ This file describes changes made to Roxy per release
 * \#112 Added ml capture command
 * \#113 Override response types
 * \#117 Support new ML7 database settings
+* \#121 Added "ml upgrade" command
 
 ### Resolved Issues
 * \#93 Fixed the deployer so it works with ML7 EA1.
@@ -72,5 +74,6 @@ This file describes changes made to Roxy per release
 * \#104 Deployer was ignoring the forest-data-dir property
 * \#110 Updated bootstrap procedure to work with new ML7 endpoint
 * \#118 Apply field settings
+* \#119 Make Roxy more forgiving about import error
 * \#123 Accept a broader range of affirmative responses when upgrading
 * \#124 Fixed corb integration bug
