@@ -77,3 +77,4 @@ This file describes changes made to Roxy per release
 * \#119 Make Roxy more forgiving about import error
 * \#123 Accept a broader range of affirmative responses when upgrading
 * \#124 Fixed corb integration bug
+* \#126 Don't overwrite application/custom when running "ml capture"
