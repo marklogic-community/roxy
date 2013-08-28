@@ -447,7 +447,7 @@ module Roxy
     def finish(reason = '')
       if @http && @http.started?
         reason = ", reason: '#{reason}'" unless self.class.blank?(reason)
-        @logger.info("Closing #{@http.use_ssl? ? 'HTTPS' : 'HTTP'} connection to #{@http.address}:#{@http.port}#{reason}")
+        @logger.debug("Closing #{@http.use_ssl? ? 'HTTPS' : 'HTTP'} connection to #{@http.address}:#{@http.port}#{reason}")
         @http.finish
       end
     end
