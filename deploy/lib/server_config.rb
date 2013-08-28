@@ -693,6 +693,13 @@ class ServerConfig < MLClient
     )
     FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
 
+    # If we have an application/custom directory, we've probably done a capture
+    # before. Don't overwrite that directory. Kill the downloaded custom directory
+    # to avoid overwriting.
+    if Dir.exists? "#{@properties["ml.xquery.dir"]}/application/custom"
+      FileUtils.rm_rf("#{tmp_dir}/src/application/custom")
+    end
+
     FileUtils.cp_r("#{tmp_dir}/src/.", @properties["ml.xquery.dir"])
 
     FileUtils.rm_rf(tmp_dir)
