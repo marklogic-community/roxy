@@ -65,46 +65,46 @@ begin
     if command == "create"
       if need_help?
         Help.doHelp(@logger, command)
-        break
       else
         f = Roxy::Framework.new :logger => @logger, :properties => ServerConfig.properties
         f.create
       end
+      break
     elsif command == "extend"
       if need_help?
         Help.doHelp(@logger, command)
-        break
       else
         scaffold = Roxy::Scaffold.new :logger => @logger, :properties => ServerConfig.properties
         scaffold.extend ARGV.shift
       end
+      break
     elsif command == "transform"
       if need_help?
         Help.doHelp(@logger, command)
-        break
       else
         scaffold = Roxy::Scaffold.new :logger => @logger, :properties => ServerConfig.properties
         scaffold.transform ARGV.shift, ARGV.shift
       end
+      break
     elsif command == "upgrade"
       if need_help?
         Help.doHelp(@logger, command)
-        break
       else
         upgrader = Roxy::Upgrader.new :logger => @logger, :properties => ServerConfig.properties
         upgrader.upgrade(ARGV)
       end
+      break
     #
     # put things in ServerConfig class methods that don't depend on environment or server info
     #
     elsif ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command)
       if need_help?
         Help.doHelp(@logger, command)
-        break
       else
         ServerConfig.logger = @logger
         ServerConfig.send command
       end
+      break
     #
     # ServerConfig methods require environment to be set in order to talk to a ML server
     #

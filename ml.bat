@@ -71,7 +71,14 @@ if "%APPTYPE%"=="rest" (
   echo No initial source code is provided for REST apps. You can copy code from Application Builder under the source directory.
 )
 
-cmd /c ml init %app_name% --app-type=%APPTYPE%
+for /f "tokens=1-2*" %%a in ("%*") do (
+    set arg-command=%%a
+    set arg-appname=%%b
+    set arg-options=%%c
+)
+
+cmd /c ml init %app_name% %arg-options%
+
 popd
 echo  done
 echo.

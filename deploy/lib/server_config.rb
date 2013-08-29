@@ -116,7 +116,9 @@ class ServerConfig < MLClient
     server_version = find_arg(['--server-version'])
 
     # Check for required --server-version argument value
-    raise HelpException.new('init', 'Must specify --server-version argument with value of 4, 5, 6, or 7') if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7).include? server_version))
+    if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7).include? server_version))
+      server_version = prompt_server_version
+    end
 
     error_msg = []
     if !force && !force_props && File.exists?(build_properties)
@@ -192,6 +194,15 @@ class ServerConfig < MLClient
     else
       FileUtils.cp sample_config, target_config
     end
+  end
+
+  def self.prompt_server_version
+    puts 'Required option --server-version=[version] not specified with valid value.
+
+What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
+    server_version = $stdin.gets.chomp.to_i
+    server_version = 6 if server_version == 0
+    server_version
   end
 
   def self.index
