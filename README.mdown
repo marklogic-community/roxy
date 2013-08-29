@@ -39,8 +39,8 @@ This section describes the quickest way to get started using Roxy.
 
 ### Configure your application
 1. Open a command prompt in the root folder of Roxy
-2. Run ml init to create sample configuration files
-  <pre><code>$ ml init app-name</code></pre>
+2. Run ml init to create sample configuration files (must specify --server-version option with a value of 4, 5, 6 or 7)
+  <pre><code>$ ml init app-name --server-version=[version-number]</code></pre>
 3. Modify deploy/build.properties with your application's settings.
 
 <pre><code># Username to authenticate to ML
