@@ -138,9 +138,13 @@ goto end
 	goto end
 
 :usage
-	echo Usage: ml new app-name [--git]
+	echo Usage: ml new app-name --server-version=[version] [--branch=branch] [--git]
 	echo.
 	echo.
+	echo   use --server-version to specify the major version of MarkLogic you will
+	echo     target in your project (4, 5, 6, 7)
+	echo   use --branch to specify the GitHub branch of the Roxy project your project
+        echo     will be based on (master, dev)
 	echo   use --git to automatically configure a git repo
 	echo.
 	goto end
