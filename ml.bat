@@ -15,6 +15,7 @@ if "%1"=="self-test" goto selftest
 IF not "%1"=="new" goto rubydeployer
 SHIFT
 IF "%1"=="" goto usage
+IF "%1"=="-h" goto usage
 
 set app_name=%1
 SHIFT
@@ -63,8 +64,8 @@ rmdir /Q /S .git
 del /F /Q .gitignore
 
 if "%APPTYPE%"=="rest" (
-  REM For a REST application, we won't be using the MVC code. Remove it. 
-  REM mvc and hybrid apps will use it. 
+  REM For a REST application, we won't be using the MVC code. Remove it.
+  REM mvc and hybrid apps will use it.
   rmdir /S /Q src
   mkdir src
   echo.

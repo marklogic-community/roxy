@@ -19,7 +19,10 @@ hash ruby 2>&- || { echo >&2 "Ruby is required to run the ml scripts."; exit 1; 
 
 usage()
 {
-  printf "Usage: ml new app-name --server-version=[version-number] [--git]\n\n  use --git to automatically configure a git repo\n"
+  printf "Usage: ml new app-name --server-version=[version-number] [--branch=branch] [--git]\n
+  use --git to automatically configure a git repo
+  use --branch to specify the GitHub branch of the Roxy project your project
+    will be based on (master, dev)\n"
 }
 
 PARAMS=("${@}")
@@ -27,7 +30,10 @@ PARAMS=("${@}")
 if [ "$1" == 'new' ]
 then
   shift
-  if [ $1 ]
+  if [[ "$1" == '-h' ]]
+  then
+    usage
+  elif [ $1 ]
   then
     app_name="$1"
     shift
@@ -70,8 +76,8 @@ then
     rm -rf .git*
     if [ "$APPTYPE" = "rest" ]
     then
-      # For a REST application, we won't be using the MVC code. Remove it. 
-      # mvc and hybrid apps will use it. 
+      # For a REST application, we won't be using the MVC code. Remove it.
+      # mvc and hybrid apps will use it.
       rm -rf src/*
       printf "\nNo initial source code is provided for REST apps. You can copy code from Application Builder under the source directory.\n"
     fi
