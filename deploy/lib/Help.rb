@@ -158,12 +158,15 @@ class Help
       Usage: ml init [application-name] [options]
 
       Optional Parameters:
-        application-name    # The name of your application
+        application-name                  # The name of your application
+      Required option:
+        --server-version=version-number   # Version of target MarkLogic Server
+                                          # Must be 4, 5, 6, or 7
       General options:
-        --force             # Force reset all configuration files
-        --force-properties  # Force reset the properties file. (build.properties)
-        --force-config      # Force reset the configuration file (ml-config.xml)
-        -v, [--verbose]     # Verbose output
+        --force                           # Force reset all configuration files
+        --force-properties                # Force reset the properties file. (build.properties)
+        --force-config                    # Force reset the configuration file (ml-config.xml)
+        -v, [--verbose]                   # Verbose output
 
 
       Initializes your application by creating the necessary config files.

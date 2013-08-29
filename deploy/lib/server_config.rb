@@ -113,6 +113,10 @@ class ServerConfig < MLClient
     force_props = find_arg(['--force-properties']).present?
     force_config = find_arg(['--force-config']).present?
     app_type = find_arg(['--app-type'])
+    server_version = find_arg(['--server-version'])
+
+    # Check for required --server-version argument value
+    raise HelpException.new('init', 'Must specify --server-version argument with value of 4, 5, 6, or 7') if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7).include? server_version))
 
     error_msg = []
     if !force && !force_props && File.exists?(build_properties)
@@ -147,6 +151,9 @@ class ServerConfig < MLClient
         random = (0...20).map{ o[rand(o.length)].chr }.join
         "=#{random}"
       end
+
+      # Update properties file to set server-version to value specified on command-line
+      properties_file.gsub!(/server-version=6/, "server-version=#{server_version}")
 
       # save the replacements
       open(build_properties, 'w') {|f| f.write(properties_file) }
