@@ -48,7 +48,7 @@ This file describes changes made to Roxy per release
 * \#61 Make problems in suite-setup.xqy etc easier to detect
 * \#67 Reversed sense of facet-value @name and lexical
 
-## 1.4 (branch: dev)
+## 1.4 (branch: master)
 
 ### New Features
 * \#63 Use --app-type parameter with ml new to create mvc, rest, or hybrid apps
@@ -79,3 +79,5 @@ This file describes changes made to Roxy per release
 * \#123 Accept a broader range of affirmative responses when upgrading
 * \#124 Fixed corb integration bug
 * \#126 Don't overwrite application/custom when running "ml capture"
+
+## 1.5 (branch: dev)
