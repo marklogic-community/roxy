@@ -66,6 +66,7 @@ This file describes changes made to Roxy per release
 * \#112 Added ml capture command
 * \#113 Override response types
 * \#117 Support new ML7 database settings
+* \#120 Require server-version parameter for ml new/init
 * \#121 Added "ml upgrade" command
 
 ### Resolved Issues
