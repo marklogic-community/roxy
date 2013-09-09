@@ -11,17 +11,18 @@ declare function t:list()
 {
   t:assert-same-values(
     (
-      "/test/test/lib/data/funky-functions.xqy",
-      "/test/test/lib/data/all-fail.xqy",
-      "/test/test/lib/data/all-pass.xqy",
-      "/test/test/lib/data/one-failure.xqy",
-      "/test/test/lib/data/setup-failure.xqy",
-      "/test/test/lib/data/setup-noteardown.xqy",
-      "/test/test/lib/data/setup-teardown.xqy",
-      "/test/test/lib/data/teardown-failure.xqy",
-      "/test/test/lib/data/two-failure.xqy"
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/funky-functions.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/all-fail.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/all-pass.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/one-failure.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/setup-failure.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/setup-noteardown.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/setup-teardown.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/teardown-failure.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/test.xqy"),
+      fn:concat(xdmp:modules-root(), "test/test/lib/data/two-failure.xqy")
     ),
-    m:list("/test/test/lib/data/", ".xqy")/t:test/@path/fn:string(.))
+    m:list(fn:concat(xdmp:modules-root(), "test/test/lib/data/"), ".xqy")/t:test/@path/fn:string(.))
 };
 
 declare function t:get-test-functions()
@@ -34,7 +35,7 @@ declare function t:get-test-functions()
       "setup",
       "teardown"
     ),
-    m:get-test-functions("/test/test/lib/data/one-failure.xqy"))
+    m:get-test-functions(fn:concat(xdmp:modules-root(), "test/test/lib/data/one-failure.xqy")))
 };
 
 declare function t:get-test-functions-funky()
@@ -46,12 +47,12 @@ declare function t:get-test-functions-funky()
       "setup",
       "teardown"
     ),
-    m:get-test-functions("/test/test/lib/data/funky-functions.xqy"))
+    m:get-test-functions(fn:concat(xdmp:modules-root(), "test/test/lib/data/funky-functions.xqy")))
 };
 
 declare function t:all-tests-pass()
 {
-  let $results := m:run-test("/test/test/lib/data/all-pass.xqy")
+  let $results := m:run-test(fn:concat(xdmp:modules-root(), "test/test/lib/data/all-pass.xqy"))
   return
   (
     t:assert-equal(1, fn:count($results)),
@@ -71,7 +72,7 @@ declare function t:all-tests-pass()
 
 declare function t:one-failure()
 {
-  let $results := m:run-test("/test/test/lib/data/one-failure.xqy")
+  let $results := m:run-test(fn:concat(xdmp:modules-root(), "test/test/lib/data/one-failure.xqy"))
   return
   (
     t:assert-equal(1, fn:count($results)),
@@ -90,7 +91,7 @@ declare function t:one-failure()
 
 declare function t:two-failure()
 {
-  let $results := m:run-test("/test/test/lib/data/two-failure.xqy")
+  let $results := m:run-test(fn:concat(xdmp:modules-root(), "test/test/lib/data/two-failure.xqy"))
   return
   (
     t:assert-equal(1, fn:count($results)),
@@ -109,7 +110,7 @@ declare function t:two-failure()
 
 declare function t:setup-failure()
 {
-  let $results := m:run-test("/test/test/lib/data/setup-failure.xqy")
+  let $results := m:run-test(fn:concat(xdmp:modules-root(), "test/test/lib/data/setup-failure.xqy"))
   return
   (
     t:assert-equal(1, fn:count($results)),
@@ -128,7 +129,7 @@ declare function t:setup-failure()
 
 declare function t:teardown-failure()
 {
-  let $results := m:run-test("/test/test/lib/data/teardown-failure.xqy")
+  let $results := m:run-test(fn:concat(xdmp:modules-root(), "test/test/lib/data/teardown-failure.xqy"))
   return
   (
     t:assert-equal(1, fn:count($results)),
@@ -147,7 +148,7 @@ declare function t:teardown-failure()
 
 declare function t:setup-teardown()
 {
-  let $results := m:run-test("/test/test/lib/data/setup-teardown.xqy")
+  let $results := m:run-test(fn:concat(xdmp:modules-root(), "test/test/lib/data/setup-teardown.xqy"))
   let $_ := xdmp:log($results)
   return
   (
@@ -167,7 +168,7 @@ declare function t:setup-teardown()
 
 declare function t:setup-noteardown()
 {
-  let $results := m:run-test("/test/test/lib/data/setup-noteardown.xqy")
+  let $results := m:run-test(fn:concat(xdmp:modules-root(), "test/test/lib/data/setup-noteardown.xqy"))
   let $_ := xdmp:log($results)
   return
   (
@@ -187,7 +188,7 @@ declare function t:setup-noteardown()
 
 declare function t:run-tests()
 {
-  let $results := m:run-tests(m:list("/test/test/lib/data/", ".xqy")/t:test/@path/fn:string(.))
+  let $results := m:run-tests(m:list(fn:concat(xdmp:modules-root(), "test/test/lib/data/"), ".xqy")/t:test/@path/fn:string(.))
   return
   (
     t:assert-equal(19, xs:int($results/@assertions)),

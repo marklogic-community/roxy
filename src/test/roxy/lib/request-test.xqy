@@ -82,7 +82,7 @@ declare function t:rewrite-get()
   let $path := "/test/js/blah.js"
   let $verb := "GET"
   return
-    t:assert-equal("/test/js/blah.js", req:rewrite($url, $path, $verb, $route-options)),
+    t:assert-equal((), req:rewrite($url, $path, $verb, $route-options)),
 
   let $url := "/js/blah.js"
   let $path := "/js/blah.js"
@@ -125,7 +125,7 @@ declare function t:rewrite-put()
   let $verb := "PUT"
   return
     t:assert-equal(
-      "/do/some/stuff.xqy?param1=1&amp;param2=2",
+      (),
       req:rewrite($url, $path, $verb, $route-options))
 };
 

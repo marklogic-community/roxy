@@ -296,3 +296,47 @@ declare function t:success-test()
 {
   t:assert-equal(<t:assertion type="success"/>, t:success())
 };
+
+declare function t:get-test-file()
+{
+  let $setup := function() {
+    t:load-test-file(
+      "test.xml",
+      xdmp:database(),
+      "/test.xml"),
+    t:load-test-file(
+      "test.docx",
+      xdmp:database(),
+      "/test.docx"),
+    t:load-test-file(
+      "test.xqy",
+      xdmp:database(),
+      "/test.xqy"),
+    t:load-test-file(
+      "test.bin",
+      xdmp:database(),
+      "/test.bin")
+  }
+
+  let $test := function() {
+    t:assert-equal("element", xdmp:node-kind(fn:doc("/test.xml")/node())),
+    t:assert-equal("binary", xdmp:node-kind(fn:doc("/test.docx")/node())),
+    t:assert-equal("text", xdmp:node-kind(fn:doc("/test.xqy")/node())),
+    t:assert-equal("binary", xdmp:node-kind(fn:doc("/test.bin")/node()))
+  }
+
+  let $teardown := function() {
+    xdmp:eval('
+      xdmp:document-delete("/test.xml"),
+      xdmp:document-delete("/test.docx"),
+      xdmp:document-delete("/test.xqy"),
+      xdmp:document-delete("/test.bin")
+    ')
+  }
+  return
+  (
+    xdmp:invoke-function($setup),
+    xdmp:invoke-function($test),
+    xdmp:invoke-function($teardown)
+  )
+};

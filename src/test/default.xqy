@@ -68,7 +68,6 @@ declare function local:format-junit($suite as element())
 declare function local:run() {
   let $test := fn:tokenize(xdmp:get-request-field("test", ""), ",")[. ne ""]
   let $assertions := fn:tokenize(xdmp:get-request-field("assertions", ""), ",")[. ne ""]
-  let $run-suite-teardown as xs:boolean := xdmp:get-request-field("runsuiteteardown", "") eq "true"
   let $run-teardown as xs:boolean := xdmp:get-request-field("runteardown", "") eq "true"
   let $format as xs:string := xdmp:get-request-field("format", "xml")
   let $result :=
@@ -188,9 +187,6 @@ declare function local:main() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><label for="runsuiteteardown">Run Teardown after each suite</label><input id="runsuiteteardown" type="checkbox" checked="checked"/></td>
-            </tr>
             <tr>
               <td><label for="runteardown">Run Teardown after each test</label><input id="runteardown" type="checkbox" checked="checked"/></td>
             </tr>

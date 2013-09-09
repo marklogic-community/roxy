@@ -17,8 +17,6 @@ xquery version "1.0-ml";
 
 import module namespace vh = "http://marklogic.com/roxy/view-helper" at "/roxy/lib/view-helper.xqy";
 
-import module namespace uv = "http://www.marklogic.com/roxy/user-view" at "/app/views/helpers/user-lib.xqy";
-
 declare variable $view as item()* := vh:get("view");
 declare variable $sidebar as item()* := vh:get("sidebar");
 declare variable $title as xs:string? := vh:get("title");
@@ -43,9 +41,6 @@ declare variable $username as xs:string? := vh:get("username");
     <div class="home" id="home">
       <a class="text" href="/" title="Home">My Application</a>
     </div>
-    {
-      uv:build-user($username, fn:concat("/user/profile?user=", $username), "/user/login", "/user/register", "/user/logout")
-    }
     <div class="canvas">
       <div class="header" arcsize="5 5 0 0">
         <label>Search</label>

@@ -9,7 +9,6 @@ import module namespace t="http://marklogic.com/roxy/test" at "/test/lib/test-he
 import module namespace u = "http://marklogic.com/roxy/util" at "/roxy/lib/util.xqy";
 
 declare namespace dir = "http://marklogic.com/xdmp/directory";
-declare namespace s="http://www.w3.org/2009/xpath-functions/analyze-string";
 
 declare variable $FS-PATH  as xs:string :=
     if(xdmp:platform() eq "winnt") then "\" else "/";
@@ -114,6 +113,13 @@ declare function m:get-test-functions(
   $test-path as xs:string) as xs:string*
 {
   let $test :=
+    if (xdmp:modules-database() eq 0) then
+        xdmp:document-get(
+          $test-path,
+          <options xmlns="xdmp:document-get">
+            <format>text</format>
+          </options>)
+    else
     xdmp:eval(
       fn:concat('fn:doc("', $test-path, '")'),
       (),
@@ -121,7 +127,7 @@ declare function m:get-test-functions(
         <database>{$MODULES-DB}</database>
       </options>)
   return
-    fn:analyze-string($test, "declare\s+function\s+([^(\s]+)")//s:group/fn:tokenize(., ":")[2]
+    fn:analyze-string($test, "declare\s+function\s+([^(\s]+)")//*:group/fn:tokenize(., ":")[2]
 };
 
 declare function m:run-test($test-path as xs:string)
@@ -265,6 +271,12 @@ declare private function m:eval-func(
   $func-name as xs:string,
   $test-path as xs:string) as element(t:assertion)*
 {
+  let $test-path :=
+    if (xdmp:modules-database() eq 0) then
+      fn:replace($test-path, xdmp:modules-root(), "")
+    else
+      $test-path
+  return
   element result
   {
     xdmp:eval(

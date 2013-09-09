@@ -22,6 +22,8 @@ import module namespace cvt = "http://marklogic.com/cpf/convert" at "/MarkLogic/
 declare namespace ss="http://marklogic.com/xdmp/status/server";
 declare namespace xdmp-http="xdmp:http";
 
+declare variable $RN := fn:concat(fn:codepoints-to-string(13), fn:codepoints-to-string(10));
+
 declare variable $FAIL := xs:QName("TEST-FAIL");
 
 declare option xdmp:mapping "false";
@@ -115,8 +117,9 @@ declare function t:get-modules-file($file as xs:string)
       xdmp:document-get(
         t:build-uri(xdmp:modules-root(), $file),
         <options xmlns="xdmp:document-get">
-          <format>text</format>
+          
         </options>)
+      (:<format>text</format>:)
     return
       try {
         xdmp:unquote($doc)
@@ -131,15 +134,7 @@ declare function t:get-modules-file($file as xs:string)
         <database>{xdmp:modules-database()}</database>
       </options>)
     return
-      if ($doc/*) then
         $doc
-      else
-        try {
-          xdmp:unquote($doc) (: TODO WTF? :)
-        }
-        catch($ex) {
-          $doc
-        }
   )
 };
 
@@ -229,7 +224,10 @@ declare function t:assert-equal($expected as item()*, $actual as item()*)
   if (t:are-these-equal($expected, $actual)) then
     t:success()
   else
+  (
+    xdmp:log(("expected:", $expected, "actual:", $actual)),
     fn:error($FAIL, "Assert Equal failed", (xdmp:quote($expected), xdmp:quote($actual)))
+  )
 };
 
 declare function t:assert-not-equal($expected as item()*, $actual as item()*)
@@ -406,4 +404,48 @@ declare function t:sleep($msec as xs:unsignedInt) as empty-sequence()
   xdmp:eval('declare variable $msec as xs:unsignedInt external;
              xdmp:sleep($msec)',
             (xs:QName("msec"), $msec))
+};
+declare function t:multipart-encode($boundary, $form-name, $filename, $content-type, $file as binary())
+{
+  binary {
+    xs:hexBinary(
+      fn:concat(
+        xs:hexBinary(xs:base64Binary(xdmp:base64-encode(
+          fn:concat(
+            '--', $boundary, $RN,
+            'Content-Disposition: form-data; name="', $form-name, '"; filename="', $filename, '"', $RN,
+            'Content-Type: ', $content-type, $RN,
+            'Content-Length: ', xdmp:binary-size($file), $RN)))),
+        fn:string(data($file)),
+        xs:hexBinary(xs:base64Binary(xdmp:base64-encode(fn:concat($RN, '--', $boundary, '--', $RN))))
+      )
+    )
+  }
+};
+
+declare function t:upload-file(
+  $uri as xs:string,
+  $filename as xs:string,
+  $content-type as xs:string,
+  $form-data-name as xs:string,
+  $file as binary())
+{
+  let $boundary := "------------12345xyz"
+  let $multipart-encode := 
+    t:multipart-encode (
+      $boundary,
+      $form-data-name,
+      $filename,
+      $content-type,
+      $file)
+  return
+    xdmp:http-post(
+      $uri,
+      <options xmlns="xdmp:http">
+        <headers>
+          <Content-Type>multipart/form-data; boundary={$boundary}</Content-Type>
+        </headers>
+      </options>,
+      $multipart-encode
+    )
 };
