@@ -94,19 +94,19 @@
         <field>
           <field-name/>
           <include-root>true</include-root>
-          <fast-case-sensitive-searches>false<fast-case-sensitive-searches>
-          <fast-diacritic-sensitive-searches>false<fast-diacritic-sensitive-searches>
-          <fast-phrase-searches>false<fast-phrase-searches>
-          <one-character-searches>false<one-character-searches>
-          <stemmed-searches><stemmed-searches>
-          <three-character-searches>false<three-character-searches>
-          <three-character-word-positions>false<three-character-word-positions>
-          <trailing-wildcard-searches>false<trailing-wildcard-searches>
-          <trailing-wildcard-word-positions>false<trailing-wildcard-word-positions>
-          <two-character-searches>false<two-character-searches>
-          <value-positions>false<value-positions>
-          <value-searches>false<value-searches>
-          <word-searches>false<word-searches>
+          <fast-case-sensitive-searches>false</fast-case-sensitive-searches>
+          <fast-diacritic-sensitive-searches>false</fast-diacritic-sensitive-searches>
+          <fast-phrase-searches>false</fast-phrase-searches>
+          <one-character-searches>false</one-character-searches>
+          <stemmed-searches>basic</stemmed-searches>
+          <three-character-searches>false</three-character-searches>
+          <three-character-word-positions>false</three-character-word-positions>
+          <trailing-wildcard-searches>false</trailing-wildcard-searches>
+          <trailing-wildcard-word-positions>false</trailing-wildcard-word-positions>
+          <two-character-searches>false</two-character-searches>
+          <value-positions>false</value-positions>
+          <value-searches>false</value-searches>
+          <word-searches>false</word-searches>
           <word-lexicons/>
           <included-elements>
             <included-element>
