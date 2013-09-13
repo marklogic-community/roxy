@@ -126,9 +126,6 @@ declare function m:get-test-functions(
       <options xmlns="xdmp:eval">
         <database>{$MODULES-DB}</database>
       </options>)
-  let $_ := xdmp:log(element m:get-test-functions { 
-    $test
-    }, "debug")
   return
     fn:analyze-string($test, "declare\s+function\s+([^(\s]+)")//*:group/fn:tokenize(., ":")[2]
 };
@@ -155,11 +152,6 @@ declare function m:run-test(
   let $start-time := xdmp:elapsed-time()
   let $results :=
     (
-      let $_ := xdmp:log(element m:run-test {
-        element functions { $functions },
-        element test-path { $test-path },
-        element assertions-to-run { $assertions-to-run } 
-        }, "debug")
       let $setup := m:run-setup($functions, $test-path)
       return
         if (fn:exists($setup)) then $setup
@@ -250,11 +242,6 @@ declare private function m:run-assertion(
   try
   {
     for $assertion in m:eval-func($function, $test-path)
-    let $_ := xdmp:log(element m:run-assertion { 
-      element assertion { $assertion },
-      element function { $function },
-      element test-path { $test-path }
-      }, "debug")
     return
       element t:assertion
       {
@@ -276,7 +263,6 @@ declare private function m:run-assertions(
 {
   for $f in $functions[fn:not(. = ("setup", "teardown"))]
                       [if ($assertions-to-run) then . = $assertions-to-run else fn:true()]
-  let $_ := xdmp:log(element m:run-assertions { element function { $f } }, "debug")
   return
     m:run-assertion($f, $test-path)
 };
@@ -327,7 +313,6 @@ declare function m:handle-error(
   $test-name as xs:string,
   $error as element(error:error))
 {
-  xdmp:log($error),
   if ($error/error:name eq "TEST-FAIL") then
     m:test-fail($test-name, $error)
   else

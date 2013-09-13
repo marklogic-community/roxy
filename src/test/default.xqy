@@ -34,7 +34,6 @@ declare option xdmp:mapping "false";
 
 declare function local:format-junit($suite as element())
 {
-  let $_ := xdmp:log(element local:format-junit { element suite { $suite } }, "debug")
   return element testsuite
   {
     attribute errors { fn:data($suite/@errors) },
@@ -46,10 +45,6 @@ declare function local:format-junit($suite as element())
     attribute timestamp { "" },
     for $test in $suite/t:*
     let $localname := fn:local-name($test)
-    let $_ := xdmp:log(element local:format-junit { 
-      element localname { $localname },
-      element test { $test } 
-      }, "debug")
     return
       if ($localname = "assertion")
       then 
@@ -57,7 +52,6 @@ declare function local:format-junit($suite as element())
           attribute classname { fn:data($test/@name) },
           attribute name { fn:data($test/@name) },
           attribute time { fn:data($test/@time) },
-          let $_ := xdmp:log(element local:format-junit-one { element result { $test } })
           return
             if (fn:string($test/@type) eq "failure") then
               element failure
@@ -73,7 +67,6 @@ declare function local:format-junit($suite as element())
           attribute classname { fn:data($test/@name) },
           attribute name { fn:data($test/@name) },
           attribute time { fn:data($test/@time) },
-          let $_ := xdmp:log(element local:format-junit-two { element result { $test } })
           return
             element error {
               attribute type { fn:data($test/error:error/error:name) },
@@ -90,17 +83,12 @@ declare function local:run() {
   let $assertions := fn:tokenize(xdmp:get-request-field("assertions", ""), ",")[. ne ""]
   let $run-teardown as xs:boolean := xdmp:get-request-field("runteardown", "") eq "true"
   let $format as xs:string := xdmp:get-request-field("format", "xml")
-  let $_ := xdmp:log(element local-run { 
-    element test { $test },
-    element assertions { $assertions },
-    element run-teardown { $run-teardown }
-  }, "debug")
+  
   let $result :=
     if ($test) then
       m:run-test($test, $assertions, $run-teardown)
     else
       ()
-  let $_ := xdmp:log(element local-run { element result { $result } })
   return
     if ($format eq "junit") then
       local:format-junit($result)
