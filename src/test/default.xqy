@@ -34,7 +34,7 @@ declare option xdmp:mapping "false";
 
 declare function local:format-junit($suite as element())
 {
-  return element testsuite
+  element testsuite
   {
     attribute errors { fn:data($suite/@errors) },
     attribute failures { fn:data($suite/@failures) },
@@ -52,27 +52,25 @@ declare function local:format-junit($suite as element())
           attribute classname { fn:data($test/@name) },
           attribute name { fn:data($test/@name) },
           attribute time { fn:data($test/@time) },
-          return
-            if (fn:string($test/@type) eq "failure") then
-              element failure
-              {
-                attribute type { fn:data($test/error:error/error:name) },
-                attribute message { fn:data($test/error:error/error:message) },
-                xdmp:quote($test/error:error)
-              }
-            else ()
+          if (fn:string($test/@type) eq "failure") then
+            element failure
+            {
+              attribute type { fn:data($test/error:error/error:name) },
+              attribute message { fn:data($test/error:error/error:message) },
+              xdmp:quote($test/error:error)
+            }
+          else ()
         }
       else 
         element testcase {
           attribute classname { fn:data($test/@name) },
           attribute name { fn:data($test/@name) },
           attribute time { fn:data($test/@time) },
-          return
-            element error {
-              attribute type { fn:data($test/error:error/error:name) },
-              attribute message { fn:data($test/error:error/error:message) },
-              xdmp:quote($test/error:error)
-            }
+          element error {
+            attribute type { fn:data($test/error:error/error:name) },
+            attribute message { fn:data($test/error:error/error:message) },
+            xdmp:quote($test/error:error)
+          }
         }
   }
 };
