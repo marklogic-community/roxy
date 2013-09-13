@@ -313,7 +313,6 @@ declare function m:handle-error(
   $test-name as xs:string,
   $error as element(error:error))
 {
-  xdmp:log($error),
   if ($error/error:name eq "TEST-FAIL") then
     m:test-fail($test-name, $error)
   else

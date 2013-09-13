@@ -36,31 +36,42 @@ declare function local:format-junit($suite as element())
 {
   element testsuite
   {
-    attribute errors { "0" },
-    attribute failures { fn:data($suite/@failed) },
+    attribute errors { fn:data($suite/@errors) },
+    attribute failures { fn:data($suite/@failures) },
     attribute hostname { fn:tokenize(xdmp:get-request-header("Host"), ":")[1] },
     attribute name { fn:data($suite/@name) },
-    attribute tests { fn:data($suite/@total) },
+    attribute tests { fn:data($suite/@assertions) },
     attribute time { fn:data($suite/@time) },
     attribute timestamp { "" },
-    for $test in $suite/t:test
+    for $test in $suite/t:*
+    let $localname := fn:local-name($test)
     return
-      element testcase
-      {
-        attribute classname { fn:data($test/@name) },
-        attribute name { fn:data($test/@name) },
-        attribute time { fn:data($test/@time) },
-        for $result in ($test/t:result)[1]
-        return
-          if ($result/@type = "fail") then
+      if ($localname = "assertion")
+      then 
+        element testcase {
+          attribute classname { fn:data($test/@name) },
+          attribute name { fn:data($test/@name) },
+          attribute time { fn:data($test/@time) },
+          if (fn:string($test/@type) eq "failure") then
             element failure
             {
-              attribute type { fn:data($result/error:error/error:name) },
-              attribute message { fn:data($result/error:error/error:message) },
-              xdmp:quote($result/error:error)
+              attribute type { fn:data($test/error:error/error:name) },
+              attribute message { fn:data($test/error:error/error:message) },
+              xdmp:quote($test/error:error)
             }
           else ()
-      }
+        }
+      else 
+        element testcase {
+          attribute classname { fn:data($test/@name) },
+          attribute name { fn:data($test/@name) },
+          attribute time { fn:data($test/@time) },
+          element error {
+            attribute type { fn:data($test/error:error/error:name) },
+            attribute message { fn:data($test/error:error/error:message) },
+            xdmp:quote($test/error:error)
+          }
+        }
   }
 };
 
@@ -70,6 +81,7 @@ declare function local:run() {
   let $assertions := fn:tokenize(xdmp:get-request-field("assertions", ""), ",")[. ne ""]
   let $run-teardown as xs:boolean := xdmp:get-request-field("runteardown", "") eq "true"
   let $format as xs:string := xdmp:get-request-field("format", "xml")
+  
   let $result :=
     if ($test) then
       m:run-test($test, $assertions, $run-teardown)
@@ -89,7 +101,16 @@ declare function local:list()
 
 declare function local:all()
 {
-  m:run-tests(m:list()/t:test/@path/fn:string(.))
+  let $all-tests := m:run-tests(m:list()/t:test/@path/fn:string(.))
+  let $format as xs:string := xdmp:get-request-field('format', 'xml')
+  return if($format eq "junit")
+    then
+      element testsuites {
+        for $test in $all-tests/*:test
+        return local:format-junit($test)
+      }
+    else
+      $all-tests
 };
 
 
