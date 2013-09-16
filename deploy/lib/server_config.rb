@@ -834,7 +834,7 @@ private
 
       if File.exist? app_config_file
         buffer = File.read app_config_file
-        @properties.each do |k, v|
+        @properties.sort {|x,y| y <=> x}.each do |k, v|
           buffer.gsub!("@#{k}", v)
         end
 
@@ -847,7 +847,7 @@ private
 
       if deploy_tests?(dest_db) && File.exist?(test_config_file)
         buffer = File.read test_config_file
-        @properties.each do |k, v|
+        @properties.sort {|x,y| y <=> x}.each do |k, v|
           buffer.gsub!("@#{k}", v)
         end
 
@@ -966,7 +966,7 @@ private
       ERR
     else
       cpf_config = File.read File.expand_path("../../pipeline-config.xml", __FILE__)
-      @properties.each do |k, v|
+      @properties.sort {|x,y| y <=> x}.each do |k, v|
         cpf_config.gsub!("@#{k}", v)
       end
       cpf_code = File.read File.expand_path('../xquery/cpf.xqy', __FILE__)
