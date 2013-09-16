@@ -94,7 +94,7 @@ class ServerConfig < MLClient
 
   def info
     logger.info "Properties:"
-    @properties.each do |k, v|
+    @properties.sort {|x,y| y <=> x}.each do |k, v|
       logger.info k + ": " + v
     end
   end
@@ -1365,7 +1365,10 @@ private
     else
       config.gsub!("@ml.rewrite-resolves-globally", "")
     end
-    @properties.each do |k, v|
+    # @properties.each do |k, v|
+    #   config.gsub!("@#{k}", v)
+    # end
+    @properties.sort {|x,y| y <=> x}.each do |k, v|
       config.gsub!("@#{k}", v)
     end
 
