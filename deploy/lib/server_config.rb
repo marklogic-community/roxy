@@ -1365,9 +1365,6 @@ private
     else
       config.gsub!("@ml.rewrite-resolves-globally", "")
     end
-    # @properties.each do |k, v|
-    #   config.gsub!("@#{k}", v)
-    # end
     @properties.sort {|x,y| y <=> x}.each do |k, v|
       config.gsub!("@#{k}", v)
     end
