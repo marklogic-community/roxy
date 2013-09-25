@@ -3,12 +3,16 @@ module Roxy
     def initialize(options)
       super(options)
       @hostname = options[:server]
-      @port = options[:port]
+      @port = options[:rest_port]
+      if !@port or @port == ""
+        @port = options[:app_port]
+      end
       @http = Roxy::Http.new({
         :logger => @logger
       })
       @request = {}
       @gmt_offset = Time.now.gmt_offset
+
     end
 
     def get_files(path, data = [])
@@ -65,8 +69,8 @@ module Roxy
             end
           end
 
-          @logger.debug "params: #{params}"
           @logger.debug "extensionName: #{extensionName}"
+          @logger.debug "params: #{params}"
           # @logger.debug "methods: #{methods}"
           url = "http://#{@hostname}:#{@port}/v1/config/resources/#{extensionName}"
           if (params.length > 0)

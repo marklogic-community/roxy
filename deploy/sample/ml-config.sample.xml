@@ -32,6 +32,7 @@
       <!-- <ssl-certificate-template>@ml.ssl-certificate-template</ssl-certificate-template> -->
     </http-server>
     @ml.test-appserver
+    @ml.rest-appserver
   </http-servers>
   <xdbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     @ml.xdbc-server
@@ -47,6 +48,7 @@
     </assignment>
     @ml.test-content-db-assignment
     @ml.test-modules-db-assignment
+    @ml.rest-modules-db-assignment
     <assignment>
       <forest-name>@ml.modules-db</forest-name>
     </assignment>
@@ -62,6 +64,7 @@
   <databases xmlns="http://marklogic.com/xdmp/database" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/database database.xsd">
     <!--Application Database Configuration-->
     @ml.test-content-db-xml
+    @ml.rest-modules-db-xml
     <database>
       <database-name>@ml.content-db</database-name>
       <forests-per-host>@ml.content-forests-per-host</forests-per-host>

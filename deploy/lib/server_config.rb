@@ -868,21 +868,29 @@ private
           },
           { :db_name => dest_db }
 
-        if (@properties.has_key?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
-          total_count += load_data @properties['ml.rest-options.dir'],
-              :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
-              :remove_prefix => @properties['ml.rest-options.dir'],
-              :db => dest_db
-        else
-          logger.error "Could not find REST API options directory: #{@properties['ml.rest-options.dir']}\n";
-        end
-
       end
 
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
     end
 
+    # Deploy options, extensions, and transforms to the REST API server
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
+      # Figure out where we need to deploy this stuff
+      rest_modules_db = ''
+      if @properties.has_key?('ml.rest-port') and @properties['ml.rest-port'] != ''
+        rest_modules_db = "#{@properties['ml.app-name']}-rest-modules"
+      else
+        rest_modules_db = @properties['ml.modules-db']
+      end
+
+      if (@properties.has_key?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
+        load_data @properties['ml.rest-options.dir'],
+            :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
+            :remove_prefix => @properties['ml.rest-options.dir'],
+            :db => rest_modules_db
+      else
+        logger.debug "Could not find REST API options directory: #{@properties['ml.rest-options.dir']}\n";
+      end
       if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
         logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}\n"
         mlRest.install_extensions(File.expand_path(@properties['ml.rest-ext.dir']))
@@ -999,7 +1007,8 @@ private
         :user_name => @ml_username,
         :password => @ml_password,
         :server => @hostname,
-        :port => @properties["ml.app-port"],
+        :app_port => @properties["ml.app-port"],
+        :rest_port => @properties["ml.rest-port"],
         :logger => @logger
       })
     else
@@ -1185,6 +1194,16 @@ private
     properties
   end
 
+  def conditional_prop(prop, default_prop)
+
+    value = @properties[prop]
+    if !@properties[prop].present?
+      value = @properties[default_prop]
+    end
+
+    value
+  end
+
   def build_config(config_file)
     config = File.read(config_file)
 
@@ -1292,18 +1311,9 @@ private
       })
 
       # The modules database for the test server can be different from the app one
-      test_modules_db = @properties['ml.test-modules-db']
-      if !@properties['ml.test-modules-db'].present?
-        test_modules_db = @properties['ml.app-modules-db']
-      end
-      test_auth_method = @properties['ml.authentication-method']
-      if @properties['ml.test-authentication-method'].present?
-        test_auth_method = @properties['ml.test-authentication-method']
-      end
-      test_default_user = @properties['ml.default-user']
-      if @properties['ml.test-default-user'].present?
-        test_default_user = @properties['ml.test-default-user']
-      end
+      test_modules_db = conditional_prop('ml.test-modules-db', 'ml.app-modules-db')
+      test_auth_method = conditional_prop('ml.test-authentication-method', 'ml.authentication-method')
+      test_default_user = conditional_prop('ml.test-default-user', 'ml.default-user')
 
       config.gsub!("@ml.test-appserver",
       %Q{
@@ -1346,6 +1356,49 @@ private
       config.gsub!("@ml.test-modules-db-xml", "")
     end
 
+    if @properties['ml.rest-port'].present?
+      # Set up a REST API app server, distinct from the main application.
+
+      rest_auth_method = conditional_prop('ml.rest-authentication-method', 'ml.authentication-method')
+      rest_default_user = conditional_prop('ml.rest-default-user', 'ml.default-user')
+
+      config.gsub!("@ml.rest-appserver",
+      %Q{
+        <http-server import="@ml.app-name">
+          <http-server-name>@ml.app-name-rest</http-server-name>
+          <port>@ml.rest-port</port>
+          <database name="@ml.content-db"/>
+          <modules name="@ml.app-name-rest-modules"/>
+          <authentication>#{rest_auth_method}</authentication>
+          <default-user name="#{test_default_user}"/>
+          <url-rewriter>/MarkLogic/rest-api/rewriter.xqy</url-rewriter>
+          <error-handler>/MarkLogic/rest-api/error-handler.xqy</error-handler>
+          <rewrite-resolves-globally>true</rewrite-resolves-globally>
+        </http-server>
+      })
+
+      config.gsub!("@ml.rest-modules-db-xml",
+      %Q{
+        <database>
+          <database-name>@ml.app-name-rest-modules</database-name>
+          <forests>
+            <forest-id name="@ml.app-name-rest-modules"/>
+          </forests>
+        </database>
+      })
+
+      config.gsub!("@ml.rest-modules-db-assignment",
+      %Q{
+        <assignment>
+          <forest-name>@ml.app-name-rest-modules</forest-name>
+        </assignment>
+      })
+
+    else
+      config.gsub!("@ml.rest-appserver", "")
+      config.gsub!("@ml.rest-modules-db-xml", "")
+      config.gsub!("@ml.rest-modules-db-assignment", "")
+    end
 
     config.gsub!("@ml.forest-data-dir-xml",
       %Q{
