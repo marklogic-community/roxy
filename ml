@@ -22,7 +22,8 @@ usage()
   printf "Usage: ml new app-name --server-version=[version-number] [--branch=branch] [--git]\n
   use --git to automatically configure a git repo
   use --branch to specify the GitHub branch of the Roxy project your project
-    will be based on (master, dev)\n"
+    will be based on (master, dev)
+  use --force to force installation into an existing directory\n"
 }
 
 PARAMS=("${@}")
@@ -40,14 +41,9 @@ then
 
     hash git 2>&- || { echo >&2 "Git is required to use the new command."; exit 1; }
 
-    if [ -e $app_name ]
-    then
-      printf "\n${app_name} already exists. Aborting\n"
-      exit 1
-    fi
-
     BRANCH="master"
     INIT_GIT=0
+    FORCE_INSTALL=0
     APPTYPE="mvc"
     for (( i = 0; i < ${#PARAMS[@]}; i++ )); do
       if [[ ${PARAMS[${i}]} == --branch=* ]]
@@ -57,12 +53,21 @@ then
       elif [[ ${PARAMS[${i}]} == --git* ]]
       then
         INIT_GIT=1
+      elif [[ ${PARAMS[${i}]} == --force* ]]
+      then
+        FORCE_INSTALL=1
       elif [[ ${PARAMS[${i}]} == --app-type* ]]
       then
         splits=(${PARAMS[${i}]//=/ })
         APPTYPE=${splits[1]}
       fi
     done
+
+    if [ -e $app_name ] && [ ${FORCE_INSTALL} == 0 ]
+    then
+      printf "\n${app_name} already exists. Aborting\n"
+      exit 1
+    fi
 
     if [ "$APPTYPE" != "mvc" ] && [ "$APPTYPE" != "rest" ] && [ "$APPTYPE" != "hybrid" ]
     then
@@ -71,7 +76,15 @@ then
     fi
 
     printf "\nCreating new Application: ${app_name}..."
-    git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}
+    if [ -e $app_name ]
+    then
+      git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}.tmp_1
+      mv ${app_name}.tmp_1/* ${app_name}/
+      rm -rf ${app_name}.tmp_1
+    else
+      git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}
+    fi
+
     pushd ${app_name} > /dev/null
     rm -rf .git*
     if [ "$APPTYPE" = "rest" ]

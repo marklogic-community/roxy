@@ -30,25 +30,34 @@ for %%e in (%PATHEXT%) do (
 )
 if not defined GITFOUND goto needgit
 
-IF EXIST %app_name% GOTO alreadyexists
-
 set BRANCH=master
 set INIT_GIT=0
 set APPTYPE=mvc
+set FORCE_INSTALL=0
 
 :loop
 if not "%1"=="" (
   if "%1"=="--branch" (
-	set BRANCH=%2
-	shift
+		set BRANCH=%2
+		shift
   )
   if "%1"=="--app-type" (
     set APPTYPE=%2
-	shift
+		shift
+  )
+  if "%1"=="--force" (
+  	set FORCE_INSTALL=1
+  	shift
   )
   shift
   goto :loop
 )
+
+if "%FORCE_INSTALL%"=="1" GOTO skip_already_exists
+
+if EXIST %app_name% GOTO alreadyexists
+
+:skip_already_exists
 
 if not "%APPTYPE%"=="mvc" if not "%APPTYPE%"=="rest" if not "%APPTYPE%"=="hybrid" (
   echo Valid values for app-type are mvc, rest and hybrid. Aborting.
@@ -58,7 +67,15 @@ if not "%APPTYPE%"=="mvc" if not "%APPTYPE%"=="rest" if not "%APPTYPE%"=="hybrid
 echo.
 echo Creating new Application: %app_name%...
 
-cmd /c git clone git://github.com/marklogic/roxy.git -b %BRANCH% %app_name%
+if EXIST %app_name% (
+	cmd /c git clone git://github.com/marklogic/roxy.git -b %BRANCH% %app_name%.tmp_1
+	xcopy %app_name%.tmp_1\* %app_name%\ /E
+	rmdir /s /q %app_name%.tmp_1
+)
+if NOT EXIST %app_name% (
+	cmd /c git clone git://github.com/marklogic/roxy.git -b %BRANCH% %app_name%
+)
+
 pushd %app_name%
 rmdir /Q /S .git
 del /F /Q .gitignore
@@ -138,7 +155,7 @@ goto end
 	goto end
 
 :usage
-	echo Usage: ml new app-name --server-version=[version] [--branch=branch] [--git]
+	echo Usage: ml new app-name --server-version=[version] [--branch=branch] [--git] [--force]
 	echo.
 	echo.
 	echo   use --server-version to specify the major version of MarkLogic you will
@@ -146,6 +163,7 @@ goto end
 	echo   use --branch to specify the GitHub branch of the Roxy project your project
         echo     will be based on (master, dev)
 	echo   use --git to automatically configure a git repo
+	echo   use --force to overwrite an existing directory
 	echo.
 	goto end
 
