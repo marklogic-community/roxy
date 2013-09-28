@@ -81,3 +81,8 @@ This file describes changes made to Roxy per release
 * \#126 Don't overwrite application/custom when running "ml capture"
 
 ## 1.5 (branch: dev)
+
+### New Features
+* \#138 Allow loading CSS, JS as binary instead of text
+
+### Resolved Issues
