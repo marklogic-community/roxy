@@ -212,6 +212,8 @@ module Roxy
       url << "&format=xml" if options[:load_html_as_xml] == "true" && target_uri[/\.html$/]
       url << "&format=xml" if options[:format] == "xml"
       url << "&format=text" if options[:format] == "text"
+      url << "&format=binary" if options[:load_js_as_binary] == "true" && target_uri[/\.js$/]
+      url << "&format=binary" if options[:load_css_as_binary] == "true" && target_uri[/\.css$/]
       url << "&format=binary" if options[:format] == "binary"
 
       options[:forests].each do |forest|

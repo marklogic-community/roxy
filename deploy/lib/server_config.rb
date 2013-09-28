@@ -818,6 +818,8 @@ private
     app_config_file = File.join xquery_dir, "/app/config/config.xqy"
     test_config_file = File.join test_dir, "/test-config.xqy"
     load_html_as_xml = @properties['ml.load-html-as-xml']
+    load_js_as_binary = @properties['ml.load-js-as-binary']
+    load_css_as_binary = @properties['ml.load-css-as-binary']
 
     modules_databases.each do |dest_db|
       ignore_us = []
@@ -830,7 +832,9 @@ private
                               :remove_prefix => xquery_dir,
                               :db => dest_db,
                               :ignore_list => ignore_us,
-                              :load_html_as_xml => load_html_as_xml
+                              :load_html_as_xml => load_html_as_xml,
+                              :load_js_as_binary => load_js_as_binary,
+                              :load_css_as_binary => load_css_as_binary
 
       if File.exist? app_config_file
         buffer = File.read app_config_file
