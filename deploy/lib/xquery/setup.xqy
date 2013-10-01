@@ -410,7 +410,7 @@ declare function setup:do-setup($import-config as element(configuration)) as ite
   {
     xdmp:log($ex),
     setup:do-wipe(setup:get-rollback-config()),
-    $ex
+    fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
   }
 };
 

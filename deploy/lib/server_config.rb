@@ -376,7 +376,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
     logger.debug r.body
 
-    if r.body.match("<error:error")
+    if r.body.match("error log")
       logger.error r.body
       logger.error "... Bootstrap FAILED"
       return false
