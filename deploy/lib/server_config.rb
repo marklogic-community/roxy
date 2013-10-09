@@ -737,6 +737,10 @@ private
     },
     { :db_name => target_db }
 
+    if dirs.body.empty?
+      raise ExitException.new("Found no URIs in the modules database -- no code to capture")
+    end
+
     # target_dir gets created when we do mkdir on "/"
     if ['5', '6'].include? @properties['ml.server-version']
       # In ML5 and ML6, the response was a bunch of text. Split on the newlines.
