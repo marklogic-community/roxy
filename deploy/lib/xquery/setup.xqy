@@ -145,6 +145,7 @@ declare variable $http-server-settings :=
     <setting>debug-allow</setting>
     <setting>profile-allow</setting>
     <setting>default-xquery-version</setting>
+    <setting min-version="7.0-0">distribute-timestamps</setting>
     <setting>multi-version-concurrency-control</setting>
     <setting>output-sgml-character-entities</setting>
     <setting>output-encoding</setting>
@@ -204,6 +205,7 @@ declare variable $xcc-server-settings :=
     <setting>debug-allow</setting>
     <setting>profile-allow</setting>
     <setting>default-xquery-version</setting>
+    <setting min-version="7.0-0">distribute-timestamps</setting>
     <setting>multi-version-concurrency-control</setting>
     <setting>output-sgml-character-entities</setting>
     <setting>output-encoding</setting>
@@ -262,6 +264,7 @@ declare variable $odbc-server-settings :=
     <setting>debug-allow</setting>
     <setting>profile-allow</setting>
     <setting>default-xquery-version</setting>
+    <setting min-version="7.0-0">distribute-timestamps</setting>
     <setting>multi-version-concurrency-control</setting>
     <setting>output-sgml-character-entities</setting>
     <setting>output-encoding</setting>
