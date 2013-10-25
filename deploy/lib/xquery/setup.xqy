@@ -789,7 +789,7 @@ declare function setup:create-forests-from-count(
   let $data-directory := $db-config/db:forests/db:data-directory
   for $host in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
   for $j in (1 to $forests-per-host)
-  let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
+  let $forest-name := fn:string-join(($database-name, xs:string($j)), "-")
   return
     setup:create-forest(
       $forest-name,
@@ -805,7 +805,7 @@ declare function setup:validate-forests-from-count(
   let $data-directory := $db-config/db:forests/db:data-directory
   for $host in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
   for $j in (1 to $forests-per-host)
-  let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
+  let $forest-name := fn:string-join(($database-name, xs:string($j)), "-")
   return
     setup:validate-forest(
       $forest-name,
