@@ -669,12 +669,12 @@ declare function setup:find-forest-ids(
   $db-config as element(db:database)) as xs:unsignedLong*
 {
   let $admin-config := admin:get-configuration()
-  for $host in admin:group-get-host-ids($admin-config, xdmp:group())
+  for $host at $position in admin:group-get-host-ids($admin-config, xdmp:group()) 
   for $j in (1 to $db-config/db:forests-per-host)
   let $name :=
     fn:string-join((
       $db-config/db:database-name,
-      xdmp:host-name($host),
+      fn:format-number(xs:integer($position), "000"),
       xs:string($j)),
       "-")
   return
@@ -787,9 +787,9 @@ declare function setup:create-forests-from-count(
   $forests-per-host as xs:int) as item()*
 {
   let $data-directory := $db-config/db:forests/db:data-directory
-  for $host in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group()) 
   for $j in (1 to $forests-per-host)
-  let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
+  let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
   return
     setup:create-forest(
       $forest-name,
@@ -803,9 +803,9 @@ declare function setup:validate-forests-from-count(
   $forests-per-host as xs:int)
 {
   let $data-directory := $db-config/db:forests/db:data-directory
-  for $host in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group()) 
   for $j in (1 to $forests-per-host)
-  let $forest-name := fn:string-join(($database-name, xdmp:host-name($host), xs:string($j)), "-")
+  let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
   return
     setup:validate-forest(
       $forest-name,
@@ -963,10 +963,10 @@ declare function setup:validate-attached-forests-by-config(
 declare function setup:attach-forests-by-count($db-config as element(db:database)) as item()*
 {
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  for $host in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group()) 
   let $hostname := xdmp:host-name($host)
   for $j in (1 to setup:get-forests-per-host-from-database-config($db-config))
-  let $forest-name := fn:string-join(($database-name, $hostname, xs:string($j)), "-")
+  let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
   return
     setup:attach-database-forest($database-name, $forest-name)
 };
@@ -974,10 +974,10 @@ declare function setup:attach-forests-by-count($db-config as element(db:database
 declare function setup:validate-attached-forests-by-count($db-config as element(db:database))
 {
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  for $host in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group()) 
   let $hostname := xdmp:host-name($host)
   for $j in (1 to setup:get-forests-per-host-from-database-config($db-config))
-  let $forest-name := fn:string-join(($database-name, $hostname, xs:string($j)), "-")
+  let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
   return
     setup:validate-attached-database-forest($database-name, $forest-name)
 };
