@@ -42,8 +42,7 @@ declare function facet:facets(
     for $facet at $index in $facets
     let $facet-name := fn:data($facet/@name)
     let $facet-count := fn:count($facet/search:facet-value)
-    let $match := fn:matches(fn:lower-case($qtext),fn:concat("^",fn:lower-case($facet-name)))
-      or fn:matches(fn:lower-case($qtext),fn:concat(" ",fn:lower-case($facet-name)))
+    let $match := fn:matches(fn:lower-case($qtext), fn:concat("(^|[ \(])",fn:lower-case($facet-name)))
     return
       <div class="category {fn:concat("category-",$index)} { if ($match) then "selected-category" else ()}">
         <h4 title="Collapse {trans:translate($facet-name, $labels, (), "en")} category">
