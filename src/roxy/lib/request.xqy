@@ -39,8 +39,12 @@ declare variable $req:request as map:map :=
     return
         if ($val instance of xs:anySimpleType) then
           xdmp:url-decode($val)
-        else
+        else (
+          if ($val instance of binary()) then
+            map:put($map, fn:concat($name, "-filename"), xdmp:get-request-field-filename($name))
+          else (),
           $val
+        )
     return
       if (fn:exists($current)) then
         map:put($map, $name, ($current, $vals))
