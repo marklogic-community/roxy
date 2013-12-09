@@ -404,6 +404,13 @@ declare function setup:get-rollback-config()
 {
   element configuration
   {
+    element gr:task-server
+    {
+      element gr:scheduled-tasks
+      {
+        map:get($roll-back, "scheduled-tasks")
+      }
+    },
     element gr:http-servers
     {
       map:get($roll-back, "http-servers")
@@ -464,6 +471,7 @@ declare function setup:do-setup($import-config as element(configuration)) as ite
     setup:configure-databases($import-config),
     setup:create-appservers($import-config),
     setup:apply-appservers-settings($import-config),
+    setup:create-scheduled-tasks($import-config),
     if ($restart-needed) then
       "note: restart required"
     else ()
@@ -478,6 +486,26 @@ declare function setup:do-setup($import-config as element(configuration)) as ite
 
 declare function setup:do-wipe($import-config as element(configuration)) as item()*
 {
+  (: remove scheduled tasks :)
+  let $admin-config := admin:get-configuration()
+  let $remove-tasks :=
+    let $tasks :=
+      for $task in $import-config/gr:task-server/gr:scheduled-tasks/gr:scheduled-task
+      let $existing := setup:get-scheduled-task($task)
+      return
+        $existing
+    return
+      if ($tasks) then
+        xdmp:set(
+          $admin-config,
+          admin:group-delete-scheduled-task($admin-config, $default-group, $tasks))
+      else ()
+  return
+    if (admin:save-configuration-without-restart($admin-config)) then
+      xdmp:set($restart-needed, fn:true())
+    else (),
+
+  (: remove appservers :)
   let $admin-config := admin:get-configuration()
   let $groupid := xdmp:group()
   let $remove-appservers :=
@@ -552,21 +580,44 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
     )
   for $db-config in $databases
   return
-    setup:delete-database-and-forests($db-config),
+    setup:delete-databases($db-config),
 
-  (: Even though we delete forests that are attached to the database above, we will delete
-   : forests named in the config file. When named forests are in use, we'll be able to
-   : delete them even if they aren't attached to the database for whatever reason. :)
   let $admin-config := admin:get-configuration()
   let $remove-forests :=
-    for $forest-name in $import-config/as:assignments/as:assignment/as:forest-name
+    let $all-replica-names as xs:string* := $import-config/as:assignments/as:assignment/as:replica-names/as:replica-name
+    for $assignment in $import-config/as:assignments/as:assignment[fn:not(as:forest-name = $all-replica-names)]
+    let $forest-name := $assignment/as:forest-name
+    let $replica-names := $assignment/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
     return
       if (admin:forest-exists($admin-config, $forest-name)) then
+        let $forest-id := admin:forest-get-id($admin-config, $forest-name)
+        return
+        (
+          for $replica-name in $replica-names
+          where admin:forest-exists($admin-config, $replica-name)
+          return
+            let $replica-id := admin:forest-get-id($admin-config, $replica-name)
+            return
+            (
+              xdmp:set($admin-config, admin:forest-remove-replica($admin-config, $forest-id, $replica-id)),
+              xdmp:set($admin-config, admin:forest-delete($admin-config, $replica-id, fn:true()))
+            ),
+
+          try {
         xdmp:set(
           $admin-config,
           admin:forest-delete(
             $admin-config,
-            admin:forest-get-id($admin-config, $forest-name), fn:true()))
+                $forest-id, fn:true()))
+          }
+          catch($ex) {
+            xdmp:set(
+              $admin-config,
+              admin:forest-delete(
+                $admin-config,
+                $forest-id, fn:false()))
+          }
+      )
       else ()
   return
     if (admin:save-configuration-without-restart($admin-config)) then
@@ -661,7 +712,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   else ()
 };
 
-declare function setup:delete-database-and-forests($db-config as element(db:database))
+declare function setup:delete-databases($db-config as element(db:database))
 {
   let $db-name := $db-config/db:database-name
   let $admin-config := admin:get-configuration()
@@ -670,34 +721,14 @@ declare function setup:delete-database-and-forests($db-config as element(db:data
       let $db-id := admin:database-get-id($admin-config, $db-name)
       let $forest-ids := admin:database-get-attached-forests($admin-config, $db-id)
       let $detach :=
-      (
         for $id in $forest-ids
         return
-          xdmp:set($admin-config, admin:database-detach-forest($admin-config, $db-id, $id)),
-        if (admin:save-configuration-without-restart($admin-config)) then
-          xdmp:set($restart-needed, fn:true())
-        else ()
-      )
-      let $admin-config := admin:get-configuration()
-      let $forest-ids :=
-        if (fn:exists($forest-ids)) then
-          $forest-ids
-        else
-          (: For the case where the database exists but the forests are detached :)
-          setup:find-forest-ids($db-config)
-      let $admin-config := admin:forest-delete($admin-config, $forest-ids, fn:true())
-      let $admin-config := admin:database-delete($admin-config, $db-id)
+          xdmp:set($admin-config, admin:database-detach-forest($admin-config, $db-id, $id))
+      let $delete := xdmp:set($admin-config, admin:database-delete($admin-config, $db-id))
       return
         if (admin:save-configuration-without-restart($admin-config)) then
           xdmp:set($restart-needed, fn:true())
         else ()
-    else
-      (: The database does not exist. Check for the forests anyway :)
-      let $forest-ids := setup:find-forest-ids($db-config)
-      let $admin-config := admin:forest-delete($admin-config, $forest-ids, fn:true())
-      return
-        if (admin:save-configuration-without-restart($admin-config)) then
-          xdmp:set($restart-needed, fn:true())
         else ()
 };
 
@@ -731,7 +762,7 @@ declare function setup:find-forest-ids(
   $db-config as element(db:database)) as xs:unsignedLong*
 {
   let $admin-config := admin:get-configuration()
-  for $host at $position in admin:group-get-host-ids($admin-config, xdmp:group()) 
+  for $host at $position in admin:group-get-host-ids($admin-config, xdmp:group())
   for $j in (1 to $db-config/db:forests-per-host)
   let $name :=
     fn:string-join((
@@ -816,14 +847,17 @@ declare function setup:create-forests-from-config(
   $database-name as xs:string) as item()*
 {
   for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
-  let $forest-name as xs:string? := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
+  for $forest-name as xs:string in $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
   let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
-  let $host-name as xs:string? := $forest-config/as:host[fn:string-length(fn:string(.)) > 0]
+  let $host-name as xs:string? := $forest-config/as:host-name[fn:string-length(fn:string(.)) > 0]
+  let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+  let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
   return
     setup:create-forest(
       $forest-name,
       $data-directory,
-      if ($host-name) then xdmp:host($host-name) else ())
+      if ($host-name) then xdmp:host($host-name) else (),
+      $replicas)
 
 };
 
@@ -835,12 +869,14 @@ declare function setup:validate-forests-from-config(
   for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
   let $forest-name as xs:string? := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
   let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
-  let $host-name as xs:string? := $forest-config/as:host[fn:string-length(fn:string(.)) > 0]
+  let $host-name as xs:string? := $forest-config/as:host-name[fn:string-length(fn:string(.)) > 0]
+  let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
   return
     setup:validate-forest(
       $forest-name,
       $data-directory,
-      if ($host-name) then xdmp:host($host-name) else ())
+      if ($host-name) then xdmp:host($host-name) else (),
+      $replica-names)
 };
 
 declare function setup:create-forests-from-count(
@@ -849,14 +885,16 @@ declare function setup:create-forests-from-count(
   $forests-per-host as xs:int) as item()*
 {
   let $data-directory := $db-config/db:forests/db:data-directory
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group()) 
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
   for $j in (1 to $forests-per-host)
   let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
+  let $replica-names as xs:string* := ()
   return
     setup:create-forest(
       $forest-name,
       $data-directory,
-      $host)
+      $host,
+      $replica-names)
 };
 
 declare function setup:validate-forests-from-count(
@@ -865,14 +903,16 @@ declare function setup:validate-forests-from-count(
   $forests-per-host as xs:int)
 {
   let $data-directory := $db-config/db:forests/db:data-directory
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group()) 
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
   for $j in (1 to $forests-per-host)
   let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
+  let $replicas as xs:string* := ()
   return
     setup:validate-forest(
       $forest-name,
       $data-directory,
-      $host)
+      $host,
+      $replicas)
 };
 
 declare function setup:get-database-forest-configs(
@@ -886,14 +926,34 @@ declare function setup:get-database-forest-configs(
 declare function setup:create-forest(
   $forest-name as xs:string,
   $data-directory as xs:string?,
-  $host-id as xs:unsignedLong?) as item()*
+  $host-id as xs:unsignedLong?,
+  $replicas as element(as:assignment)*) as item()*
 {
   if (xdmp:forests()[$forest-name = xdmp:forest-name(.)]) then
     fn:concat("Forest ", $forest-name, " already exists, not recreated..")
   else
+  (
     let $host := ($host-id, $default-host)[1]
     let $admin-config :=
       admin:forest-create(admin:get-configuration(), $forest-name, $host, $data-directory)
+    let $forest-id := admin:forest-get-id($admin-config, $forest-name)
+    let $_ :=
+      for $replica in $replicas
+      let $replica-host-name := $replica/as:host-name[fn:string-length(fn:string(.)) > 0]
+      let $replica-host-id :=
+        if ($replica-host-name) then xdmp:host($replica-host-name) else ()
+      let $replica-host := ($replica-host-id, $default-host)[1]
+      let $cfg :=
+        admin:forest-create(
+          $admin-config,
+          $replica/as:forest-name,
+          $replica-host,
+          $replica/as:data-directory[fn:string-length(fn:string(.)) > 0])
+      let $replica-id := admin:forest-get-id($cfg, $replica/as:forest-name)
+      let $cfg := admin:forest-set-failover-enable($cfg, $forest-id, fn:true())
+      let $cfg := admin:forest-set-failover-enable($cfg, $replica-id, fn:true())
+    return
+        xdmp:set($admin-config, admin:forest-add-replica($cfg, $forest-id, $replica-id))
     return
     (
       if (admin:save-configuration-without-restart($admin-config)) then
@@ -912,12 +972,14 @@ declare function setup:create-forest(
         if ($host) then (" on ", xdmp:host-name($host))
         else ()), "")
     )
+  )
 };
 
 declare function setup:validate-forest(
   $forest-name as xs:string,
   $data-directory as xs:string?,
-  $host-id as xs:unsignedLong?)
+  $host-id as xs:unsignedLong?,
+  $replica-names as xs:string*)
 {
   if (xdmp:forests()[$forest-name = xdmp:forest-name(.)]) then
     let $forest-id := xdmp:forest($forest-name)
@@ -938,6 +1000,18 @@ declare function setup:validate-forest(
           if ($actual = $host-id) then ()
           else
             setup:validation-fail(fn:concat("Forest host mismatch: ", $host-id, " != ", $actual))
+      else (),
+
+      if ($replica-names) then
+        let $actual := admin:forest-get-replicas($admin-config, $forest-id)
+        let $expected :=
+          for $replica-name in $replica-names
+          return
+            admin:forest-get-id($admin-config, $replica-name)
+        return
+          if ($actual = $expected) then ()
+          else
+            setup:validation-fail(fn:concat("Forest replica mismatch: ", fn:string-join($expected, ", "), " != ", fn:string-join($actual, ", ")))
       else ()
     )
   else
@@ -1025,7 +1099,7 @@ declare function setup:validate-attached-forests-by-config(
 declare function setup:attach-forests-by-count($db-config as element(db:database)) as item()*
 {
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group()) 
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
   let $hostname := xdmp:host-name($host)
   for $j in (1 to setup:get-forests-per-host-from-database-config($db-config))
   let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
@@ -1036,7 +1110,7 @@ declare function setup:attach-forests-by-count($db-config as element(db:database
 declare function setup:validate-attached-forests-by-count($db-config as element(db:database))
 {
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group()) 
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
   let $hostname := xdmp:host-name($host)
   for $j in (1 to setup:get-forests-per-host-from-database-config($db-config))
   let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
@@ -1109,7 +1183,11 @@ declare function setup:validate-database-settings($import-config as element(conf
     for $db-config in setup:get-databases-from-config($import-config)
     let $database := xdmp:database(setup:get-database-name-from-database-config($db-config))
     for $setting in $database-settings/*:setting
-    let $expected := fn:data(xdmp:value(fn:concat("$db-config/db:", $setting)))
+    let $min-version as xs:string? := $setting/@min-version
+    let $expected :=
+      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+        fn:data(xdmp:value(fn:concat("$db-config/db:", $setting)))
+      else ()
     let $actual :=
       try
       {
@@ -3217,7 +3295,11 @@ declare function setup:validate-server(
       else
         setup:validation-fail(fn:concat("Appserver last-login mismatch: ", $expected, " != ", $actual))
   for $setting in $http-server-settings/*:setting
-  let $expected := fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(fn:string(.)) > 0]")))
+  let $min-version as xs:string? := $setting/@min-version
+    let $expected :=
+      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(fn:string(.)) > 0]")))
+      else ()
   let $actual := xdmp:value(fn:concat("admin:appserver-get-", $setting, "($admin-config, $server-id)"))
   where $expected
   return
@@ -3232,6 +3314,151 @@ declare function setup:validate-server(
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
       setup:validation-fail(fn:concat("Appserver missing namespace: ", $expected/gr:namespace-uri))
+};
+
+declare function setup:create-scheduled-tasks(
+  $import-config as element(configuration))
+{
+  let $tasks :=
+    for $task in $import-config/gr:task-server/gr:scheduled-tasks/gr:scheduled-task
+    let $existing := setup:get-scheduled-task($task)
+    where fn:not(fn:exists($existing))
+    return
+      setup:create-scheduled-task($task)
+  let $admin-config :=
+    admin:group-add-scheduled-task(
+      admin:get-configuration(),
+      $default-group,
+      $tasks)
+  return
+  (
+    if (admin:save-configuration-without-restart($admin-config)) then
+      xdmp:set($restart-needed, fn:true())
+    else (),
+    if ($tasks) then
+      setup:add-rollback("scheduled-tasks", $tasks)
+    else (),
+    fn:concat("Scheduled tasks created succesfully.")
+  )
+};
+
+declare function setup:create-scheduled-task(
+  $task as element(gr:scheduled-task))
+{
+  let $admin-config := admin:get-configuration()
+  return
+    if ($task/gr:task-type eq "daily") then
+      admin:group-daily-scheduled-task(
+        $task/gr:task-path,
+        $task/gr:task-root,
+        $task/gr:task-period,
+        $task/gr:task-start-time,
+        admin:database-get-id($admin-config, $task/gr:task-database/@name),
+        admin:database-get-id($admin-config, $task/gr:task-modules/@name),
+        xdmp:user($task/gr:task-user/@name),
+        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-priority)
+    else if ($task/gr:task-type eq "hourly") then
+      admin:group-hourly-scheduled-task(
+        $task/gr:task-path,
+        $task/gr:task-root,
+        $task/gr:task-period,
+        $task/gr:task-minute,
+        admin:database-get-id($admin-config, $task/gr:task-database/@name),
+        admin:database-get-id($admin-config, $task/gr:task-modules/@name),
+        xdmp:user($task/gr:task-user/@name),
+        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-priority)
+    else if ($task/gr:task-type eq "minutely") then
+      admin:group-minutely-scheduled-task(
+        $task/gr:task-path,
+        $task/gr:task-root,
+        $task/gr:task-period,
+        admin:database-get-id($admin-config, $task/gr:task-database/@name),
+        admin:database-get-id($admin-config, $task/gr:task-modules/@name),
+        xdmp:user($task/gr:task-user/@name),
+        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-priority)
+    else if ($task/gr:task-type eq "monthly") then
+      admin:group-monthly-scheduled-task(
+        $task/gr:task-path,
+        $task/gr:task-root,
+        $task/gr:task-period,
+        $task/gr:task-month-day,
+        $task/gr:task-start-time,
+        admin:database-get-id($admin-config, $task/gr:task-database/@name),
+        admin:database-get-id($admin-config, $task/gr:task-modules/@name),
+        xdmp:user($task/gr:task-user/@name),
+        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-priority)
+    else if ($task/gr:task-type eq "once") then
+      admin:group-one-time-scheduled-task(
+        $task/gr:task-path,
+        $task/gr:task-root,
+        $task/gr:task-start,
+        admin:database-get-id($admin-config, $task/gr:task-database/@name),
+        admin:database-get-id($admin-config, $task/gr:task-modules/@name),
+        xdmp:user($task/gr:task-user/@name),
+        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-priority)
+    else if ($task/gr:task-type eq "weekly") then
+      admin:group-weekly-scheduled-task(
+        $task/gr:task-path,
+        $task/gr:task-root,
+        $task/gr:task-period,
+        $task/gr:task-days/gr:task-day,
+        $task/gr:task-start-time,
+        admin:database-get-id($admin-config, $task/gr:task-database/@name),
+        admin:database-get-id($admin-config, $task/gr:task-modules/@name),
+        xdmp:user($task/gr:task-user/@name),
+        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-priority)
+    else ()
+};
+
+declare function setup:validate-scheduled-tasks(
+  $import-config as element(configuration))
+{
+  for $task in $import-config/gr:task-server/gr:scheduled-tasks/gr:scheduled-task
+  return
+    setup:validate-scheduled-task($task)
+};
+
+declare function setup:validate-scheduled-task(
+  $task as element(gr:scheduled-task))
+{
+  if (fn:not(fn:empty(setup:get-scheduled-task($task)))) then ()
+  else
+    setup:validation-fail(fn:concat("Validation fail for ", xdmp:describe($task)))
+};
+
+declare function setup:get-scheduled-task(
+  $task as element(gr:scheduled-task)) as element(gr:scheduled-task)?
+{
+  let $admin-config := admin:get-configuration()
+  let $tasks :=
+    admin:group-get-scheduled-tasks(
+      $admin-config,
+      $default-group)
+  let $tasks :=
+    $tasks[gr:task-path = $task/gr:task-path and
+           gr:task-root = $task/gr:task-root and
+           gr:task-type = $task/gr:task-type and
+           gr:task-database = admin:database-get-id($admin-config, $task/gr:task-database/@name) and
+           gr:task-modules = admin:database-get-id($admin-config, $task/gr:task-modules/@name) and
+           gr:task-user = xdmp:user($task/gr:task-user/@name)]
+  let $_ := xdmp:log(("task-period: ", $task/gr:task-period))
+  let $filtered := $tasks[if ($task/gr:task-period) then gr:task-period = $task/gr:task-period else fn:true()]
+  let $_ := xdmp:log(("filtered: ", $filtered))
+  return
+    $filtered
+           (:[if ($task/gr:task-period) then gr:task-period = $task/gr:task-period else fn:true()]:)
+(:           [if ($task/gr:task-start-time) then gr:task-start-time = $task/gr:task-start-time else fn:true()]
+           [if ($task/gr:task-minute) then gr:task-minute = $task/gr:task-minute else fn:true()]
+           [if ($task/gr:task-month-day) then gr:task-month-day = $task/gr:task-month-day else fn:true()]
+           [if ($task/gr:task-days/gr:task-day) then fn:not(gr:task-days/gr:task-day != $task/gr:task-days/gr:task-day) else fn:true()]
+           [if ($task/gr:task-host) then gr:task-host = $task/gr:task-host/xdmp:host(.) else fn:true()]
+           [if ($task/gr:task-priority) then gr:task-priority = $task/gr:task-priority else fn:true()]:)
 };
 
 declare function setup:create-privileges(
@@ -4351,7 +4578,8 @@ declare function setup:validate-install($import-config as element(configuration)
     setup:validate-amps($import-config),
     setup:validate-database-settings($import-config),
     setup:validate-databases-indexes($import-config),
-    setup:validate-appservers($import-config)
+    setup:validate-appservers($import-config),
+    setup:validate-scheduled-tasks($import-config)
   }
   catch($ex)
   {

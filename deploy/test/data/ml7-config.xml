@@ -633,7 +633,6 @@
       <locking>fast</locking>
       <journaling>fast</journaling>
       <journal-size>128</journal-size>
-      <journal-count>2</journal-count>
       <preallocate-journals>false</preallocate-journals>
       <preload-mapped-data>false</preload-mapped-data>
       <preload-replica-mapped-data>false</preload-replica-mapped-data>
