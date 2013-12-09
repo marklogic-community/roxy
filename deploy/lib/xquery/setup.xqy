@@ -3440,18 +3440,14 @@ declare function setup:get-scheduled-task(
     admin:group-get-scheduled-tasks(
       $admin-config,
       $default-group)
-  let $tasks :=
+  return
     $tasks[gr:task-path = $task/gr:task-path and
            gr:task-root = $task/gr:task-root and
            gr:task-type = $task/gr:task-type and
            gr:task-database = admin:database-get-id($admin-config, $task/gr:task-database/@name) and
            gr:task-modules = admin:database-get-id($admin-config, $task/gr:task-modules/@name) and
            gr:task-user = xdmp:user($task/gr:task-user/@name)]
-  let $_ := xdmp:log(("task-period: ", $task/gr:task-period))
-  let $filtered := $tasks[if ($task/gr:task-period) then gr:task-period = $task/gr:task-period else fn:true()]
-  let $_ := xdmp:log(("filtered: ", $filtered))
-  return
-    $filtered
+          [if ($task/gr:task-period) then gr:task-period = $task/gr:task-period else fn:true()]
            (:[if ($task/gr:task-period) then gr:task-period = $task/gr:task-period else fn:true()]:)
 (:           [if ($task/gr:task-start-time) then gr:task-start-time = $task/gr:task-start-time else fn:true()]
            [if ($task/gr:task-minute) then gr:task-minute = $task/gr:task-minute else fn:true()]

@@ -57,6 +57,7 @@ class ServerConfig < MLClient
     @hostname = @properties["ml.server"]
     @bootstrap_port_four = @properties["ml.bootstrap-port-four"]
     @bootstrap_port_five = @properties["ml.bootstrap-port-five"]
+    @use_https = @properties["ml.use-https"]
 
     super(
       :user_name => @properties["ml.user"],
@@ -1029,19 +1030,19 @@ private
   end
 
   def execute_query_4(query, properties)
-    r = go "http://#{@hostname}:#{@bootstrap_port}/use-cases/eval2.xqy", "post", {}, {
+    r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/use-cases/eval2.xqy", "post", {}, {
       :queryInput => query
     }
   end
 
   def get_any_db_id
-    r = go "http://#{@hostname}:#{@bootstrap_port}/manage/LATEST/databases?format=xml", "get"
+    r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/databases?format=xml", "get"
     return nil unless r.code.to_i == 200
     dbid = $1 if r.body =~ /.*<idref>([^<]+)<\/idref>.*/
   end
 
   def get_db_id(db_name)
-    r = go "http://#{@hostname}:#{@bootstrap_port}/manage/LATEST/databases?format=xml", "get"
+    r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/databases?format=xml", "get"
     return nil unless r.code.to_i == 200
 
     use_next_line = false
@@ -1058,7 +1059,7 @@ private
   end
 
   def get_sid(app_name)
-    r = go "http://#{@hostname}:#{@bootstrap_port}/manage/LATEST/servers?format=xml", "get"
+    r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/servers?format=xml", "get"
     return nil unless r.code.to_i == 200
 
     previous_line = ""
@@ -1092,7 +1093,7 @@ private
 
     if db_id.present?
       logger.debug "using dbid: #{db_id}"
-      r = go "http://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy", "post", {}, {
+      r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy", "post", {}, {
         :dbid => db_id,
         :resulttype => "text",
         :q => query
@@ -1100,7 +1101,7 @@ private
       logger.debug r.body
     else
       logger.debug "using sid: #{sid}"
-      r = go "http://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy", "post", {}, {
+      r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy", "post", {}, {
         :sid => sid,
         :resulttype => "text",
         :q => query
@@ -1131,14 +1132,14 @@ private
 
     if db_id.present?
       logger.debug "using dbid: #{db_id}"
-      r = go("http://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?dbid=#{db_id}&action=eval&querytype=xquery",
+      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?dbid=#{db_id}&action=eval&querytype=xquery",
              "post",
              {},
              nil,
              query)
     else
       logger.debug "using sid: #{sid}"
-      r = go("http://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?sid=#{sid}&action=eval&querytype=xquery",
+      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?sid=#{sid}&action=eval&querytype=xquery",
              "post",
              {},
              nil,
