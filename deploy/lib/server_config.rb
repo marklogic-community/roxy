@@ -804,7 +804,7 @@ private
   def deploy_tests?(target_db)
     @properties['ml.test-content-db'].present? &&
     @properties['ml.test-port'].present? &&
-    @environment != "prod" &&
+    !@properties['ml.do-not-deploy-tests'].split(",").include?(@environment) &&
     @properties['ml.test-modules-db'] == target_db
   end
 
@@ -1447,6 +1447,7 @@ private
     environment = find_arg(environments)
 
     properties["environment"] = environment if environment
+    properties["ml.environment"] = environment if environment
 
     env_properties_file = File.expand_path("#{prop_file_location}/#{environment}.properties", __FILE__)
 
