@@ -47,10 +47,8 @@ class ServerConfig < MLClient
 
   # needed to determine if Roxy is running inside a jar
   @@is_jar = __FILE__.match(/jar:file:.*/) != nil
-  @@path = "./deploy" if @@is_jar
-  @@path = "../.." unless @@is_jar
-  @@context = Dir.pwd if @@is_jar
-  @@context = __FILE__ unless @@is_jar
+  @@path = @@is_jar ? "./deploy" : "../.."
+  @@context = @@is_jar ? Dir.pwd : __FILE__
 
   def initialize(options)
     @options = options
