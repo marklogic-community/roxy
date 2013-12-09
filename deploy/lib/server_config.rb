@@ -110,6 +110,34 @@ class ServerConfig < MLClient
     return result
   end
 
+  def self.jar
+    raise HelpException.new("jar", "You must be using JRuby to create a jar") unless RUBY_PLATFORM == "java"
+    begin
+      # ensure warbler gem is installed
+      gem 'warbler'
+      require 'warbler'
+
+      jar_file = ServerConfig.expand_path("#{@@path}/../roxy.jar")
+      logger.debug(jar_file)
+      Dir.mktmpdir do |tmp_dir|
+        logger.debug(tmp_dir)
+
+        FileUtils.mkdir_p tmp_dir + "/bin"
+        FileUtils.cp(ServerConfig.expand_path("#{@@path}/lib/ml.rb"), tmp_dir + "/bin/roxy.rb")
+
+        FileUtils.cp_r(ServerConfig.expand_path("#{@@path}/lib"), tmp_dir)
+        FileUtils.cp(ServerConfig.expand_path("#{@@path}/app_specific.rb"), tmp_dir + "/lib/app_specific.rb")
+
+        Dir.chdir(tmp_dir) do
+          Warbler::Application.new.run
+          FileUtils.cp(Dir.glob("*.jar")[0], jar_file)
+        end
+      end
+    rescue Gem::LoadError
+      raise HelpException.new("jar", "Please install the warbler gem")
+    end
+  end
+
   def self.init
     sample_config = ServerConfig.expand_path("#{@@path}/sample/ml-config.sample.xml")
     sample_properties = ServerConfig.expand_path("#{@@path}/sample/build.sample.properties")

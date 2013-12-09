@@ -437,6 +437,20 @@ class Help
     DOC
   end
 
+  def self.jar
+    <<-DOC.strip_heredoc
+      Usage: ml jar
+
+      General options:
+        -v, [--verbose]                   # Verbose output
+
+      Prerequisites:
+        - You must be running JRuby http://jruby.org/
+        - You must have the warbler gem installed
+          > gem install warbler
+    DOC
+  end
+
   def self.doHelp(logger, command, error_message = nil)
     logger.error "#{error_message}\n" if error_message
 	  logger.info Help.send(command)
