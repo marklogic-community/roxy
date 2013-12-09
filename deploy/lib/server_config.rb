@@ -45,6 +45,13 @@ end
 
 class ServerConfig < MLClient
 
+  # needed to determine if Roxy is running inside a jar
+  @@is_jar = __FILE__.match(/jar:file:.*/) != nil
+  @@path = "./deploy" if @@is_jar
+  @@path = "../.." unless @@is_jar
+  @@context = Dir.pwd if @@is_jar
+  @@context = __FILE__ unless @@is_jar
+
   def initialize(options)
     @options = options
 
@@ -57,7 +64,7 @@ class ServerConfig < MLClient
     @hostname = @properties["ml.server"]
     @bootstrap_port_four = @properties["ml.bootstrap-port-four"]
     @bootstrap_port_five = @properties["ml.bootstrap-port-five"]
-    @use_https = @properties["ml.use-https"]
+    @use_https = @properties["ml.use-https"] == "true"
 
     super(
       :user_name => @properties["ml.user"],
@@ -85,30 +92,35 @@ class ServerConfig < MLClient
     end
   end
 
-  def self.pwd
-    return Dir.pwd
-  end
-
   def get_properties
     return @properties
   end
 
   def info
+    logger.info "IS_JAR: #{@@is_jar}"
     logger.info "Properties:"
     @properties.sort {|x,y| y <=> x}.each do |k, v|
       logger.info k + ": " + v
     end
   end
 
+  def ServerConfig.expand_path(path)
+#    logger.info("path: #{path}")
+#    logger.info("context: #{@@context}")
+    result = File.expand_path(path, @@context)
+#    logger.info("result: #{result}")
+    return result
+  end
+
   def self.init
-    sample_config = File.expand_path("../../sample/ml-config.sample.xml", __FILE__)
-    sample_properties = File.expand_path("../../sample/build.sample.properties", __FILE__)
-    build_properties = File.expand_path("../../build.properties", __FILE__)
-    options_dir = File.expand_path("../../../rest-api/config/options", __FILE__)
-    rest_ext_dir = File.expand_path("../../../rest-api/ext", __FILE__)
-    rest_transforms_dir = File.expand_path("../../../rest-api/transforms", __FILE__)
-    options_file = File.expand_path("../../../rest-api/config/options/all.xml", __FILE__)
-    sample_options = File.expand_path("../../sample/all.sample.xml", __FILE__)
+    sample_config = ServerConfig.expand_path("#{@@path}/sample/ml-config.sample.xml")
+    sample_properties = ServerConfig.expand_path("#{@@path}/sample/build.sample.properties")
+    build_properties = ServerConfig.expand_path("#{@@path}/build.properties")
+    options_dir = ServerConfig.expand_path("#{@@path}/../rest-api/config/options")
+    rest_ext_dir = ServerConfig.expand_path("#{@@path}/../rest-api/ext")
+    rest_transforms_dir = ServerConfig.expand_path("#{@@path}/../rest-api/transforms")
+    options_file = ServerConfig.expand_path("#{@@path}/../rest-api/config/options/all.xml")
+    sample_options = ServerConfig.expand_path("#{@@path}/sample/all.sample.xml")
 
     force = find_arg(['--force']).present?
     force_props = find_arg(['--force-properties']).present?
@@ -169,11 +181,11 @@ class ServerConfig < MLClient
       FileUtils.mkdir_p options_dir
       FileUtils.cp sample_options, options_file
       FileUtils.cp(
-        File.expand_path("../../sample/properties.sample.xml", __FILE__),
-        File.expand_path("../../../rest-api/config/properties.xml", __FILE__))
+        ServerConfig.expand_path("#{@@path}/sample/properties.sample.xml"),
+        ServerConfig.expand_path("#{@@path}/../rest-api/config/properties.xml"))
     end
 
-    target_config = File.expand_path(ServerConfig.properties["ml.config.file"], __FILE__)
+    target_config = ServerConfig.expand_path(ServerConfig.properties["ml.config.file"])
 
     if !force && !force_config && File.exists?(target_config)
       error_msg << "ml-config.xml has already been created."
@@ -186,8 +198,8 @@ class ServerConfig < MLClient
   end
 
   def self.initcpf
-    sample_config = File.expand_path("../../sample/pipeline-config.sample.xml", __FILE__)
-    target_config = File.expand_path("../../pipeline-config.xml", __FILE__)
+    sample_config = ServerConfig.expand_path("#{@@path}/sample/pipeline-config.sample.xml")
+    target_config = ServerConfig.expand_path("#{@@path}/pipeline-config.xml")
 
     force = find_arg(['--force']).present?
     if !force && File.exists?(target_config)
@@ -255,7 +267,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
   def self.inject_index(key, index)
     properties = ServerConfig.properties
-    config_path = File.expand_path(properties["ml.config.file"], __FILE__)
+    config_path = ServerConfig.expand_path(properties["ml.config.file"])
     existing = File.read(config_path)
     existing = existing.gsub(key) { |match| "#{match}\n#{index}" }
     File.open(config_path, "w") { |file| file.write(existing) }
@@ -338,30 +350,9 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     else
       logger.info "Restarting MarkLogic Server on #{@hostname}"
     end
-    setup = File.read File.expand_path('../xquery/setup.xqy', __FILE__)
+    logger.debug "this: #{self}"
+    setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
     r = execute_query %Q{#{setup} setup:do-restart("#{group}")}
-  end
-
-  def self.plugin
-    # get src dir and package details
-    properties = ServerConfig.properties
-    src_dir = properties["ml.xquery.dir"]
-    plugin_command = ARGV.shift if ARGV.length
-    package = ARGV.shift if ARGV.length
-    package_version = ARGV.shift if ARGV.length
-
-    runme = %Q{cd #{src_dir} && }
-    if is_windows?
-      runme << File.expand_path("../depx-0.1/depx.bat", __FILE__)
-    else
-      runme << File.expand_path("../depx-0.1/depx", __FILE__)
-    end
-    runme << " #{plugin_command}" if plugin_command
-    runme << " #{package} " if package
-    runme << " #{package_version} " if package_version
-    logger.debug runme
-
-    logger.info `#{runme}`
   end
 
   def config
@@ -372,7 +363,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     raise ExitException.new("Bootstrap requires the target environment's hostname to be defined") unless @hostname.present?
 
     logger.info "Bootstrapping your project into MarkLogic on #{@hostname}..."
-    setup = File.read(File.expand_path('../xquery/setup.xqy', __FILE__))
+    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
 
     logger.debug r.body
@@ -394,7 +385,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
   def wipe
     logger.info "Wiping MarkLogic setup for your project on #{@hostname}..."
-    setup = File.read(File.expand_path('../xquery/setup.xqy', __FILE__))
+    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:do-wipe(#{get_config})}
     logger.debug r.body
 
@@ -415,7 +406,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
   def validate_install
     logger.info "Validating your project installation into MarkLogic on #{@hostname}..."
-    setup = File.read(File.expand_path('../xquery/setup.xqy', __FILE__))
+    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     begin
       r = execute_query %Q{#{setup} setup:validate-install(#{get_config})}
       logger.info "code: #{r.code.to_i}"
@@ -458,7 +449,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     dir = ARGV.shift
     db = find_arg(['--db']) || @properties['ml.content-db']
     remove_prefix = find_arg(['--remove-prefix'])
-    remove_prefix = File.expand_path(remove_prefix) if remove_prefix
+    remove_prefix = ServerConfig.expand_path(remove_prefix) if remove_prefix
     quiet = find_arg(['--quiet'])
 
     add_prefix = find_arg(['--add-prefix'])
@@ -474,7 +465,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
     options[:batch_commit] = batch
     options[:permissions] = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER) unless options[:permissions]
-    xcc.load_files(File.expand_path(dir), options)
+    xcc.load_files(ServerConfig.expand_path(dir), options)
   end
 
   #
@@ -536,7 +527,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def test_cleanup
-    src_dir = File.expand_path(@properties["ml.xquery.dir"], __FILE__)
+    src_dir = ServerConfig.expand_path(@properties["ml.xquery.dir"])
     File.delete("#{src_dir}/app/controllers/missing-map.xqy")
     File.delete("#{src_dir}/app/controllers/tester.xqy")
     FileUtils.rm_r("#{src_dir}/app/views/tester", :force => true)
@@ -573,7 +564,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   def recordloader
     filename = ARGV.shift
     raise HelpException.new("recordloader", "configfile is required!") unless filename
-    properties_file = File.expand_path("../../#{filename}", __FILE__)
+    properties_file = ServerConfig.expand_path("#{@@path}/#{filename}")
     properties = ServerConfig.load_properties(properties_file, "")
     properties = ServerConfig.substitute_properties(properties, @properties, "")
 
@@ -586,7 +577,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       prop_string << %Q{-D#{k}="#{v}" }
     end
 
-    runme = %Q{java -cp #{File.expand_path("../java/recordloader.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/marklogic-xcc-5.0.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xpp3-1.1.4c.jar", __FILE__)} #{prop_string} com.marklogic.ps.RecordLoader}
+    runme = %Q{java -cp #{ServerConfig.expand_path("../java/recordloader.jar")}#{path_separator}#{ServerConfig.expand_path("../java/marklogic-xcc-5.0.2.jar")}#{path_separator}#{ServerConfig.expand_path("../java/xpp3-1.1.4c.jar")} #{prop_string} com.marklogic.ps.RecordLoader}
     logger.info runme
     `#{runme}`
   end
@@ -594,7 +585,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   def xqsync
     filename = ARGV.shift
     raise HelpException.new("xqsync", "configfile is required!") unless filename
-    properties_file = File.expand_path("../../#{filename}", __FILE__)
+    properties_file = ServerConfig.expand_path("#{@@path}/#{filename}")
     properties = ServerConfig.load_properties(properties_file, "")
     properties = ServerConfig.substitute_properties(properties, @properties, "")
 
@@ -606,7 +597,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       prop_string << %Q{-D#{k}="#{v}" }
     end
 
-    runme = %Q{java -Xmx2048m -cp #{File.expand_path("../java/xqsync.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/marklogic-xcc-5.0.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xstream-1.4.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xpp3-1.1.4c.jar", __FILE__)} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
+    runme = %Q{java -Xmx2048m -cp #{ServerConfig.expand_path("../java/xqsync.jar")}#{path_separator}#{ServerConfig.expand_path("../java/marklogic-xcc-5.0.2.jar")}#{path_separator}#{ServerConfig.expand_path("../java/xstream-1.4.2.jar")}#{path_separator}#{ServerConfig.expand_path("../java/xpp3-1.1.4c.jar")} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
     logger.info runme
     `#{runme}`
   end
@@ -630,7 +621,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     install = find_arg(['--install']) == "true" || uris_module == '""'
 
     # Find the XCC jar
-    matches = Dir.glob(File.expand_path("../java/*xcc*.jar", __FILE__))
+    matches = Dir.glob(ServerConfig.expand_path("../java/*xcc*.jar"))
     raise "Missing XCC Jar." if matches.length == 0
     xcc_file = matches[0]
 
@@ -639,12 +630,12 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       # directory, so that the xquery_modules will be visible with the
       # same path that will be used to see it in the modules database.
       Dir.chdir(@properties['ml.xquery.dir']) do
-        runme = %Q{java -cp #{File.expand_path("../java/corb.jar", __FILE__)}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
+        runme = %Q{java -cp #{ServerConfig.expand_path("../java/corb.jar")}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
         logger.info runme
         `#{runme}`
       end
     else
-      runme = %Q{java -cp #{File.expand_path("../java/corb.jar", __FILE__)}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
+      runme = %Q{java -cp #{ServerConfig.expand_path("../java/corb.jar")}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
       logger.info runme
       `#{runme}`
     end
@@ -666,7 +657,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     # Create or update environment properties file
     filename = "#{@environment}.properties"
     properties = {}
-    properties_file = File.expand_path("../#{filename}", File.dirname(__FILE__))
+    properties_file = ServerConfig.expand_path("../#{filename}", File.dirname(@@context))
     begin
       if (File.exists?(properties_file))
         properties = ServerConfig.load_properties(properties_file, "")
@@ -902,12 +893,12 @@ private
       end
       if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
         logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}\n"
-        mlRest.install_extensions(File.expand_path(@properties['ml.rest-ext.dir']))
+        mlRest.install_extensions(ServerConfig.expand_path(@properties['ml.rest-ext.dir']))
       end
 
       if (@properties.has_key?('ml.rest-transforms.dir') && File.exist?(@properties['ml.rest-transforms.dir']))
         logger.info "\nLoading REST transforms from #{@properties['ml.rest-transforms.dir']}\n"
-        mlRest.install_transforms(File.expand_path(@properties['ml.rest-transforms.dir']))
+        mlRest.install_transforms(ServerConfig.expand_path(@properties['ml.rest-transforms.dir']))
       end
     end
   end
@@ -974,7 +965,7 @@ private
   def deploy_cpf
     if @properties["ml.triggers-db"].blank? || @properties["ml.data.dir"].blank?
       logger.error "To use CPF, you must define the triggers-db property in your build.properties file"
-    elsif !File.exist?(File.expand_path("../../pipeline-config.xml", __FILE__))
+    elsif !File.exist?(ServerConfig.expand_path("#{@@path}/pipeline-config.xml"))
       logger.error <<-ERR.strip_heredoc
         Before you can deploy CPF, you must define a configuration. Steps:
         1. Run 'ml initcpf'
@@ -982,17 +973,19 @@ private
         3. Run 'ml <env> deploy cpf')
       ERR
     else
-      cpf_config = File.read File.expand_path("../../pipeline-config.xml", __FILE__)
+      cpf_config = File.read ServerConfig.expand_path("#{@@path}/pipeline-config.xml")
       @properties.sort {|x,y| y <=> x}.each do |k, v|
         cpf_config.gsub!("@#{k}", v)
       end
-      cpf_code = File.read File.expand_path('../xquery/cpf.xqy', __FILE__)
-      r = execute_query %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}, :db_name => @properties["ml.content-db"]
+      cpf_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/cpf.xqy")
+      query = %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}
+      logger.debug(query)
+      r = execute_query(query, :db_name => @properties["ml.content-db"])
     end
   end
 
   def clean_cpf
-    cpf_code = File.read File.expand_path('../xquery/cpf.xqy', __FILE__)
+    cpf_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/cpf.xqy")
     r = execute_query %Q{#{cpf_code} cpf:clean-cpf()}, :db_name => @properties["ml.content-db"]
   end
 
@@ -1157,7 +1150,7 @@ private
       needs_rescan = false
       sub_me.each do |k,v|
         if v.match(/\$\{basedir\}/)
-          sub_me[k] = File.expand_path(v.sub("${basedir}", ServerConfig.pwd))
+          sub_me[k] = ServerConfig.expand_path(v.sub("${basedir}", Dir.pwd))
         else
           matches = v.scan(/\$\{([^}]+)\}/)
           if matches.length > 0
@@ -1434,9 +1427,10 @@ private
     config
   end
 
-  def ServerConfig.properties(prop_file_location = "../..")
-    default_properties_file = File.expand_path("#{prop_file_location}/default.properties", __FILE__)
-    properties_file = File.expand_path("#{prop_file_location}/build.properties", __FILE__)
+  def ServerConfig.properties(prop_file_location = @@path)
+    default_properties_file = ServerConfig.expand_path("#{prop_file_location}/default.properties")
+    properties_file = ServerConfig.expand_path("#{prop_file_location}/build.properties")
+
     raise ExitException.new("You must run ml init to configure your application.") unless File.exist?(properties_file)
 
     properties = ServerConfig.load_properties(default_properties_file, "ml.")
@@ -1450,7 +1444,7 @@ private
     properties["environment"] = environment if environment
     properties["ml.environment"] = environment if environment
 
-    env_properties_file = File.expand_path("#{prop_file_location}/#{environment}.properties", __FILE__)
+    env_properties_file = ServerConfig.expand_path("#{prop_file_location}/#{environment}.properties")
 
     properties.merge!(ServerConfig.load_properties(env_properties_file, "ml.")) if File.exists? env_properties_file
 
