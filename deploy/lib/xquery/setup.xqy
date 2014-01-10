@@ -3529,7 +3529,7 @@ declare function setup:create-roles(
   let $description as xs:string? := $role/sec:description
   let $role-names as xs:string* := $role/sec:role-names/sec:role-name
   let $permissions as element(sec:permission)* := $role/sec:permissions/*
-  let $collections as xs:string* := $role/sec:collections/*
+  let $collections as xs:string* := $role/sec:collections/sec:collection/fn:string()
   let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
   let $amps as element(sec:amp)* := $role/sec:amps/*
   let $eval-options :=
