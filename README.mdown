@@ -23,6 +23,7 @@ What good is your code if it doesn't work? Testing is paramount to the developme
   * MarkLogic 4.x - You need the **Docs** appserver running on port 8000 - this port can be overridden in build.properties
   * MarkLogic 5.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
   * MarkLogic 6.x - You need the **Manage** appserver running on port 8002 - this port can be overridden in build.properties
+  * MarkLogic 7.x -
 * [Ruby 1.9.3+](http://www.ruby-lang.org/en/) - Required for Roxy Deployer only.
 * [Java (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/index.html) - Only if you wish to run the Roxy Deployer [XQSync](http://developer.marklogic.com/code/xqsync, XQSync) or [RecordLoader](http://developer.marklogic.com/code/recordloader) commands.
 * [Git](http://git-scm.com/downloads) - Required to create a new project using "ml new".
@@ -50,11 +51,10 @@ password=your-ml-admin-password
 # the authentication type for the appserver (digest|basic|application-level)
 authentication-method=application-level
 # the default user to authenticate with. defaults to nobody
-default-user=nobody
+default-user=${app-name}-user
 # Specify the server(s) you wish to deploy to here. This tutorial assumes you are using localhost.
 local-server=localhost
 #dev-server=
-#cert-server=
 #prod-server=
 </code></pre>
 
