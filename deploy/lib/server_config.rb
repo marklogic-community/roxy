@@ -786,16 +786,21 @@ private
         if (uri.end_with?("/"))
           # create the directory so that it will exist when we try to save files
           Dir.mkdir("#{target_dir}" + uri)
-        else
-          r = execute_query %Q{
-            fn:doc("#{uri}")
-          },
-          { :db_name => target_db }
-
-          body = JSON.parse(r.body)[0]['result']
-          File.open("#{target_dir}#{uri}", 'w') { |file| file.write(body) }
         end
       end
+      r = execute_query %Q{
+        for $uri in cts:uris()
+        return
+          xdmp:save(
+            "#{target_dir}" ||$uri,
+            fn:doc($uri),
+            <options xmlns="xdmp:save">
+              <indent-untyped>yes</indent-untyped>
+            </options>
+          )
+      },
+      { :db_name => target_db }
+
     end
 
   end
