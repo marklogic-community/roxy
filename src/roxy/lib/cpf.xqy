@@ -64,10 +64,10 @@ declare option xdmp:mapping "false";
       </context>
       <restart-user>your-restart-user-name</restart-user>
       <permissions>
-  			<permission>
-  				<capability>read</capability>
-  				<role-name>admin</role-name>
-  			</permission>
+        <permission>
+          <capability>read</capability>
+          <role-name>admin</role-name>
+        </permission>
       </permissions>
     </domain>
   </domains>
@@ -198,9 +198,9 @@ declare function cpf:create-cpf-domain(
  :)
 declare function cpf:create-cpf-configuration(
   $restart-user as xs:string,
-	$evaluation-context as element(dom:evaluation-context),
-	$default-domain as xs:unsignedLong,
-	$permissions as element(sec:permission)*)
+  $evaluation-context as element(dom:evaluation-context),
+  $default-domain as xs:unsignedLong,
+  $permissions as element(sec:permission)*)
 {
   let $map := map:map()
   let $_ :=
@@ -241,8 +241,8 @@ declare function cpf:domain-scope(
  : @return - a constructed dom:evaluation-context element
  :)
 declare function cpf:evaluation-context(
-	$database as xs:unsignedLong,
-	$root as xs:string) as element(dom:evaluation-context)
+  $database as xs:unsignedLong,
+  $root as xs:string) as element(dom:evaluation-context)
 {
   dom:evaluation-context($database, $root)
 };
@@ -266,6 +266,6 @@ declare private function cpf:call-private-function(
     "/roxy/lib/cpf-private.xqy",
     (xs:QName("map"), $map),
     <options xmlns="xdmp:eval">
-		  <database>{$database-id}</database>
-	  </options>)
+      <database>{$database-id}</database>
+    </options>)
 };

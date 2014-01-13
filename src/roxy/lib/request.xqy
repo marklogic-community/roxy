@@ -250,10 +250,10 @@ declare function req:required(
 {
   let $value := req:get($name, $options)
   return
-  	if (fn:exists($value)) then
-  		$value
-  	else
-  		fn:error(
+    if (fn:exists($value)) then
+      $value
+    else
+      fn:error(
         xs:QName("MISSING-CONTROLLER-PARAM"),
         fn:concat("Required parameter '", $name, "' is missing"),
         ($name, $r:__CALLER_FILE__))

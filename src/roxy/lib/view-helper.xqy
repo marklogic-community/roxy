@@ -27,10 +27,10 @@ declare function vh:required($name as xs:string)
 {
   let $value := map:get($vh:map, $name)
   return
-  	if (fn:exists($value)) then
-  		$value
-  	else
-  		fn:error(xs:QName("MISSING-PARAM"), $name)
+    if (fn:exists($value)) then
+      $value
+    else
+      fn:error(xs:QName("MISSING-PARAM"), $name)
 };
 
 declare function vh:render($view as xs:string, $format as xs:string)
