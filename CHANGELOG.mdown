@@ -83,6 +83,14 @@ This file describes changes made to Roxy per release
 ## 1.5 (branch: dev)
 
 ### New Features
+* \#132 Better error message when a port is already in use
 * \#138 Allow loading CSS, JS as binary instead of text
+* \#149 Change forest names -- don't use host name
+* \#156 Allow configuration of which environments get unit tests deployed
 
 ### Resolved Issues
+* \#130 Sample fields elements are now correctly formatted
+* \#136 Improved the property-substitution process to make subs more accurate
+* \#140 Can now bootstrap a webdav server
+* \#163 Capture binary documents correctly
+* \#165 Fixed problem with adding default collections to a role
