@@ -570,24 +570,46 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def recordloader
-    filename = ARGV.shift
-    raise HelpException.new("recordloader", "configfile is required!") unless filename
-    properties_file = File.expand_path("../../#{filename}", __FILE__)
-    properties = ServerConfig.load_properties(properties_file, "")
-    properties = ServerConfig.substitute_properties(properties, @properties, "")
+    # technically this might not be required - RL can read from STDIN
+    raise HelpException.new("recordloader",
+                            "supply property file(s) or input file(s)!") unless ARGV.length > 0
 
-    properties.each do |k, v|
-      logger.debug "#{k}=#{v}"
+    # build the vmargs and file portions of the command-line
+    # this allows the user to pass in vmargs like -Xincgc or -Xmx1024m
+    # or -Dfoo=bar as well as any number of property files
+    file_args = ""
+    vm_args = ""
+    while ARGV.length > 0
+      a = ARGV.shift
+      if a.start_with?("-")
+        vm_args << " #{a}"
+      else
+        # allow for shell-significant characters - probably not 100% robust
+        file_args << " '"
+        file_args << File.expand_path("../../../#{a}", __FILE__)
+        file_args << "'"
+      end
     end
 
-    prop_string = ""
-    properties.each do |k,v|
-      prop_string << %Q{-D#{k}="#{v}" }
-    end
+    user = @properties["ml.user"]
+    password = @properties["ml.password"]
+    host = @properties["ml.local-server"]
+    port = @properties["ml.xcc-port"]
+    # TODO might be nice to substitute other databases as desired
+    db = @properties["ml.content-db"]
+    cs = %Q{-DCONNECTION_STRING=xcc://#{user}:#{password}@#{host}:#{port}/#{db}}
+    logger.info cs
 
-    runme = %Q{java -cp #{File.expand_path("../java/recordloader.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/marklogic-xcc-5.0.2.jar", __FILE__)}#{path_separator}#{File.expand_path("../java/xpp3-1.1.4c.jar", __FILE__)} #{prop_string} com.marklogic.ps.RecordLoader}
+    cp = File.expand_path("../java/recordloader.jar", __FILE__)
+    cp << path_separator
+    cp << File.expand_path("../java/marklogic-xcc-5.0.2.jar", __FILE__)
+    cp << path_separator
+    cp << File.expand_path("../java/xpp3-1.1.4c.jar", __FILE__)
+
+    runme = %Q{java -cp #{cp} #{vm_args} #{cs} \
+      com.marklogic.ps.RecordLoader #{file_args}}
     logger.info runme
-    `#{runme}`
+    system runme
   end
 
   def xqsync
