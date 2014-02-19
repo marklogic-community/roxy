@@ -19,6 +19,7 @@ xquery version "1.0-ml";
 module namespace dateparser="http://marklogic.com/dateparser";
 
 declare namespace s="http://www.w3.org/2009/xpath-functions/analyze-string";
+declare namespace s2="http://www.w3.org/2005/xpath-functions";
 declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
 declare variable $analyzeString := try { xdmp:function(xs:QName("fn:analyze-string")) } catch ($e) {};
@@ -285,7 +286,13 @@ declare function dateparser:parse(
         for $format in $dateparser:FORMATS
         let $regex := dateparser:assembleFormat($format)
         where matches($date, $regex, "i")
-        return dateparser:analyzedStringToDate(xdmp:apply($analyzeString, $date, $regex, "i"), $format)
+        return
+            let $analyzed-string := fn:analyze-string( $date, $regex, "i")
+            return
+                if (fn:namespace-uri($analyzed-string) = "http://www.w3.org/2009/xpath-functions/analyze-string") then
+                    dateparser:analyzedStringToDate-preML7($analyzed-string, $format)
+                else
+                    dateparser:analyzedStringToDate($analyzed-string, $format)
     else ()
 };
 
@@ -307,7 +314,7 @@ declare private function dateparser:assembleFormat(
     return concat("^", string-join($groups, ""), "$")
 };
 
-declare private function dateparser:analyzedStringToDate(
+declare private function dateparser:analyzedStringToDate-preML7(
     $string as element(s:analyze-string-result),
     $format as element(format)
 ) as xs:dateTime?
@@ -333,6 +340,41 @@ declare private function dateparser:analyzedStringToDate(
     let $timezone := dateparser:processZone(string($string//s:group[@nr = $timezonePosition]))
 
     let $possibleDate := concat($year, "-", $month, "-", $day, "T", $hour, ":", $minute, ":", $second, $timezone)
+    where $possibleDate castable as xs:dateTime
+    return
+        if($timezone = "")
+        then adjust-dateTime-to-timezone(xs:dateTime($possibleDate), implicit-timezone())
+        else xs:dateTime($possibleDate)
+};
+
+declare private function dateparser:analyzedStringToDate(
+    $string as element(s2:analyze-string-result),
+    $format as element(format)
+) as xs:dateTime?
+{
+    let $yearPosition := dateparser:extractLocationFromAnalyzedString("year", $format)
+    let $monthPosition := dateparser:extractLocationFromAnalyzedString("month", $format)
+    let $dayPosition := dateparser:extractLocationFromAnalyzedString("day", $format)
+    let $hourPosition := dateparser:extractLocationFromAnalyzedString("hour", $format)
+    let $minutePosition := dateparser:extractLocationFromAnalyzedString("minute", $format)
+    let $secondPosition := dateparser:extractLocationFromAnalyzedString("second", $format)
+    let $subSecondPosition := dateparser:extractLocationFromAnalyzedString("subsecond", $format)
+    let $timezonePosition := dateparser:extractLocationFromAnalyzedString("timezone", $format)
+    let $meridiemPosition := dateparser:extractLocationFromAnalyzedString("meridiem", $format)
+    let $year := dateparser:processYear(string($string//s2:group[@nr = $yearPosition]))
+    let $month := dateparser:processMonth(string($string//s2:group[@nr = $monthPosition]))
+    let $day := dateparser:processDay(string($string//s2:group[@nr = $dayPosition]))
+    let $hourString := 
+        if($meridiemPosition)
+        then dateparser:adjustHourForMeridiem(string($string//s2:group[@nr = $hourPosition]), string($string//s2:group[@nr = $meridiemPosition]))
+        else string($string//s2:group[@nr = $hourPosition])
+    let $hour := dateparser:expandTwoDigits($hourString, "00")
+    let $minute := dateparser:expandTwoDigits(string($string//s2:group[@nr = $minutePosition]), "00")
+    let $second := dateparser:expandTwoDigits(string($string//s2:group[@nr = $secondPosition]), "00")
+    let $subsecond := dateparser:expandDigits(6, string($string//s2:group[@nr = $subSecondPosition]), "000000")
+    let $timezone := dateparser:processZone(string($string//s2:group[@nr = $timezonePosition]))
+
+    let $possibleDate := concat($year, "-", $month, "-", $day, "T", $hour, ":", $minute, ":", $second, ".", $subsecond, $timezone)
     where $possibleDate castable as xs:dateTime
     return
         if($timezone = "")
