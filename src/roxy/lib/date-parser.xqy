@@ -307,7 +307,7 @@ declare private function dateparser:assembleFormat(
 };
 
 declare private function dateparser:analyzedStringToDate(
-  $string as element(s:analyze-string-result),
+  $string as element(),
   $format as element(format)
 ) as xs:dateTime?
 {
