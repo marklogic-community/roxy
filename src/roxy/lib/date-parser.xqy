@@ -18,7 +18,6 @@ xquery version "1.0-ml";
 
 module namespace dateparser="http://marklogic.com/dateparser";
 
-declare namespace s="http://www.w3.org/2009/xpath-functions/analyze-string";
 declare default function namespace "http://www.w3.org/2005/xpath-functions";
 
 declare variable $analyzeString := try { xdmp:function(xs:QName("fn:analyze-string")) } catch ($e) {};
@@ -320,18 +319,18 @@ declare private function dateparser:analyzedStringToDate(
   let $secondPosition := dateparser:extractLocationFromAnalyzedString("second", $format)
   let $timezonePosition := dateparser:extractLocationFromAnalyzedString("timezone", $format)
   let $meridiemPosition := dateparser:extractLocationFromAnalyzedString("meridiem", $format)
-  let $year := dateparser:processYear(string($string//s:group[@nr = $yearPosition]))
-  let $month := dateparser:processMonth(string($string//s:group[@nr = $monthPosition]))
-  let $day := dateparser:processDay(string($string//s:group[@nr = $dayPosition]))
+  let $year := dateparser:processYear(string($string//*:group[@nr = $yearPosition]))
+  let $month := dateparser:processMonth(string($string//*:group[@nr = $monthPosition]))
+  let $day := dateparser:processDay(string($string//*:group[@nr = $dayPosition]))
   let $hourString :=
     if($meridiemPosition) then
-      dateparser:adjustHourForMeridiem(string($string//s:group[@nr = $hourPosition]), string($string//s:group[@nr = $meridiemPosition]))
+      dateparser:adjustHourForMeridiem(string($string//*:group[@nr = $hourPosition]), string($string//*:group[@nr = $meridiemPosition]))
     else
-      string($string//s:group[@nr = $hourPosition])
+      string($string//*:group[@nr = $hourPosition])
   let $hour := dateparser:expandTwoDigits($hourString, "00")
-  let $minute := dateparser:expandTwoDigits(string($string//s:group[@nr = $minutePosition]), "00")
-  let $second := dateparser:expandTwoDigits(string($string//s:group[@nr = $secondPosition]), "00")
-  let $timezone := dateparser:processZone(string($string//s:group[@nr = $timezonePosition]))
+  let $minute := dateparser:expandTwoDigits(string($string//*:group[@nr = $minutePosition]), "00")
+  let $second := dateparser:expandTwoDigits(string($string//*:group[@nr = $secondPosition]), "00")
+  let $timezone := dateparser:processZone(string($string//*:group[@nr = $timezonePosition]))
 
   let $possibleDate := concat($year, "-", $month, "-", $day, "T", $hour, ":", $minute, ":", $second, $timezone)
   where $possibleDate castable as xs:dateTime
