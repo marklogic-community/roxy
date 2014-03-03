@@ -19,10 +19,14 @@ hash ruby 2>&- || { echo >&2 "Ruby is required to run the ml scripts."; exit 1; 
 
 usage()
 {
-  printf "Usage: ml new app-name --server-version=[version-number] [--branch=branch] [--git]\n
+  printf "Usage: ml new app-name --server-version=[version-number] [--branch=branch] [--app-type=mvc|hybrid|rest] [--git]\n
   use --git to automatically configure a git repo
   use --branch to specify the GitHub branch of the Roxy project your project
     will be based on (master, dev)
+  use --app-type to specify the project type:
+    mvc: a Roxy MVC project
+    rest: a MarkLogic REST API project
+    hybrid: a hybrid of both types
   use --force to force installation into an existing directory\n"
 }
 
