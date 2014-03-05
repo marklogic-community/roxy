@@ -781,26 +781,18 @@ private
       #  {"qid":null, "type":"string", "result":"\/"},
       #  {"qid":null, "type":"string", "result":"\/application\/"}
       #  ...
+      db_id = get_db_id(target_db)
+
       JSON.parse(dirs.body).each do |item|
         uri = item['result']
         if (uri.end_with?("/"))
           # create the directory so that it will exist when we try to save files
           Dir.mkdir("#{target_dir}" + uri)
+        else
+          r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get"
+          File.open("#{target_dir}#{uri}", 'w') { |file| file.write(r.body) }
         end
       end
-      r = execute_query %Q{
-        for $uri in cts:uris()
-        return
-          xdmp:save(
-            "#{target_dir}" ||$uri,
-            fn:doc($uri),
-            <options xmlns="xdmp:save">
-              <indent-untyped>yes</indent-untyped>
-            </options>
-          )
-      },
-      { :db_name => target_db }
-
     end
 
   end
