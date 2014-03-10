@@ -380,7 +380,6 @@ module Roxy
               response = @http.request(request, &block)
             end
           elsif (response.code.to_i == 302)
-            puts "time for a redirect"
             @logger.debug("request redirected: #{response['location']}")
             new_uri = URI(response['location'])
             request_params[:protocol] = new_uri.scheme
