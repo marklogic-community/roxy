@@ -161,6 +161,21 @@
 <!--
       <fields>
         <field>
+          <field-name></field-name>
+          <field-path>
+            <path>some/xpath</path>
+            <weight>1.0</weight>
+          </field-path>
+          <word-lexicons/>
+          <included-elements/>
+          <excluded-elements/>
+          <tokenizer-overrides/>
+          <stemmed-searches>basic</stemmed-searches>
+          <fast-phrase-searches>true</fast-phrase-searches>
+          <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
+          <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
+        </field>
+        <field>
           <field-name/>
           <include-root>true</include-root>
           <fast-case-sensitive-searches>false</fast-case-sensitive-searches>
