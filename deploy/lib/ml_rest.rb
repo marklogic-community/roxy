@@ -69,7 +69,7 @@ module Roxy
         data.each_with_index do |d, i|
           file = open(d, "rb")
           contents = file.read
-          extensionName = $1 if contents =~ /"http:\/\/marklogic.com\/rest-api\/resource\/([^"]+)"/
+          extensionName = $1 if contents =~ /module\s*namespace\s*[\w\-]+\s*=\s*"http:\/\/marklogic.com\/rest-api\/resource\/([^"]+)"/
           params = []
           contents.scan(/function\s+[^:]+:(get|put|post|delete)/).each do |m|
             params << "method=#{m[0]}"
