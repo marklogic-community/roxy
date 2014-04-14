@@ -31,6 +31,32 @@ module Roxy
       data
     end
 
+    def install_properties(path)
+      if (File.exists?(path))
+        headers = {
+          'Content-Type' => 'application/xml'
+        }
+
+        data = [path]
+
+        data.each_with_index do |d, i|
+          file = open(d, "rb")
+          contents = file.read
+
+          # @logger.debug "methods: #{methods}"
+          url = "http://#{@hostname}:#{@port}/v1/config/properties"
+
+          @logger.debug "url: #{url}"
+          r = go url, "put", headers, nil, contents
+          if (r.code.to_i < 200 && r.code.to_i > 206)
+            @logger.error("code: #{r.code.to_i} body:#{r.body}")
+          end
+        end
+      else
+        @logger.error "#{path} does not exist"
+      end
+    end
+
     def install_extensions(path)
       if (File.exists?(path))
         headers = {
@@ -43,7 +69,7 @@ module Roxy
         data.each_with_index do |d, i|
           file = open(d, "rb")
           contents = file.read
-          extensionName = $1 if contents =~ /"http:\/\/marklogic.com\/rest-api\/resource\/([^"]+)"/
+          extensionName = $1 if contents =~ /module\s*namespace\s*[\w\-]+\s*=\s*"http:\/\/marklogic.com\/rest-api\/resource\/([^"]+)"/
           params = []
           contents.scan(/function\s+[^:]+:(get|put|post|delete)/).each do |m|
             params << "method=#{m[0]}"

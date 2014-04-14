@@ -884,6 +884,8 @@ private
       end
 
       # REST API applications need some files put into a collection.
+      # Note that this is for extensions and transforms captured as-is from a modules database. The normal
+      # deploy process takes care of this for files under rest-api/.
       if ['rest', 'hybrid'].include? @properties["ml.app-type"]
         r = execute_query %Q{
             xquery version "1.0-ml";
@@ -913,7 +915,11 @@ private
       end
 
       if (@properties.has_key?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
-        load_data @properties['ml.rest-options.dir'],
+        prop_path = "#{@properties['ml.rest-options.dir']}/properties.xml"
+        if (File.exist?(prop_path))
+          mlRest.install_properties(ServerConfig.expand_path(prop_path))
+        end
+        load_data "#{@properties['ml.rest-options.dir']}/options",
             :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
             :remove_prefix => @properties['ml.rest-options.dir'],
             :db => rest_modules_db

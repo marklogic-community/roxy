@@ -1308,9 +1308,8 @@ declare function setup:add-fields(
   setup:add-fields-R(
     setup:remove-existing-fields($admin-config, $database),
     $database,
-    for $e in $db-config/db:fields/db:field[db:field-name != ""]
-    return
-      admin:database-field($e/db:field-name, $e/db:include-root))
+    $db-config/db:fields/db:field[db:field-name != ""]
+  )
 };
 
 declare function setup:add-fields-R(
@@ -1319,8 +1318,24 @@ declare function setup:add-fields-R(
   $field-configs as element(db:field)*) as element(configuration)
 {
   if ($field-configs) then
+    let $field := $field-configs[1]
+    return
     setup:add-fields-R(
-      admin:database-add-field($admin-config, $database, $field-configs[1]),
+      if ($field/db:field-path) then
+        admin:database-add-field(
+          $admin-config, 
+          $database, 
+          admin:database-path-field(
+            $field/db:field-name,
+            for $path in $field/db:field-path
+            return
+              admin:database-field-path($path/db:path, ($path/weight, 1.0)[1]))
+          )
+      else
+        admin:database-add-field(
+          $admin-config, 
+          $database, 
+          admin:database-field($field/db:field-name, $field/db:include-root)),
       $database,
       fn:subsequence($field-configs, 2))
   else
