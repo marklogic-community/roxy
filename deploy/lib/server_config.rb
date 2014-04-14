@@ -462,6 +462,8 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         deploy_content
       when 'modules'
         deploy_modules
+      when 'rest'
+        deploy_rest
       when 'schemas'
         deploy_schemas
       when 'cpf'
@@ -896,6 +898,10 @@ private
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
     end
 
+    deploy_rest()
+  end
+
+  def deploy_rest
     # Deploy options, extensions, and transforms to the REST API server
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
       # Figure out where we need to deploy this stuff
@@ -1271,7 +1277,7 @@ private
         <modules name="@ml.modules-db"/>
         <authentication>digest</authentication>
       </xdbc-server>
-      }) if @properties['ml.xcc-port'].present?
+      }) if @properties['ml.xcc-port'].present? and @properties['ml.install-xcc'] != 'false'
 
     config.gsub!("@ml.odbc-server",
       %Q{

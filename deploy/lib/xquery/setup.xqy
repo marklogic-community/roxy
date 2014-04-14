@@ -3563,7 +3563,7 @@ declare function setup:create-roles(
       (xs:QName("role-name"), $role-name,
        xs:QName("description"), fn:string($description)),
       $eval-options),
-    if ($role-names) then
+
       xdmp:eval(
         'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
          declare variable $role-name as xs:string external;
@@ -3571,10 +3571,8 @@ declare function setup:create-roles(
          sec:role-set-roles($role-name, $role-names/*)',
         (xs:QName("role-name"), $role-name,
          xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
-        $eval-options)
-    else (),
+    $eval-options),
 
-    if ($permissions) then
       xdmp:eval(
         'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
          declare variable $role-name as xs:string external;
@@ -3595,8 +3593,7 @@ declare function setup:create-roles(
           }
           </w>
         ),
-        $eval-options)
-    else (),
+    $eval-options),
 
     if ($collections) then
       xdmp:eval(
@@ -3609,6 +3606,15 @@ declare function setup:create-roles(
         $eval-options)
     else (),
 
+    (: remove the privileges before adding them back :)
+    xdmp:eval(
+        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $role-name as xs:string external;
+         sec:remove-role-from-privileges($role-name)',
+         (xs:QName("role-name"), $role-name),
+         $eval-options),
+
+    (: add them back :)
     for $privilege in $privileges
     let $priv := setup:get-privilege-by-name($privilege/sec:privilege-name)
     let $validate-privilege :=
