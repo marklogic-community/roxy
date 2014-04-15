@@ -278,6 +278,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     puts "What is the collation URI (leave blank for the root collation)?"
     collation = gets.chomp
     collation = "http://marklogic.com/collation/" if collation.blank?
+    collation
   end
 
   def self.request_range_value_positions
