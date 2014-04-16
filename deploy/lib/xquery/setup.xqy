@@ -587,7 +587,19 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
     let $all-replica-names as xs:string* := $import-config/as:assignments/as:assignment/as:replica-names/as:replica-name
     for $assignment in $import-config/as:assignments/as:assignment[fn:not(as:forest-name = $all-replica-names)]
     let $forest-name := $assignment/as:forest-name
+    let $db-config := $import-config/db:databases/db:database[db:forests/db:forest-id/@name = $forest-name]
+    let $forests-per-host := $db-config/db:forests-per-host
+    let $forest-names :=
+      if (fn:exists($forests-per-host)) then
+        let $database-name := setup:get-database-name-from-database-config($db-config)
+        for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+        for $j in (1 to $forests-per-host)
+        return
+          fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
+      else
+        $forest-name
     let $replica-names := $assignment/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+    for $forest-name in $forest-names
     return
       if (admin:forest-exists($admin-config, $forest-name)) then
         let $forest-id := admin:forest-get-id($admin-config, $forest-name)
@@ -1323,8 +1335,8 @@ declare function setup:add-fields-R(
     setup:add-fields-R(
       if ($field/db:field-path) then
         admin:database-add-field(
-          $admin-config, 
-          $database, 
+          $admin-config,
+          $database,
           admin:database-path-field(
             $field/db:field-name,
             for $path in $field/db:field-path
@@ -1333,8 +1345,8 @@ declare function setup:add-fields-R(
           )
       else
         admin:database-add-field(
-          $admin-config, 
-          $database, 
+          $admin-config,
+          $database,
           admin:database-field($field/db:field-name, $field/db:include-root)),
       $database,
       fn:subsequence($field-configs, 2))
