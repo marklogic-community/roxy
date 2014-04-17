@@ -1334,15 +1334,33 @@ declare function setup:add-fields-R(
     return
     setup:add-fields-R(
       if ($field/db:field-path) then
-        admin:database-add-field(
-          $admin-config,
-          $database,
-          admin:database-path-field(
-            $field/db:field-name,
-            for $path in $field/db:field-path
-            return
-              admin:database-field-path($path/db:path, ($path/weight, 1.0)[1]))
+        if (setup:at-least-version("7.0-1")) then
+          xdmp:eval(
+            'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+             declare namespace db = "http://marklogic.com/xdmp/database";
+             declare variable $admin-config external;
+             declare variable $database external;
+             declare variable $field external;
+             admin:database-add-field(
+              $admin-config,
+              $database,
+              admin:database-path-field(
+                $field/db:field-name,
+                for $path in $field/db:field-path
+                return
+                  admin:database-field-path($path/db:path, ($path/weight, 1.0)[1]))
+              )',
+            (xs:QName("admin-config"), $admin-config,
+             xs:QName("database"), $database,
+             xs:QName("field"), $field),
+            <options xmlns="xdmp:eval">
+              <isolation>same-statement</isolation>
+            </options>
           )
+        else
+          fn:error(
+            xs:QName("VERSION_NOT_SUPPORTED"),
+            fn:concat("MarkLogic ", xdmp:version(), " does not support path-based fields. Use 7.0-1 or higher."))
       else
         admin:database-add-field(
           $admin-config,
