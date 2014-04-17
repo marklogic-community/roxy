@@ -299,6 +299,7 @@
               <attribute-value/>
             </excluded-element>
           </excluded-elements>
+          <tokenizer-overrides/>
         </field>
         <field>
           <field-name>test</field-name>
@@ -341,6 +342,7 @@
               <attribute-value/>
             </excluded-element>
           </excluded-elements>
+          <tokenizer-overrides/>
         </field>
         <field>
           <field-name>test2</field-name>
@@ -380,6 +382,7 @@
               <attribute-value/>
             </excluded-element>
           </excluded-elements>
+          <tokenizer-overrides/>
         </field>
       </fields>
       <range-element-indexes>
