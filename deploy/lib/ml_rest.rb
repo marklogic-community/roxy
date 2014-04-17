@@ -7,6 +7,7 @@ module Roxy
       if !@port or @port == ""
         @port = options[:app_port]
       end
+      @auth_method = options[:auth_method]
       @http = Roxy::Http.new({
         :logger => @logger
       })
@@ -47,7 +48,7 @@ module Roxy
           url = "http://#{@hostname}:#{@port}/v1/config/properties"
 
           @logger.debug "url: #{url}"
-          r = go url, "put", headers, nil, contents
+          r = go url, "put", headers, nil, contents, @auth_method
           if (r.code.to_i < 200 && r.code.to_i > 206)
             @logger.error("code: #{r.code.to_i} body:#{r.body}")
           end
@@ -105,7 +106,7 @@ module Roxy
           @logger.debug "loading: #{d}"
 
           @logger.debug "url: #{url}"
-          r = go url, "put", headers, nil, contents
+          r = go url, "put", headers, nil, contents, @auth_method
           if (r.code.to_i < 200 && r.code.to_i > 206)
             @logger.error("code: #{r.code.to_i} body:#{r.body}")
           end
@@ -195,7 +196,7 @@ module Roxy
           @logger.debug "loading: #{d}"
 
           @logger.debug "url: #{url}"
-          r = go url, "put", headers, nil, contents
+          r = go url, "put", headers, nil, contents, @auth_method
           if (r.code.to_i < 200 && r.code.to_i > 206)
             @logger.error("code: #{r.code.to_i} body:#{r.body}")
           end

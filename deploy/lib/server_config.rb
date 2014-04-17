@@ -1047,7 +1047,8 @@ private
         :server => @hostname,
         :app_port => @properties["ml.app-port"],
         :rest_port => @properties["ml.rest-port"],
-        :logger => @logger
+        :logger => @logger,
+        :auth_method => @properties["ml.authentication-method"]
       })
     else
       @mlRest

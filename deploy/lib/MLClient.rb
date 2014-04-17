@@ -72,7 +72,10 @@ class MLClient
     }
   end
 
-  def go(url, verb, headers = {}, params = nil, body = nil)
+  # Parameters:
+  # - auth_method: this can be used to specify whether to use digest or basic authentication to respond to a 401
+  #   The default behavior is to digest.
+  def go(url, verb, headers = {}, params = nil, body = nil, auth_method = nil)
     password_prompt
     request_params = build_request_params(url, verb)
     # configure headers
@@ -88,6 +91,10 @@ class MLClient
 
     if (body)
       request_params[:request].body = body
+    end
+
+    if (auth_method)
+      request_params[:auth_method] = auth_method
     end
 
     response = get_http.request request_params
