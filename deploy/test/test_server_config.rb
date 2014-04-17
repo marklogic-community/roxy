@@ -62,7 +62,7 @@ class TestProperties < Test::Unit::TestCase
   end
 
   def test_bootstrap
-    version = ENV['ROXY_TEST_SERVER_VERSION'] ||  4
+    version = ENV['ROXY_TEST_SERVER_VERSION'] ||  7
     bootstrap_version version
   end
 end
