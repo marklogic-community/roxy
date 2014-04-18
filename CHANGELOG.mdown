@@ -80,7 +80,7 @@ This file describes changes made to Roxy per release
 * \#124 Fixed corb integration bug
 * \#126 Don't overwrite application/custom when running "ml capture"
 
-## 1.5 (branch: dev)
+## 1.5 (branch: master)
 
 ### New Features
 * \#26  Allow applications to share an XDBC port
