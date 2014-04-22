@@ -23,6 +23,7 @@
 require "net/https"
 require "uri"
 require 'digest/md5'
+require 'base64'
 require 'logger'
 
 module Net
@@ -69,6 +70,12 @@ module Net
       header << "response=\"#{Digest::MD5.hexdigest(request_digest)}\""
 
       @header['Authorization'] = header
+    end
+
+    def basic_auth(user, password)
+      encoded = Base64.encode64("#{user}:#{password}").chomp
+
+      @header['Authorization'] = ["Basic #{encoded}"]
     end
   end
 end
@@ -366,9 +373,13 @@ module Roxy
           setup_streaming(request)
 
           response = @http.request(request, &block)
+
           if (response.code.to_i == 401)
-            # TODO: looks like we get this every time. Why not just use digest the first time?
-            request.digest_auth(@user_name, @password, response)
+            if request_params[:auth_method] == "basic"
+              request.basic_auth(@user_name, @password)
+            else
+              request.digest_auth(@user_name, @password, response)
+            end
             response = @http.request(request, &block)
             if (response.code.to_i == 302)
               @logger.debug("request redirected: #{response['location']}")

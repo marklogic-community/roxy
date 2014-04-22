@@ -384,6 +384,21 @@
           </excluded-elements>
           <tokenizer-overrides/>
         </field>
+        <field>
+          <field-name>test3</field-name>
+          <field-path>
+            <path>some/xpath</path>
+            <weight>1</weight>
+          </field-path>
+          <stemmed-searches>basic</stemmed-searches>
+          <fast-phrase-searches>true</fast-phrase-searches>
+          <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
+          <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
+          <word-lexicons/>
+          <included-elements/>
+          <excluded-elements/>
+          <tokenizer-overrides/>
+        </field>
       </fields>
       <range-element-indexes>
         <range-element-index>

@@ -587,7 +587,19 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
     let $all-replica-names as xs:string* := $import-config/as:assignments/as:assignment/as:replica-names/as:replica-name
     for $assignment in $import-config/as:assignments/as:assignment[fn:not(as:forest-name = $all-replica-names)]
     let $forest-name := $assignment/as:forest-name
+    let $db-config := $import-config/db:databases/db:database[db:forests/db:forest-id/@name = $forest-name]
+    let $forests-per-host := $db-config/db:forests-per-host
+    let $forest-names :=
+      if (fn:exists($forests-per-host)) then
+        let $database-name := setup:get-database-name-from-database-config($db-config)
+        for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+        for $j in (1 to $forests-per-host)
+        return
+          fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
+      else
+        $forest-name
     let $replica-names := $assignment/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+    for $forest-name in $forest-names
     return
       if (admin:forest-exists($admin-config, $forest-name)) then
         let $forest-id := admin:forest-get-id($admin-config, $forest-name)
@@ -1322,19 +1334,37 @@ declare function setup:add-fields-R(
     return
     setup:add-fields-R(
       if ($field/db:field-path) then
-        admin:database-add-field(
-          $admin-config, 
-          $database, 
-          admin:database-path-field(
-            $field/db:field-name,
-            for $path in $field/db:field-path
-            return
-              admin:database-field-path($path/db:path, ($path/weight, 1.0)[1]))
+        if (setup:at-least-version("7.0-1")) then
+          xdmp:eval(
+            'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+             declare namespace db = "http://marklogic.com/xdmp/database";
+             declare variable $admin-config external;
+             declare variable $database external;
+             declare variable $field external;
+             admin:database-add-field(
+              $admin-config,
+              $database,
+              admin:database-path-field(
+                $field/db:field-name,
+                for $path in $field/db:field-path
+                return
+                  admin:database-field-path($path/db:path, ($path/weight, 1.0)[1]))
+              )',
+            (xs:QName("admin-config"), $admin-config,
+             xs:QName("database"), $database,
+             xs:QName("field"), $field),
+            <options xmlns="xdmp:eval">
+              <isolation>same-statement</isolation>
+            </options>
           )
+        else
+          fn:error(
+            xs:QName("VERSION_NOT_SUPPORTED"),
+            fn:concat("MarkLogic ", xdmp:version(), " does not support path-based fields. Use 7.0-1 or higher."))
       else
         admin:database-add-field(
-          $admin-config, 
-          $database, 
+          $admin-config,
+          $database,
           admin:database-field($field/db:field-name, $field/db:include-root)),
       $database,
       fn:subsequence($field-configs, 2))

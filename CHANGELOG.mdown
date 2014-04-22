@@ -83,10 +83,15 @@ This file describes changes made to Roxy per release
 ## 1.5 (branch: dev)
 
 ### New Features
+* \#26  Allow applications to share an XDBC port
+* \#51  Added support for bootstrapping scheduled tasks
 * \#132 Better error message when a port is already in use
 * \#138 Allow loading CSS, JS as binary instead of text
 * \#149 Change forest names -- don't use host name
+* \#150 Allow compiling Roxy into a JAR
 * \#156 Allow configuration of which environments get unit tests deployed
+* \#159 Added support for https on port 8000/8002
+* \#193 Added support for path fields
 
 ### Resolved Issues
 * \#130 Sample fields elements are now correctly formatted
@@ -94,3 +99,13 @@ This file describes changes made to Roxy per release
 * \#140 Can now bootstrap a webdav server
 * \#163 Capture binary documents correctly
 * \#165 Fixed problem with adding default collections to a role
+* \#180 Fixed the date parser
+* \#186 Roxy now removes extra roles during bootstrap
+* \#187 Roxy now removes extra permissions during bootstrap
+* \*188 Corrected deployment of properties files
+* \*199 Index interview now records the collation correctly
+* \*205 Fixed problem with removing forests
+* \*208 REST extensions can now be deployed to an app server with Basic authentication
+
+## 1.6 (branch: dev)
+
