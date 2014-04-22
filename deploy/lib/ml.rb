@@ -62,9 +62,7 @@ begin
     #
     # Roxy framework is a convenience utility for create MVC code
     #
-    if command == "usage"
-      Help.doHelp(@logger, :usage)
-    elsif command == "create"
+    if command == "create"
       if need_help?
         Help.doHelp(@logger, command)
       else
