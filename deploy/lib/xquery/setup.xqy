@@ -3400,7 +3400,7 @@ declare function setup:create-scheduled-task(
         $task/gr:task-start-time,
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
-        xdmp:user($task/gr:task-user/@name),
+        setup:get-user-id($task/gr:task-user/@name),
         $task/gr:task-host/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "hourly") then
@@ -3411,7 +3411,7 @@ declare function setup:create-scheduled-task(
         $task/gr:task-minute,
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
-        xdmp:user($task/gr:task-user/@name),
+        setup:get-user-id($task/gr:task-user/@name),
         $task/gr:task-host/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "minutely") then
@@ -3421,7 +3421,7 @@ declare function setup:create-scheduled-task(
         $task/gr:task-period,
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
-        xdmp:user($task/gr:task-user/@name),
+        setup:get-user-id($task/gr:task-user/@name),
         $task/gr:task-host/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "monthly") then
@@ -3433,7 +3433,7 @@ declare function setup:create-scheduled-task(
         $task/gr:task-start-time,
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
-        xdmp:user($task/gr:task-user/@name),
+        setup:get-user-id($task/gr:task-user/@name),
         $task/gr:task-host/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "once") then
@@ -3443,7 +3443,7 @@ declare function setup:create-scheduled-task(
         $task/gr:task-start,
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
-        xdmp:user($task/gr:task-user/@name),
+        setup:get-user-id($task/gr:task-user/@name),
         $task/gr:task-host/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "weekly") then
@@ -3455,7 +3455,7 @@ declare function setup:create-scheduled-task(
         $task/gr:task-start-time,
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
-        xdmp:user($task/gr:task-user/@name),
+        setup:get-user-id($task/gr:task-user/@name),
         $task/gr:task-host/xdmp:host(.),
         $task/gr:task-priority)
     else ()
@@ -4180,6 +4180,17 @@ declare function setup:get-users($ids as xs:unsignedLong*) as element(sec:users)
         }
     }
     </users>
+};
+
+declare function setup:get-user-id($user-name as xs:string) as xs:unsignedLong? {
+  xdmp:eval(
+    'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+     declare variable $user-name as xs:string external;
+     /sec:user[sec:user-name = $user-name]/sec:user-id',
+     (xs:QName("user-name"), $user-name),
+     <options xmlns="xdmp:eval">
+       <database>{$default-security}</database>
+     </options>)
 };
 
 declare function setup:get-roles($ids as xs:unsignedLong*) as element(sec:roles)? {
