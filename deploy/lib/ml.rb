@@ -62,7 +62,9 @@ begin
     #
     # Roxy framework is a convenience utility for create MVC code
     #
-    if command == "create"
+    if command == "usage"
+      Help.doHelp(@logger, :usage)
+    elsif command == "create"
       if need_help?
         Help.doHelp(@logger, command)
       else
@@ -97,7 +99,7 @@ begin
     #
     # put things in ServerConfig class methods that don't depend on environment or server info
     #
-    elsif ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command)
+    elsif ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command) || ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command)
       if need_help?
         Help.doHelp(@logger, command)
       else
@@ -105,19 +107,28 @@ begin
         ServerConfig.send command
       end
       break
+    elsif ARGV.length == 0
+      Help.doHelp(@logger, :usage, "Unknown generic command #{command}!")
     #
     # ServerConfig methods require environment to be set in order to talk to a ML server
     #
     else
+      # [GJo] check second arg before checking properties, makes help available within Roxy folder too..
+      command2 = ARGV[0]
+      if need_help? && (ServerConfig.instance_methods.include?(command2.to_sym) || ServerConfig.instance_methods.include?(command2))
+        Help.doHelp(@logger, command2)
+        break
+      elsif ! (ServerConfig.instance_methods.include?(command2.to_sym) || ServerConfig.instance_methods.include?(command2))
+        Help.doHelp(@logger, :usage, "Unknown environment command #{command2}!")
+        break
+      end
+      
       # unshift to get the environment in ServerConfig.properties
       ARGV.unshift command
       @properties = ServerConfig.properties
       command = ARGV.shift
 
-      if need_help? && Help.respond_to?(command)
-        Help.doHelp(@logger, command)
-        break
-      elsif ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command)
+      if ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command)
         raise HelpException.new(command, "Missing environment for #{command}") if @properties["environment"].nil?
         raise ExitException.new("Missing ml-config.xml file. Check config.file property") if @properties["ml.config.file"].nil?
 
@@ -127,7 +138,8 @@ begin
           :logger => @logger
         ).send(command)
       else
-        Help.doHelp(@logger, :usage)
+        # [GJo] no longer reached..
+        Help.doHelp(@logger, :usage, :error_message => "Unknown command #{command}!")
         break
       end
     end

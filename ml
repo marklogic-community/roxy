@@ -35,7 +35,10 @@ PARAMS=("${@}")
 if [ "$1" == 'new' ]
 then
   shift
-  if [[ "$1" == '-h' ]]
+  if [ "$1" == '-h' ]
+  then
+    usage
+  elif [ "$1" == '--help' ]
   then
     usage
   elif [ $1 ]
@@ -125,7 +128,13 @@ then
   else
     printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
   fi
-elif [ "${PWD##*/}" == 'roxy' ]
+elif [ "${PWD##*/}" == 'roxy' ] && [ "$#" -eq 0 ]
+then
+  usage
+elif [ "${PWD##*/}" == 'roxy' ] && [ "$1" == '-h' ]
+then
+  usage
+elif [ "${PWD##*/}" == 'roxy' ] && [ "$1" == '--help' ]
 then
   usage
 else

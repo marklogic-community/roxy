@@ -2,37 +2,41 @@ class Help
   def self.usage
     <<-DOC.strip_heredoc
 
-      Usage: ml ENVIRONMENT COMMAND [ARGS]
+      Usage:
+        ml [ENVIRONMENT] COMMAND [ARGS]
 
-      Deployment Commands:
-       init           Creates configuration files for you to customize
-       initcpf        Creates cpf configuration files for you to customize
-       info           Return settings for a given environment
-       credentials    Configures user and password for a given environment
-       bootstrap      Configures your application on the MarkLogic server
-       wipe           Remove your configuration from the MarkLogic server
-       restart        Restart your MarkLogic server
-       deploy         Loads modules, data, cpf configuration into the server
-       load           Loads a file or folder into the server
-       clean          Removes all files from the cpf, modules, or content databases
-       info           Prints the environment-specific configuration information
-       test           Runs xquery unit tests
-       recordloader   Runs RecordLoader
-       xqsync         Runs XQSync
-       corb           Runs Corb
+      Generic commands (no environment):
+        init          Creates configuration files for you to customize
+        initcpf       Creates cpf configuration files for you to customize
+        jar           Creates a Roxy jar
+        new           Creates a new project directory structure
+        upgrade       Upgrades the Roxy files
+        usage         Shows this help
 
-      Roxy Scaffolding commands:
-       create       Creates a controller or view or model
-       index        Adds an index to the configuration
-       extend       Create a REST API service extension
-       transform    Create a REST API transformation
+      Scaffolding commands (no environment):
+        create        Creates a controller, model, test or layout
+        index         Adds an index to the configuration
+        extend        Creates a REST API service extension
+        transform     Creates a REST API transformation
 
-      Other commands:
-       upgrade      Upgrades the Roxy files
-       capture      Capture the source code of an existing App Builder application
+      Bootstrapping commands (with environment):
+        bootstrap     Configures your application on the given environment
+        capture       Captures the source code of an existing App Builder application
+        clean         Removes all files from the cpf, modules, or content databases on the given environment
+        credentials   Configures user and password for the given environment
+        info          Returns settings for the given environment
+        restart       Restarts the given environment
+        wipe          Removes your application from the given environment
 
-      All commands can be run with -h for more information.
+      Deployment commands (with environment):
+        corb          Runs Corb against the given environment
+        deploy        Loads modules, data, cpf configuration into the given environment
+        load          Loads a file or folder into the given environment
+        recordloader  Runs RecordLoader against the given environment
+        test          Runs xquery unit tests against the given environment
+        xqsync        Runs XQSync against the given environment
 
+      All commands can be run with -h or --help for more information. Leave out environment..
     DOC
   end
 
@@ -453,7 +457,8 @@ class Help
   end
 
   def self.doHelp(logger, command, error_message = nil)
-    logger.error "#{error_message}\n" if error_message
+    logger.info "" if error_message
+    logger.error "#{error_message}" if error_message
 	  logger.info Help.send(command)
   end
 end
