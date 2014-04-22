@@ -3914,7 +3914,7 @@ declare function setup:get-app-servers($names as xs:string*) as element()*
 {
   let $groups := setup:read-config-file("groups.xml")/gr:groups/gr:group
   return (
-    let $http-servers := $groups/gr:http-servers/gr:http-server[gr:http-server-name = $names]
+    let $http-servers := $groups/gr:http-servers/gr:http-server[empty($names) or gr:http-server-name = $names]
     where $http-servers
     return
       <http-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
@@ -3931,7 +3931,7 @@ declare function setup:get-app-servers($names as xs:string*) as element()*
         }
       </http-servers>,
 
-    let $xdbc-servers := $groups/gr:xdbc-servers/gr:xdbc-server[gr:xdbc-server-name = $names]
+    let $xdbc-servers := $groups/gr:xdbc-servers/gr:xdbc-server[empty($names) or gr:xdbc-server-name = $names]
     where $xdbc-servers
     return
       <xdbc-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
@@ -3948,7 +3948,7 @@ declare function setup:get-app-servers($names as xs:string*) as element()*
         }
       </xdbc-servers>,
 
-    let $odbc-servers := $groups/gr:odbc-servers/gr:odbc-server[gr:odbc-server-name = $names]
+    let $odbc-servers := $groups/gr:odbc-servers/gr:odbc-server[empty($names) or gr:odbc-server-name = $names]
     where $odbc-servers
     return
       <odbc-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
@@ -3970,7 +3970,7 @@ declare function setup:get-app-servers($names as xs:string*) as element()*
 
 declare function setup:get-forests($names as xs:string*) as element(as:assignments) {
   let $forests :=setup:read-config-file("assignments.xml")/as:assignments
-  let $forests := $forests/as:assignment[as:forest-name = $names]
+  let $forests := $forests/as:assignment[empty($names) or as:forest-name = $names]
   where $forests
   return
     <assignments xsi:schemaLocation="http://marklogic.com/xdmp/assignments assignments.xsd"
@@ -3990,7 +3990,7 @@ declare function setup:get-forests($names as xs:string*) as element(as:assignmen
 
 declare function setup:get-databases($names as xs:string*) as element(db:databases) {
   let $databases := setup:read-config-file("databases.xml")/db:databases
-  let $databases := $databases/db:database[db:database-name = $names]
+  let $databases := $databases/db:database[empty($names) or db:database-name = $names]
   where $databases
   return
     <databases xsi:schemaLocation="http://marklogic.com/xdmp/database database.xsd"
@@ -4292,7 +4292,7 @@ declare function setup:get-amps($ids as xs:unsignedLong*) as element(sec:amps)? 
 declare function setup:get-mimetypes($names as xs:string*) as element(mt:mimetypes)?
 {
   let $mimes := setup:read-config-file("mimetypes.xml")/mt:mimetypes
-  let $mimes := $mimes/mt:mimetype[mt:name = $names]
+  let $mimes := $mimes/mt:mimetype[empty($names) or mt:name = $names]
   where $mimes
   return
     <mimetypes xsi:schemaLocation="http://marklogic.com/xdmp/mimetypes mimetypes.xsd"
