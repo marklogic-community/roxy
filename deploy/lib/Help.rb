@@ -11,7 +11,6 @@ class Help
         jar           Creates a Roxy jar
         new           Creates a new project directory structure
         upgrade       Upgrades the Roxy files
-        usage         Shows this help
 
       Scaffolding commands (no environment):
         create        Creates a controller, model, test or layout
