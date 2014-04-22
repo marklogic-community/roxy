@@ -125,6 +125,9 @@ then
   else
     printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
   fi
+elif [ "${PWD##*/}" == 'roxy' ]
+then
+  usage
 else
   if [ -e deploy/lib/ml.rb ]
   then
