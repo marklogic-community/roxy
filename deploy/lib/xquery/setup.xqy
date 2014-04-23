@@ -121,6 +121,7 @@ declare variable $http-server-settings :=
     <setting>enabled</setting>
     <setting>root</setting>
     <setting>port</setting>
+    <!--setting>execute</setting--><!-- [GJo] no such setting, internal flag? -->
     <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
     <setting value="setup:get-appserver-content-database($server-config)">database</setting>
     <setting value="setup:get-last-login($server-config)">last-login</setting>
@@ -138,9 +139,12 @@ declare variable $http-server-settings :=
     <setting>pre-commit-trigger-limit</setting>
     <setting>collation</setting>
     <setting>authentication</setting>
+    <!--setting>internal-security</setting--><!-- [GJo] setting to false needs pre-configured external security -->
+    <!--setting>external-security</setting--><!-- [GJo] setting external security needs multiple params -->
     <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
+    <!--setting>compute-content-length</setting--><!-- [GJo] only applicable to WEBDAV! -->
     <setting>log-errors</setting>
     <setting>debug-allow</setting>
     <setting>profile-allow</setting>
@@ -200,7 +204,7 @@ declare variable $webdav-server-settings :=
     <setting>collation</setting>
     <setting>authentication</setting>
     <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <setting>compute-content-length</setting>
     <setting>log-errors</setting>
@@ -237,7 +241,7 @@ declare variable $webdav-server-settings :=
   </settings>
 ;
 
-declare variable $xcc-server-settings :=
+declare variable $xdbc-server-settings :=
   <settings>
     <setting>enabled</setting>
     <setting>root</setting>
@@ -258,7 +262,7 @@ declare variable $xcc-server-settings :=
     <setting>pre-commit-trigger-limit</setting>
     <setting>collation</setting>
     <setting>authentication</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <setting>log-errors</setting>
     <setting>debug-allow</setting>
@@ -317,7 +321,7 @@ declare variable $odbc-server-settings :=
     <setting>pre-commit-trigger-limit</setting>
     <setting>collation</setting>
     <setting>authentication</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <setting>log-errors</setting>
     <setting>debug-allow</setting>
@@ -3155,14 +3159,15 @@ declare function setup:validate-http-server(
 {
   setup:validate-server(
     $server-config,
-    xdmp:server($server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]))
+    xdmp:server($server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]),
+    $http-server-settings)
 };
 
 declare function setup:configure-xdbc-server(
   $server-config as element(gr:xdbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]
-  let $admin-config := setup:configure-server($server-config, xdmp:server($server-name), $xcc-server-settings)
+  let $admin-config := setup:configure-server($server-config, xdmp:server($server-name), $xdbc-server-settings)
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
@@ -3177,7 +3182,8 @@ declare function setup:validate-xdbc-server(
 {
   setup:validate-server(
     $server-config,
-    xdmp:server($server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]))
+    xdmp:server($server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]),
+    $xdbc-server-settings)
 };
 
 declare function setup:configure-odbc-server(
@@ -3199,7 +3205,8 @@ declare function setup:validate-odbc-server(
 {
   setup:validate-server(
     $server-config,
-    xdmp:server($server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]))
+    xdmp:server($server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]),
+    $odbc-server-settings)
 };
 
 declare function setup:configure-task-server(
@@ -3296,7 +3303,7 @@ declare function setup:configure-server(
     if ($namespaces) then
       let $old-ns := admin:appserver-get-namespaces($admin-config, $server-id)
       let $config :=
-        (: First delete any namespace that matches the prefix and uri :)
+        (: First delete any namespace that matches the prefix :)
         admin:appserver-delete-namespace(
           $admin-config,
           $server-id,
@@ -3319,38 +3326,126 @@ declare function setup:configure-server(
               admin:group-namespace($ns/gr:prefix, $ns/gr:namespace-uri))
     else
       $admin-config
-  (: TODO: schemas, request-blackouts :)
+
+  let $schemas := $server-config/gr:schemas/gr:schema
+  let $admin-config :=
+    if ($schemas) then
+      let $old-schemas := admin:appserver-get-schemas($admin-config, $server-id)
+      let $config :=
+        (: First delete any schema that matches the namespace :)
+        admin:appserver-delete-schema(
+          $admin-config,
+          $server-id,
+          for $schema in $schemas
+          let $same-ns :=
+            $old-schemas[gr:namespace-uri = $schema/gr:namespace-uri][gr:schema-location ne $schema/gr:schema-location]
+          return
+            if ($same-ns) then $schema
+            else ())
+      return
+        (: Then add in any schema whose namespace isn't already defined :)
+        admin:appserver-add-schema(
+          $config,
+          $server-id,
+          for $schema in $schemas
+          return
+            if ($old-schemas[gr:namespace-uri = $schema/gr:namespace-uri][gr:schema-location = $schema/gr:schema-location]) then ()
+            else
+              $schema)
+    else
+      $admin-config
+
+  let $module-locations := $server-config/gr:module-locations/gr:module-location
+  let $admin-config :=
+    if ($module-locations) then
+      let $old-module-locations := admin:appserver-get-module-locations($admin-config, $server-id)
+      let $config :=
+        (: First delete any module-location that matches the namespace :)
+        admin:appserver-delete-module-location(
+          $admin-config,
+          $server-id,
+          for $module-location in $module-locations
+          let $same-ns :=
+            $old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location ne $module-location/gr:location]
+          return
+            if ($same-ns) then $module-location
+            else ())
+      return
+        (: Then add in any module-location whose namespace isn't already defined :)
+        admin:appserver-add-module-location(
+          $config,
+          $server-id,
+          for $module-location in $module-locations
+          return
+            if ($old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location = $module-location/gr:location]) then ()
+            else
+              $module-location)
+    else
+      $admin-config
+
+  let $request-blackouts := $server-config/gr:request-blackouts/gr:request-blackout
+  let $admin-config :=
+    if ($request-blackouts) then
+      let $old-request-blackouts := admin:appserver-get-request-blackouts($admin-config, $server-id)
+      let $config :=
+        (: First delete any request-blackout that matches type and period :)
+        admin:appserver-delete-request-blackout(
+          $admin-config,
+          $server-id,
+          for $request-blackout in $request-blackouts
+          let $same-blackout :=
+            $old-request-blackouts[setup:get-request-blackout-hash(.) = setup:get-request-blackout-hash($request-blackout)][gr:users ne $request-blackout/gr:users or gr:roles ne $request-blackout/gr:roles]
+          return
+            if ($same-blackout) then $request-blackout
+            else ())
+      return
+        (: Then add in any request-blackout whose type and period aren't already defined :)
+        admin:appserver-add-request-blackout(
+          $config,
+          $server-id,
+          for $request-blackout in $request-blackouts
+          return
+            if ($old-request-blackouts[setup:get-request-blackout-hash(.) = setup:get-request-blackout-hash($request-blackout)][gr:users eq $request-blackout/gr:users and gr:roles eq $request-blackout/gr:roles]) then ()
+            else
+              $request-blackout)
+    else
+      $admin-config
+
   return
     $admin-config
 };
 
+declare function setup:get-request-blackout-hash($blackout) {
+  string-join(($blackout/gr:blackout-type, $blackout//gr:day, $blackout//start-date, $blackout//start-time, $blackout//end-date, $blackout//end-time), '-')
+};
+
 declare function setup:validate-server(
   $server-config as element(),
-  $server-id as xs:unsignedLong) as element(configuration)
+  $server-id as xs:unsignedLong,
+  $settings as element(settings)) as item()*
 {
   let $admin-config := admin:get-configuration()
-  let $_ :=
-    let $actual := admin:appserver-get-last-login($admin-config, $server-id)
-    let $expected :=
-      if (fn:data($server-config/gr:last-login/(@name|text()))) then
-        xdmp:database(fn:data($server-config/gr:last-login/(@name|text())))
-      else 0
-    return
-      if ($actual = $expected) then ()
-      else
-        setup:validation-fail(fn:concat("Appserver last-login mismatch: ", $expected, " != ", $actual))
-  for $setting in $http-server-settings/*:setting
-  let $min-version as xs:string? := $setting/@min-version
-    let $expected :=
-      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
-        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, "[fn:string-length(fn:string(.)) > 0]")))
-      else ()
-  let $actual := xdmp:value(fn:concat("admin:appserver-get-", $setting, "($admin-config, $server-id)"))
-  where $expected
-  return
-    if ($expected = $actual) then ()
+
+  for $setting in $settings/*:setting
+  let $setting-test :=
+    if ($setting/@accept-blank = "true") then
+      ""
     else
-      setup:validation-fail(fn:concat("Appserver ", $setting, " mismatch: ", $expected, " != ", $actual)),
+      "[fn:string-length(fn:string(.)) > 0]"
+  let $expected :=
+    if ($setting/@value) then
+      xdmp:value($setting/@value)
+    else
+      fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, $setting-test)))
+  let $actual := xdmp:value(fn:concat("admin:appserver-get-", $setting, "($admin-config, $server-id)"))
+  let $min-version as xs:string? := $setting/@min-version
+  where (fn:exists($expected))
+  return
+    if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+      if ($expected = $actual) then ()
+      else
+        setup:validation-fail(fn:concat("Appserver ", $setting, " mismatch: ", $expected, " != ", $actual))
+    else (),
 
   let $admin-config := admin:get-configuration()
   let $existing := admin:appserver-get-namespaces($admin-config, $server-id)
@@ -3358,7 +3453,31 @@ declare function setup:validate-server(
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Appserver missing namespace: ", $expected/gr:namespace-uri))
+      setup:validation-fail(fn:concat("Appserver missing namespace: ", $expected/gr:namespace-uri)),
+
+  let $admin-config := admin:get-configuration()
+  let $existing := admin:appserver-get-schemas($admin-config, $server-id)
+  for $expected in $server-config/gr:schemas/gr:schema
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
+    else
+      setup:validation-fail(fn:concat("Appserver missing schema: ", $expected/gr:schema)),
+
+  let $admin-config := admin:get-configuration()
+  let $existing := admin:appserver-get-module-locations($admin-config, $server-id)
+  for $expected in $server-config/gr:module-locations/gr:module-location
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
+    else
+      setup:validation-fail(fn:concat("Appserver missing module location: ", $expected/gr:module-location)),
+
+  let $admin-config := admin:get-configuration()
+  let $existing := admin:appserver-get-request-blackouts($admin-config, $server-id)
+  for $expected in $server-config/gr:request-blackouts/gr:request-blackout
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
+    else
+      setup:validation-fail(fn:concat("Appserver missing request blackout: ", $expected/gr:request-blackout))
 };
 
 declare function setup:create-scheduled-tasks(
@@ -4012,7 +4131,7 @@ declare function setup:get-appserver-modules-database($server-config as element(
 {
   let $modules as xs:string? := $server-config/gr:modules/(@name|text())
   return
-    if ($modules eq "filesystem") then 0
+    if ($modules = ("filesystem", "0")) then 0
     else if ($modules) then xdmp:database($modules)
     else 0
 };
@@ -4637,6 +4756,7 @@ declare function setup:validate-install($import-config as element(configuration)
     setup:validate-database-settings($import-config),
     setup:validate-databases-indexes($import-config),
     setup:validate-appservers($import-config),
+    setup:validate-appservers-settings($import-config),
     setup:validate-scheduled-tasks($import-config)
   }
   catch($ex)
