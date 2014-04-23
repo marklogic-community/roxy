@@ -439,7 +439,12 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       logger.info "code: #{r.code.to_i}"
       logger.info r.body
 
-      if r.body.match("<error:error")
+      if r.body.match('"result":"<error:error')
+        JSON.parse(r.body).each do |item|
+          logger.error item['result']
+        end
+        result = false
+      elsif r.body.match("<error:error")
         logger.error r.body
         result = false
       else
@@ -447,7 +452,14 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         result = true
       end
     rescue Net::HTTPFatalError => e
-      logger.error e.response.body
+      if e.response.body.match('"result":"<error:error')
+        JSON.parse(e.response.body).each do |item|
+          logger.error item['result']
+        end
+        result = false
+      else
+        logger.error e.response.body
+      end
       logger.error "... Validation FAILED"
       result = false
     end
