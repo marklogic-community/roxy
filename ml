@@ -52,6 +52,7 @@ then
     INIT_GIT=0
     FORCE_INSTALL=0
     APPTYPE="mvc"
+    FORK="marklogic"
     for (( i = 0; i < ${#PARAMS[@]}; i++ )); do
       if [[ ${PARAMS[${i}]} == --branch=* ]]
       then
@@ -63,10 +64,14 @@ then
       elif [[ ${PARAMS[${i}]} == --force* ]]
       then
         FORCE_INSTALL=1
-      elif [[ ${PARAMS[${i}]} == --app-type* ]]
+      elif [[ ${PARAMS[${i}]} == --app-type=* ]]
       then
         splits=(${PARAMS[${i}]//=/ })
         APPTYPE=${splits[1]}
+      elif [[ ${PARAMS[${i}]} == --fork=* ]]
+      then
+        splits=(${PARAMS[${i}]//=/ })
+        FORK=${splits[1]}
       fi
     done
 
@@ -82,28 +87,28 @@ then
       exit 1
     fi
 
-    printf "\nCreating new Application: ${app_name}..."
+    printf "\nCreating new Application: ${app_name}...\n"
     if [ -e $app_name ]
     then
-      git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}.tmp_1
-      mv ${app_name}.tmp_1/* ${app_name}/
-      rm -rf ${app_name}.tmp_1
+      git clone git://github.com/${FORK}/roxy.git -b ${BRANCH} ${app_name}.tmp_1 || exit 1
+      mv ${app_name}.tmp_1/* ${app_name}/ || exit 1
+      rm -rf ${app_name}.tmp_1 || exit 1
     else
-      git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}
+      git clone git://github.com/${FORK}/roxy.git -b ${BRANCH} ${app_name} || exit 1
     fi
 
-    pushd ${app_name} > /dev/null
-    rm -rf .git*
+    pushd ${app_name} > /dev/null  || exit 1
+    rm -rf .git* || exit 1
     if [ "$APPTYPE" = "rest" ]
     then
       # For a REST application, we won't be using the MVC code. Remove it.
       # mvc and hybrid apps will use it.
-      rm -rf src/*
+      rm -rf src/* || exit 1
       printf "\nNo initial source code is provided for REST apps. You can copy code from Application Builder under the source directory.\n"
     fi
 
-    ./ml init ${app_name} ${@}
-    popd > /dev/null
+    ./ml init ${app_name} ${@} || exit 1
+    popd > /dev/null || exit 1
     printf " done\n"
     if [ -e $app_name ]
     then
@@ -111,9 +116,9 @@ then
       then
         printf "Creating a git repository:\n"
         cd ${app_name}
-        git init
-        git add .
-        git commit -q -m "Initial Commit"
+        git init || exit 1
+        git add . || exit 1
+        git commit -q -m "Initial Commit" || exit 1
         printf "...done\n"
       fi
     fi
@@ -131,7 +136,7 @@ then
       # This exports the new version only to sub-processes, e.g. the ruby call below..
       export ROXY_TEST_SERVER_VERSION="${version:17}"
     fi
-    ruby -I deploy -I deploy/lib -I deploy/test deploy/test/test_main.rb
+    ruby -I deploy -I deploy/lib -I deploy/test deploy/test/test_main.rb || exit 1
   else
     printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
   fi
@@ -147,7 +152,7 @@ then
 else
   if [ -e deploy/lib/ml.rb ]
   then
-    ruby -I deploy -I deploy/lib deploy/lib/ml.rb $*
+    ruby -I deploy -I deploy/lib deploy/lib/ml.rb $* || exit 1
   else
     printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
   fi
