@@ -63,6 +63,7 @@ class TestProperties < Test::Unit::TestCase
 
   def test_bootstrap
     version = ENV['ROXY_TEST_SERVER_VERSION'] || 7
+    Logger.new(STDOUT).info "Testing against MarkLogic version #{version}.."
     bootstrap_version version
   end
 end
