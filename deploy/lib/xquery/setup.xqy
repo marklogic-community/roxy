@@ -121,7 +121,7 @@ declare variable $http-server-settings :=
     <setting>enabled</setting>
     <setting>root</setting>
     <setting>port</setting>
-    <!--setting>execute</setting--><!-- [GJo] no such setting, internal flag? -->
+    <!--setting>execute</setting--><!-- no such setting, internal flag? -->
     <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
     <setting value="setup:get-appserver-content-database($server-config)">database</setting>
     <setting value="setup:get-last-login($server-config)">last-login</setting>
@@ -139,37 +139,37 @@ declare variable $http-server-settings :=
     <setting>pre-commit-trigger-limit</setting>
     <setting>collation</setting>
     <setting>authentication</setting>
-    <!--setting>internal-security</setting--><!-- [GJo] setting to false needs pre-configured external security -->
-    <!--setting>external-security</setting--><!-- [GJo] setting external security needs multiple params -->
+    <!--setting>internal-security</setting--><!-- setting to false needs pre-configured external security -->
+    <!--setting>external-security</setting--><!-- setting external security needs multiple params -->
     <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting><!-- admin:appserver-set-privilege2 declared in setup wraps admin:appserver-set-privilege -->
     <setting>concurrent-request-limit</setting>
-    <!--setting>compute-content-length</setting--><!-- [GJo] only applicable to WEBDAV! -->
+    <!--setting>compute-content-length</setting--><!-- only applicable to WEBDAV! -->
     <setting>log-errors</setting>
     <setting>debug-allow</setting>
     <setting>profile-allow</setting>
     <setting>default-xquery-version</setting>
     <setting min-version="7.0-0">distribute-timestamps</setting>
-    <setting>multi-version-concurrency-control</setting>
+    <setting min-version="5.0-0">multi-version-concurrency-control</setting>
     <setting>output-sgml-character-entities</setting>
     <setting>output-encoding</setting>
-    <setting>output-method</setting>
-    <setting>output-byte-order-mark</setting>
-    <setting>output-cdata-section-namespace-uri</setting>
-    <setting>output-cdata-section-localname</setting>
-    <setting>output-doctype-public</setting>
-    <setting>output-doctype-system</setting>
-    <setting>output-escape-uri-attributes</setting>
-    <setting>output-include-content-type</setting>
-    <setting>output-indent</setting>
-    <setting>output-indent-untyped</setting>
-    <setting>output-media-type</setting>
-    <setting>output-normalization-form</setting>
-    <setting>output-omit-xml-declaration</setting>
-    <setting>output-standalone</setting>
-    <setting>output-undeclare-prefixes</setting>
-    <setting>output-version</setting>
-    <setting>output-include-default-attributes</setting>
+    <setting min-version="5.0-0">output-method</setting>
+    <setting min-version="5.0-0">output-byte-order-mark</setting>
+    <setting min-version="5.0-0">output-cdata-section-namespace-uri</setting>
+    <setting min-version="5.0-0">output-cdata-section-localname</setting>
+    <setting min-version="5.0-0">output-doctype-public</setting>
+    <setting min-version="5.0-0">output-doctype-system</setting>
+    <setting min-version="5.0-0">output-escape-uri-attributes</setting>
+    <setting min-version="5.0-0">output-include-content-type</setting>
+    <setting min-version="5.0-0">output-indent</setting>
+    <setting min-version="5.0-0">output-indent-untyped</setting>
+    <setting min-version="5.0-0">output-media-type</setting>
+    <setting min-version="5.0-0">output-normalization-form</setting>
+    <setting min-version="5.0-0">output-omit-xml-declaration</setting>
+    <setting min-version="5.0-0">output-standalone</setting>
+    <setting min-version="5.0-0">output-undeclare-prefixes</setting>
+    <setting min-version="5.0-0">output-version</setting>
+    <setting min-version="5.0-0">output-include-default-attributes</setting>
     <setting accept-blank="true">error-handler</setting>
     <setting accept-blank="true">url-rewriter</setting>
     <setting min-version="6.0-1">rewrite-resolves-globally</setting>
@@ -183,178 +183,20 @@ declare variable $http-server-settings :=
 ;
 
 declare variable $webdav-server-settings :=
-  <settings>
-    <setting>enabled</setting>
-    <setting>root</setting>
-    <setting>port</setting>
-    <setting value="setup:get-appserver-content-database($server-config)">database</setting>
-    <setting value="setup:get-last-login($server-config)">last-login</setting>
-    <setting>display-last-login</setting>
-    <setting>address</setting>
-    <setting>backlog</setting>
-    <setting>threads</setting>
-    <setting>request-timeout</setting>
-    <setting>keep-alive-timeout</setting>
-    <setting>session-timeout</setting>
-    <setting>max-time-limit</setting>
-    <setting>default-time-limit</setting>
-    <setting>static-expires</setting>
-    <setting>pre-commit-trigger-depth</setting>
-    <setting>pre-commit-trigger-limit</setting>
-    <setting>collation</setting>
-    <setting>authentication</setting>
-    <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
-    <setting>concurrent-request-limit</setting>
+  <settings>{
+    $http-server-settings/*[fn:not(fn:data(.) = 'modules-database')],
     <setting>compute-content-length</setting>
-    <setting>log-errors</setting>
-    <setting>debug-allow</setting>
-    <setting>profile-allow</setting>
-    <setting>default-xquery-version</setting>
-    <setting>multi-version-concurrency-control</setting>
-    <setting>output-sgml-character-entities</setting>
-    <setting>output-encoding</setting>
-    <setting>output-method</setting>
-    <setting>output-byte-order-mark</setting>
-    <setting>output-cdata-section-namespace-uri</setting>
-    <setting>output-cdata-section-localname</setting>
-    <setting>output-doctype-public</setting>
-    <setting>output-doctype-system</setting>
-    <setting>output-escape-uri-attributes</setting>
-    <setting>output-include-content-type</setting>
-    <setting>output-indent</setting>
-    <setting>output-indent-untyped</setting>
-    <setting>output-media-type</setting>
-    <setting>output-normalization-form</setting>
-    <setting>output-omit-xml-declaration</setting>
-    <setting>output-standalone</setting>
-    <setting>output-undeclare-prefixes</setting>
-    <setting>output-version</setting>
-    <setting>output-include-default-attributes</setting>
-    <setting min-version="6.0-1">rewrite-resolves-globally</setting>
-    <setting value="setup:get-ssl-certificate-template($server-config)">ssl-certificate-template</setting>
-    <setting>ssl-allow-sslv3</setting>
-    <setting>ssl-allow-tls</setting>
-    <setting>ssl-hostname</setting>
-    <setting>ssl-ciphers</setting>
-    <setting>ssl-require-client-certificate</setting>
-  </settings>
+  }</settings>
 ;
 
 declare variable $xdbc-server-settings :=
-  <settings>
-    <setting>enabled</setting>
-    <setting>root</setting>
-    <setting>port</setting>
-    <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
-    <setting value="setup:get-appserver-content-database($server-config)">database</setting>
-    <setting value="setup:get-last-login($server-config)">last-login</setting>
-    <setting>display-last-login</setting>
-    <setting>address</setting>
-    <setting>backlog</setting>
-    <setting>threads</setting>
-    <setting>request-timeout</setting>
-    <setting>keep-alive-timeout</setting>
-    <setting>session-timeout</setting>
-    <setting>max-time-limit</setting>
-    <setting>default-time-limit</setting>
-    <setting>pre-commit-trigger-depth</setting>
-    <setting>pre-commit-trigger-limit</setting>
-    <setting>collation</setting>
-    <setting>authentication</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
-    <setting>concurrent-request-limit</setting>
-    <setting>log-errors</setting>
-    <setting>debug-allow</setting>
-    <setting>profile-allow</setting>
-    <setting>default-xquery-version</setting>
-    <setting min-version="7.0-0">distribute-timestamps</setting>
-    <setting>multi-version-concurrency-control</setting>
-    <setting>output-sgml-character-entities</setting>
-    <setting>output-encoding</setting>
-    <setting>output-method</setting>
-    <setting>output-byte-order-mark</setting>
-    <setting>output-cdata-section-namespace-uri</setting>
-    <setting>output-cdata-section-localname</setting>
-    <setting>output-doctype-public</setting>
-    <setting>output-doctype-system</setting>
-    <setting>output-escape-uri-attributes</setting>
-    <setting>output-include-content-type</setting>
-    <setting>output-indent</setting>
-    <setting>output-indent-untyped</setting>
-    <setting>output-media-type</setting>
-    <setting>output-normalization-form</setting>
-    <setting>output-omit-xml-declaration</setting>
-    <setting>output-standalone</setting>
-    <setting>output-undeclare-prefixes</setting>
-    <setting>output-version</setting>
-    <setting>output-include-default-attributes</setting>
-    <setting>ssl-certificate-template</setting>
-    <setting>ssl-allow-sslv3</setting>
-    <setting>ssl-allow-tls</setting>
-    <setting>ssl-hostname</setting>
-    <setting>ssl-ciphers</setting>
-    <setting>ssl-require-client-certificate</setting>
-    <setting>ssl-client-certificate-authorities</setting>
-  </settings>
+  <settings>{
+    $http-server-settings/*[fn:not(fn:data(.) = ('static-expires', 'default-user', 'error-handler', 'url-rewriter', 'rewrite-resolves-globally'))]
+  }</settings>
 ;
 
 declare variable $odbc-server-settings :=
-  <settings>
-    <setting>enabled</setting>
-    <setting>root</setting>
-    <setting>port</setting>
-    <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
-    <setting value="setup:get-appserver-content-database($server-config)">database</setting>
-    <setting value="setup:get-last-login($server-config)">last-login</setting>
-    <setting>display-last-login</setting>
-    <setting>address</setting>
-    <setting>backlog</setting>
-    <setting>threads</setting>
-    <setting>request-timeout</setting>
-    <setting>keep-alive-timeout</setting>
-    <setting>session-timeout</setting>
-    <setting>max-time-limit</setting>
-    <setting>default-time-limit</setting>
-    <setting>static-expires</setting>
-    <setting>pre-commit-trigger-depth</setting>
-    <setting>pre-commit-trigger-limit</setting>
-    <setting>collation</setting>
-    <setting>authentication</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
-    <setting>concurrent-request-limit</setting>
-    <setting>log-errors</setting>
-    <setting>debug-allow</setting>
-    <setting>profile-allow</setting>
-    <setting>default-xquery-version</setting>
-    <setting min-version="7.0-0">distribute-timestamps</setting>
-    <setting>multi-version-concurrency-control</setting>
-    <setting>output-sgml-character-entities</setting>
-    <setting>output-encoding</setting>
-    <setting>output-method</setting>
-    <setting>output-byte-order-mark</setting>
-    <setting>output-cdata-section-namespace-uri</setting>
-    <setting>output-cdata-section-localname</setting>
-    <setting>output-doctype-public</setting>
-    <setting>output-doctype-system</setting>
-    <setting>output-escape-uri-attributes</setting>
-    <setting>output-include-content-type</setting>
-    <setting>output-indent</setting>
-    <setting>output-indent-untyped</setting>
-    <setting>output-media-type</setting>
-    <setting>output-normalization-form</setting>
-    <setting>output-omit-xml-declaration</setting>
-    <setting>output-standalone</setting>
-    <setting>output-undeclare-prefixes</setting>
-    <setting>output-version</setting>
-    <setting>output-include-default-attributes</setting>
-    <setting>ssl-certificate-template</setting>
-    <setting>ssl-allow-sslv3</setting>
-    <setting>ssl-allow-tls</setting>
-    <setting>ssl-hostname</setting>
-    <setting>ssl-ciphers</setting>
-    <setting>ssl-require-client-certificate</setting>
-  </settings>
+  $xdbc-server-settings
 ;
 
 declare variable $task-server-settings :=
@@ -3261,6 +3103,14 @@ declare function setup:get-appserver-privilege(
     else 0
 };
 
+declare function admin:appserver-get-privilege2(
+  $config as element(configuration),
+  $appserver-id as xs:unsignedLong)
+as xs:unsignedLong
+{
+  admin:appserver-get-privilege($config, $appserver-id)
+};
+
 declare function admin:appserver-set-privilege2(
   $config as element(configuration),
   $appserver-id as xs:unsignedLong,
@@ -3296,7 +3146,10 @@ declare function setup:configure-server(
       if (fn:empty($min-version) or setup:at-least-version($min-version)) then
         xdmp:set($admin-config,
           xdmp:value(fn:concat("admin:appserver-set-", $setting, "($admin-config, $server-id, $value)")))
-      else ()
+      else
+        fn:error(
+          xs:QName("VERSION_NOT_SUPPORTED"),
+          fn:concat("MarkLogic ", xdmp:version(), " does not support ", $setting, ". Use ", $min-version, " or higher."))
 
   let $namespaces := $server-config/gr:namespaces/gr:namespace
   let $admin-config :=
@@ -3358,28 +3211,48 @@ declare function setup:configure-server(
   let $module-locations := $server-config/gr:module-locations/gr:module-location
   let $admin-config :=
     if ($module-locations) then
-      let $old-module-locations := admin:appserver-get-module-locations($admin-config, $server-id)
-      let $config :=
-        (: First delete any module-location that matches the namespace :)
-        admin:appserver-delete-module-location(
-          $admin-config,
-          $server-id,
-          for $module-location in $module-locations
-          let $same-ns :=
-            $old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location ne $module-location/gr:location]
+      if (setup:at-least-version("7.0-0")) then
+        xdmp:eval('
+          xquery version "1.0-ml";
+
+          import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+
+          declare namespace gr="http://marklogic.com/xdmp/group";
+        
+          declare variable $admin-config external;
+          declare variable $server-id external;
+          declare variable $module-locations external;
+    
+          let $old-module-locations := admin:appserver-get-module-locations($admin-config, $server-id)
+          let $config :=
+            (: First delete any module-location that matches the namespace :)
+            admin:appserver-delete-module-location(
+              $admin-config,
+              $server-id,
+              for $module-location in $module-locations
+              let $same-ns :=
+                $old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location ne $module-location/gr:location]
+              return
+                if ($same-ns) then $module-location
+                else ())
           return
-            if ($same-ns) then $module-location
-            else ())
-      return
-        (: Then add in any module-location whose namespace isn't already defined :)
-        admin:appserver-add-module-location(
-          $config,
-          $server-id,
-          for $module-location in $module-locations
-          return
-            if ($old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location = $module-location/gr:location]) then ()
-            else
-              $module-location)
+            (: Then add in any module-location whose namespace isnt already defined :)
+            admin:appserver-add-module-location(
+              $config,
+              $server-id,
+              for $module-location in $module-locations
+              return
+                if ($old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location = $module-location/gr:location]) then ()
+                else
+                  $module-location)
+          ',
+          (xs:QName("admin-config"),$admin-config,
+           xs:QName("server-id"),$server-id,
+           xs:QName("module-locations"),$module-locations))
+      else
+        fn:error(
+          xs:QName("VERSION_NOT_SUPPORTED"),
+          fn:concat("MarkLogic ", xdmp:version(), " does not support module-locations. Use 7.0-0 or higher."))
     else
       $admin-config
 
@@ -3425,59 +3298,80 @@ declare function setup:validate-server(
   $settings as element(settings)) as item()*
 {
   let $admin-config := admin:get-configuration()
+  return (
 
-  for $setting in $settings/*:setting
-  let $setting-test :=
-    if ($setting/@accept-blank = "true") then
-      ""
-    else
-      "[fn:string-length(fn:string(.)) > 0]"
-  let $expected :=
-    if ($setting/@value) then
-      xdmp:value($setting/@value)
-    else
-      fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, $setting-test)))
-  let $actual := xdmp:value(fn:concat("admin:appserver-get-", $setting, "($admin-config, $server-id)"))
-  let $min-version as xs:string? := $setting/@min-version
-  where (fn:exists($expected))
-  return
-    if (fn:empty($min-version) or setup:at-least-version($min-version)) then
-      if ($expected = $actual) then ()
+    for $setting in $settings/*:setting
+    let $setting-test :=
+      if ($setting/@accept-blank = "true") then
+        ""
       else
-        setup:validation-fail(fn:concat("Appserver ", $setting, " mismatch: ", $expected, " != ", $actual))
+        "[fn:string-length(fn:string(.)) > 0]"
+    let $expected :=
+      if ($setting/@value) then
+        xdmp:value($setting/@value)
+      else
+        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, $setting-test)))
+    let $min-version as xs:string? := $setting/@min-version
+    where (fn:exists($expected))
+    return
+      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+        let $actual := xdmp:value(fn:concat("admin:appserver-get-", $setting, "($admin-config, $server-id)"))
+        return
+          if ($expected = $actual) then ()
+          else
+            setup:validation-fail(fn:concat("Appserver ", $setting, " mismatch: ", $expected, " != ", $actual))
+      else
+        fn:error(
+          xs:QName("VERSION_NOT_SUPPORTED"),
+          fn:concat("MarkLogic ", xdmp:version(), " does not support ", $setting, ". Use ", $min-version, " or higher.")),
+
+    let $existing := admin:appserver-get-namespaces($admin-config, $server-id)
+    for $expected in $server-config/gr:namespaces/gr:namespace
+    return
+      if ($existing[fn:deep-equal(., $expected)]) then ()
+      else
+        setup:validation-fail(fn:concat("Appserver missing namespace: ", $expected/gr:namespace-uri)),
+
+    let $existing := admin:appserver-get-schemas($admin-config, $server-id)
+    for $expected in $server-config/gr:schemas/gr:schema
+    return
+      if ($existing[fn:deep-equal(., $expected)]) then ()
+      else
+        setup:validation-fail(fn:concat("Appserver missing schema: ", $expected/gr:schema)),
+
+    if ($server-config/gr:module-locations/gr:module-location) then
+      if (setup:at-least-version("7.0-0")) then
+        let $existing :=
+          xdmp:eval('
+            xquery version "1.0-ml";
+
+            import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+
+            declare variable $admin-config external;
+            declare variable $server-id external;
+  
+            admin:appserver-get-module-locations($admin-config, $server-id)
+            ',
+            (xs:QName("admin-config"),$admin-config,
+             xs:QName("server-id"),$server-id))
+        for $expected in $server-config/gr:module-locations/gr:module-location
+        return
+          if ($existing[fn:deep-equal(., $expected)]) then ()
+          else
+            setup:validation-fail(fn:concat("Appserver missing module location: ", $expected/gr:module-location))
+      else
+        fn:error(
+          xs:QName("VERSION_NOT_SUPPORTED"),
+          fn:concat("MarkLogic ", xdmp:version(), " does not support module-locations. Use 7.0-0 or higher."))
     else (),
 
-  let $admin-config := admin:get-configuration()
-  let $existing := admin:appserver-get-namespaces($admin-config, $server-id)
-  for $expected in $server-config/gr:namespaces/gr:namespace
-  return
-    if ($existing[fn:deep-equal(., $expected)]) then ()
-    else
-      setup:validation-fail(fn:concat("Appserver missing namespace: ", $expected/gr:namespace-uri)),
-
-  let $admin-config := admin:get-configuration()
-  let $existing := admin:appserver-get-schemas($admin-config, $server-id)
-  for $expected in $server-config/gr:schemas/gr:schema
-  return
-    if ($existing[fn:deep-equal(., $expected)]) then ()
-    else
-      setup:validation-fail(fn:concat("Appserver missing schema: ", $expected/gr:schema)),
-
-  let $admin-config := admin:get-configuration()
-  let $existing := admin:appserver-get-module-locations($admin-config, $server-id)
-  for $expected in $server-config/gr:module-locations/gr:module-location
-  return
-    if ($existing[fn:deep-equal(., $expected)]) then ()
-    else
-      setup:validation-fail(fn:concat("Appserver missing module location: ", $expected/gr:module-location)),
-
-  let $admin-config := admin:get-configuration()
-  let $existing := admin:appserver-get-request-blackouts($admin-config, $server-id)
-  for $expected in $server-config/gr:request-blackouts/gr:request-blackout
-  return
-    if ($existing[fn:deep-equal(., $expected)]) then ()
-    else
-      setup:validation-fail(fn:concat("Appserver missing request blackout: ", $expected/gr:request-blackout))
+    let $existing := admin:appserver-get-request-blackouts($admin-config, $server-id)
+    for $expected in $server-config/gr:request-blackouts/gr:request-blackout
+    return
+      if ($existing[fn:deep-equal(., $expected)]) then ()
+      else
+        setup:validation-fail(fn:concat("Appserver missing request blackout: ", $expected/gr:request-blackout))    
+  )
 };
 
 declare function setup:create-scheduled-tasks(
