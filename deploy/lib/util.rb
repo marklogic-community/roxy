@@ -63,6 +63,10 @@ class String
   def xquery_safe
     REXML::Text::normalize(self).gsub(/\{/, '{{').gsub(/\}/, '}}')
   end
+
+  def xquery_unsafe
+    REXML::Text::unnormalize(self).gsub(/\{{/, '{').gsub(/\}}/, '}')
+  end
 end
 
 class Object
