@@ -50,6 +50,7 @@ module Roxy
     end
 
     def upgrade(args)
+      fork = find_arg(['--fork']) || 'marklogic'
       branch = find_arg(['--branch'])
       raise HelpException.new("upgrade", "Missing branch name") unless branch
 
@@ -62,11 +63,11 @@ module Roxy
       confirm = gets.chomp
 
       if confirm.match(/^y(es)?$/i)
-        @logger.info "Upgrading to the #{branch} branch"
+        @logger.info "Upgrading to the #{branch} branch from #{fork}/roxy"
         tmp_dir = Dir.mktmpdir
 
         @logger.info "Cloning Roxy in a temp directory..."
-        system("git clone git://github.com/marklogic/roxy.git -b #{branch} #{tmp_dir}")
+        system("git clone git://github.com/#{fork}/roxy.git -b #{branch} #{tmp_dir}")
 
         @logger.info "Upgrading base project files\n"
         upgrade_base(tmp_dir)
