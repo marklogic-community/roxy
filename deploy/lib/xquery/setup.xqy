@@ -139,7 +139,7 @@ declare variable $http-server-settings :=
     <setting>collation</setting>
     <setting>authentication</setting>
     <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <setting>log-errors</setting>
     <setting>debug-allow</setting>
@@ -200,7 +200,7 @@ declare variable $webdav-server-settings :=
     <setting>collation</setting>
     <setting>authentication</setting>
     <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <setting>compute-content-length</setting>
     <setting>log-errors</setting>
@@ -258,7 +258,7 @@ declare variable $xcc-server-settings :=
     <setting>pre-commit-trigger-limit</setting>
     <setting>collation</setting>
     <setting>authentication</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <setting>log-errors</setting>
     <setting>debug-allow</setting>
@@ -317,7 +317,7 @@ declare variable $odbc-server-settings :=
     <setting>pre-commit-trigger-limit</setting>
     <setting>collation</setting>
     <setting>authentication</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting>
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <setting>log-errors</setting>
     <setting>debug-allow</setting>
@@ -3252,17 +3252,6 @@ declare function setup:get-appserver-privilege(
               "Invalid privilege '",
               $privilege))
     else 0
-};
-
-declare function admin:appserver-set-privilege2(
-  $config as element(configuration),
-  $appserver-id as xs:unsignedLong,
-  $value as xs:unsignedLong)
-as element(configuration)
-{
-  if ($value = 0) then $config
-  else
-    admin:appserver-set-privilege($config, $appserver-id, $value)
 };
 
 declare function setup:configure-server(
