@@ -490,4 +490,14 @@
     </privilege>
 -->
   </privileges>
+  <mimetypes xmlns="http://marklogic.com/xdmp/mimetypes">
+<!--
+    Sample mimetype.
+    <mimetype>
+      <name>application/crazy</name>
+      <extension>crazy stuff</extension>
+      <format>text</format>
+    </mimetype>
+-->
+  </mimetypes>  
 </configuration>
