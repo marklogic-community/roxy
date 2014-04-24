@@ -237,7 +237,7 @@ declare variable $webdav-server-settings :=
   </settings>
 ;
 
-declare variable $xcc-server-settings :=
+declare variable $xdbc-server-settings :=
   <settings>
     <setting>enabled</setting>
     <setting>root</setting>
@@ -3162,7 +3162,7 @@ declare function setup:configure-xdbc-server(
   $server-config as element(gr:xdbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]
-  let $admin-config := setup:configure-server($server-config, xdmp:server($server-name), $xcc-server-settings)
+  let $admin-config := setup:configure-server($server-config, xdmp:server($server-name), $xdbc-server-settings)
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
