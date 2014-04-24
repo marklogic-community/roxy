@@ -644,7 +644,8 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def corb
-    connection_string = %Q{xcc://#{@properties['ml.user']}:#{@properties['ml.password']}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
+    encoded_password = url_encode(@properties['ml.password'])
+    connection_string = %Q{xcc://#{@properties['ml.user']}:#{encoded_password}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
     collection_name = find_arg(['--collection']) || '""'
     xquery_module = find_arg(['--modules'])
     uris_module = find_arg(['--uris']) || '""'
