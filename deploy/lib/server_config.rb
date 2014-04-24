@@ -411,23 +411,37 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def wipe
-    logger.info "Wiping MarkLogic setup for your project on #{@hostname}..."
-    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-wipe(#{get_config})}
-    logger.debug r.body
-
-    if r.body.match("<error:error")
-      logger.error r.body
-      logger.error "... Wipe FAILED"
-      return false
+    
+    if @environment != "local"
+      print "This command will remove the application, \n"
+      print "include the content database and all its content, from #{@hostname}.\n"
+      print "\nAre you ready to proceed? [y/N]\n"
+      confirm = gets.chomp
     else
-      if r.body.match("(note: restart required)")
-        logger.warn "************************************"
-        logger.warn "*** RESTART OF MARKLOGIC IS REQUIRED"
-        logger.warn "************************************"
+      confirm = 'yes'
+    end
+
+    if confirm.match(/^y(es)?$/i)
+      logger.info "Wiping MarkLogic setup for your project on #{@hostname}..."
+      setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
+      r = execute_query %Q{#{setup} setup:do-wipe(#{get_config})}
+      logger.debug r.body
+
+      if r.body.match("<error:error")
+        logger.error r.body
+        logger.error "... Wipe FAILED"
+        return false
+      else
+        if r.body.match("(note: restart required)")
+          logger.warn "************************************"
+          logger.warn "*** RESTART OF MARKLOGIC IS REQUIRED"
+          logger.warn "************************************"
+        end
+        logger.info "... Wipe Complete"
+        return true
       end
-      logger.info "... Wipe Complete"
-      return true
+    else
+      puts "Aborting wipe command"
     end
   end
 
