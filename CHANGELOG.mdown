@@ -106,3 +106,6 @@ This file describes changes made to Roxy per release
 * \*199 Index interview now records the collation correctly
 * \*205 Fixed problem with removing forests
 * \*208 REST extensions can now be deployed to an app server with Basic authentication
+
+## 1.6 (branch: dev)
+
