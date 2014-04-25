@@ -35,6 +35,7 @@ set BRANCH=master
 set INIT_GIT=0
 set APPTYPE=mvc
 set FORCE_INSTALL=0
+set FORK=marklogic
 
 :loop
 if not "%1"=="" (
@@ -48,6 +49,10 @@ if not "%1"=="" (
   )
   if "%1"=="--force" (
     set FORCE_INSTALL=1
+  )
+  if "%1"=="--fork" (
+    set FORK=%2
+    shift
   )
   shift
   goto :loop
@@ -68,12 +73,12 @@ echo.
 echo Creating new Application: %app_name%...
 
 if EXIST %app_name% (
-  cmd /c git clone git://github.com/marklogic/roxy.git -b %BRANCH% %app_name%.tmp_1
+  cmd /c git clone git://github.com/%FORK%/roxy.git -b %BRANCH% %app_name%.tmp_1
   xcopy %app_name%.tmp_1\* %app_name%\ /E
   rmdir /s /q %app_name%.tmp_1
 )
 if NOT EXIST %app_name% (
-  cmd /c git clone git://github.com/marklogic/roxy.git -b %BRANCH% %app_name%
+  cmd /c git clone git://github.com/%FORK%/roxy.git -b %BRANCH% %app_name%
 )
 
 pushd %app_name%
