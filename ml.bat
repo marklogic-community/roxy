@@ -14,8 +14,9 @@ if "%1"=="self-test" goto selftest
 
 IF not "%1"=="new" goto rubydeployer
 SHIFT
-IF "%1"=="" goto usage
+IF "%1"=="" goto providename
 IF "%1"=="-h" goto usage
+IF "%1"=="--help" goto usage
 
 set app_name=%1
 SHIFT
@@ -47,7 +48,6 @@ if not "%1"=="" (
   )
   if "%1"=="--force" (
     set FORCE_INSTALL=1
-    shift
   )
   shift
   goto :loop
@@ -132,9 +132,9 @@ goto end
 
 :missingdeploy
   echo.
-  echo You must run this command inside a valid Roxy Project
+  echo You must run this command inside a valid Roxy Project. Use 'ml new' to create a project.
   echo.
-  goto end
+  goto usage
 
 :needruby
   echo.
@@ -150,9 +150,14 @@ goto end
 
 :alreadyexists
   echo.
-  echo %app_name% already exists. Aborting
+  echo %app_name% already exists. Aborting.
   echo.
   goto end
+
+:providename
+  echo.
+  echo "NOTE: Please provide an app name.."
+  echo.
 
 :usage
   echo Usage: ml new app-name --server-version=[version] [--branch=branch] [--git] [--force]
