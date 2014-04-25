@@ -142,7 +142,7 @@ declare variable $http-server-settings :=
     <!--setting>internal-security</setting--><!-- setting to false needs pre-configured external security -->
     <!--setting>external-security</setting--><!-- setting external security needs multiple params -->
     <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
-    <setting value="setup:get-appserver-privilege($server-config)">privilege2</setting><!-- admin:appserver-set-privilege2 declared in setup wraps admin:appserver-set-privilege -->
+    <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <!--setting>compute-content-length</setting--><!-- only applicable to WEBDAV! -->
     <setting>log-errors</setting>
@@ -1275,10 +1275,10 @@ declare function setup:add-field-includes-R(
           admin:database-included-element(
             $e/db:namespace-uri,
             $e/db:localname,
-            $e/db:weight,
+            ($e/db:weight, 1.0)[1],
             $e/db:attribute-namespace-uri,
-            $e/db:attribute-localname,
-            $e/db:attribute-value)),
+            ($e/db:attribute-localname, "")[1],
+            ($e/db:attribute-value, "")[1])),
       $database,
       fn:subsequence($field-configs, 2))
   else
@@ -1322,9 +1322,9 @@ declare function setup:add-field-excludes-R(
               admin:database-excluded-element(
                 $e/db:namespace-uri,
                 $e/db:localname,
-                $e/db:attribute-namespace-uri,
-                $e/db:attribute-localname,
-                $e/db:attribute-value)',
+                ($e/db:attribute-namespace-uri, "")[1],
+                ($e/db:attribute-localname, "")[1],
+                ($e/db:attribute-value, "")[1])',
               (xs:QName("e"), $e),
               <options xmlns="xdmp:eval">
                 <isolation>same-statement</isolation>
@@ -3101,25 +3101,6 @@ declare function setup:get-appserver-privilege(
               "Invalid privilege '",
               $privilege))
     else 0
-};
-
-declare function admin:appserver-get-privilege2(
-  $config as element(configuration),
-  $appserver-id as xs:unsignedLong)
-as xs:unsignedLong
-{
-  admin:appserver-get-privilege($config, $appserver-id)
-};
-
-declare function admin:appserver-set-privilege2(
-  $config as element(configuration),
-  $appserver-id as xs:unsignedLong,
-  $value as xs:unsignedLong)
-as element(configuration)
-{
-  if ($value = 0) then $config
-  else
-    admin:appserver-set-privilege($config, $appserver-id, $value)
 };
 
 declare function setup:configure-server(
