@@ -79,6 +79,8 @@ if not "%APPTYPE%"=="mvc" if not "%APPTYPE%"=="rest" if not "%APPTYPE%"=="hybrid
 echo.
 echo Creating new Application: %app_name%...
 
+REM TODO: check errorlevel and bail out if any of the below commands fail..
+
 if EXIST %app_name% (
   cmd /c git clone git://github.com/%FORK%/roxy.git -b %BRANCH% %app_name%.tmp_1
   xcopy %app_name%.tmp_1\* %app_name%\ /E
