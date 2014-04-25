@@ -127,13 +127,15 @@ elif [ "$1" == 'self-test' ]
 then
   if [ -e deploy/test/test_main.rb ]
   then
-    shift
-    version="$1"
-    if [ "${version:0:17}" == '--server-version=' ]
-    then
-      # This exports the new version only to sub-processes, e.g. the ruby call below..
-      export ROXY_TEST_SERVER_VERSION="${version:17}"
-    fi
+    # Look for --server-version param, and export that as env variable. Unit testing doesn't allow cmd params..
+    for (( i = 0; i < ${#PARAMS[@]}; i++ )); do
+      if [[ ${PARAMS[${i}]} == --server-version=* ]]
+      then
+        splits=(${PARAMS[1]//=/ })
+        # This exports the version only to sub-processes, e.g. the ruby call below..
+        export ROXY_TEST_SERVER_VERSION=${splits[1]}
+      fi
+    done
     ruby -I deploy -I deploy/lib -I deploy/test deploy/test/test_main.rb || exit 1
   else
     printf "\nERROR: You must run this command inside a valid Roxy Project. Use 'ml new' to create a project.\n\n"
