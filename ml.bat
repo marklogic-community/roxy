@@ -18,6 +18,13 @@ IF "%1"=="" goto providename
 IF "%1"=="-h" goto usage
 IF "%1"=="--help" goto usage
 
+REM check if we are already in a valid Roxy project
+if NOT EXIST deploy\lib\ml.rb GOTO skip_roxy_exists
+set /p response= "Running ml new from within a Roxy project is not recommended. Continue? [y/N] "
+if /i "%response:~,1%" NEQ "Y" exit /b
+
+:skip_roxy_exists
+
 set app_name=%1
 SHIFT
 
