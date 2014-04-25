@@ -23,7 +23,7 @@ require 'uri'
 class MLClient
   def initialize(options)
     @ml_username = options[:user_name]
-    @ml_password = options[:password]
+    @ml_password = options[:password].xquery_unsafe
     @logger = options[:logger] || logger
     @request = {}
   end
