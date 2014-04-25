@@ -1429,10 +1429,10 @@ declare function setup:add-field-includes-R(
           admin:database-included-element(
             $e/db:namespace-uri,
             $e/db:localname,
-            $e/db:weight,
+            ($e/db:weight, 1.0)[1],
             $e/db:attribute-namespace-uri,
-            $e/db:attribute-localname,
-            $e/db:attribute-value)),
+            ($e/db:attribute-localname, "")[1],
+            ($e/db:attribute-value, "")[1])),
       $database,
       fn:subsequence($field-configs, 2))
   else
@@ -1476,9 +1476,9 @@ declare function setup:add-field-excludes-R(
               admin:database-excluded-element(
                 $e/db:namespace-uri,
                 $e/db:localname,
-                $e/db:attribute-namespace-uri,
-                $e/db:attribute-localname,
-                $e/db:attribute-value)',
+                ($e/db:attribute-namespace-uri, "")[1],
+                ($e/db:attribute-localname, "")[1],
+                ($e/db:attribute-value, "")[1])',
               (xs:QName("e"), $e),
               <options xmlns="xdmp:eval">
                 <isolation>same-statement</isolation>
