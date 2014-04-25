@@ -27,6 +27,11 @@ end
 
 ARGV << '--help' if ARGV.empty?
 
+if ARGV.length == 1 && need_help?
+  Help.doHelp(@logger, :usage)
+  exit
+end
+
 @profile = find_arg(['-p', '--profile'])
 if @profile then
   begin
@@ -127,7 +132,7 @@ begin
           :logger => @logger
         ).send(command)
       else
-        Help.doHelp(@logger, :usage)
+        Help.doHelp(@logger, :usage, "Unknown command #{command}!")
         break
       end
     end

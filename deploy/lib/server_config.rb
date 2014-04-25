@@ -439,7 +439,12 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       logger.info "code: #{r.code.to_i}"
       logger.info r.body
 
-      if r.body.match("<error:error")
+      if r.body.match('"result":"<error:error')
+        JSON.parse(r.body).each do |item|
+          logger.error item['result']
+        end
+        result = false
+      elsif r.body.match("<error:error")
         logger.error r.body
         result = false
       else
@@ -447,7 +452,14 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         result = true
       end
     rescue Net::HTTPFatalError => e
-      logger.error e.response.body
+      if e.response.body.match('"result":"<error:error')
+        JSON.parse(e.response.body).each do |item|
+          logger.error item['result']
+        end
+        result = false
+      else
+        logger.error e.response.body
+      end
       logger.error "... Validation FAILED"
       result = false
     end
@@ -709,40 +721,47 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def capture
-
-    if @properties['ml.app-type'] != 'rest'
-      raise ExitException.new("This is a #{@properties['ml.app-type']} application; capture only works for app-type=rest")
-    end
-
+    full_config = find_arg(['--full-ml-config'])
     target_db = find_arg(['--modules-db'])
-
-    if target_db == nil
-      raise HelpException.new("capture", "modules-db is required")
+    
+    # check params
+    if full_config == nil && target_db == nil
+      raise HelpException.new("capture", "either full-ml-config or modules-db is required")
+    elsif target_db != nil && @properties['ml.app-type'] != 'rest'
+      raise ExitException.new("This is a #{@properties['ml.app-type']} application; capture modules only works for app-type=rest")
     end
 
-    tmp_dir = Dir.mktmpdir
-    logger.debug "using temp dir " + tmp_dir
-    logger.info "Retrieving source and REST config from #{target_db}..."
-
-    save_files_to_fs(target_db, "#{tmp_dir}/src")
-
-    # set up the options
-    FileUtils.cp_r(
-      "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
-      @properties['ml.rest-options.dir']
-    )
-    FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
-
-    # If we have an application/custom directory, we've probably done a capture
-    # before. Don't overwrite that directory. Kill the downloaded custom directory
-    # to avoid overwriting.
-    if Dir.exists? "#{@properties["ml.xquery.dir"]}/application/custom"
-      FileUtils.rm_rf("#{tmp_dir}/src/application/custom")
+    # retrieve full setup config from environment
+    if full_config != nil
+      capture_environment_config
     end
 
-    FileUtils.cp_r("#{tmp_dir}/src/.", @properties["ml.xquery.dir"])
+    # retrieve modules from selected database from environment
+    if target_db != nil
+      tmp_dir = Dir.mktmpdir
+      logger.debug "using temp dir " + tmp_dir
+      logger.info "Retrieving source and REST config from #{target_db}..."
 
-    FileUtils.rm_rf(tmp_dir)
+      save_files_to_fs(target_db, "#{tmp_dir}/src")
+
+      # set up the options
+      FileUtils.cp_r(
+        "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
+        @properties['ml.rest-options.dir']
+      )
+      FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
+
+      # If we have an application/custom directory, we've probably done a capture
+      # before. Don't overwrite that directory. Kill the downloaded custom directory
+      # to avoid overwriting.
+      if Dir.exists? "#{@properties["ml.xquery.dir"]}/application/custom"
+        FileUtils.rm_rf("#{tmp_dir}/src/application/custom")
+      end
+
+      FileUtils.cp_r("#{tmp_dir}/src/.", @properties["ml.xquery.dir"])
+
+      FileUtils.rm_rf(tmp_dir)
+    end
   end
 
 private
@@ -799,6 +818,28 @@ private
       end
     end
 
+  end
+
+  def capture_environment_config
+    raise ExitException.new("Capture requires the target environment's hostname to be defined") unless @hostname.present?
+
+    logger.info "Capturing configuration of MarkLogic on #{@hostname}..."
+    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
+    r = execute_query %Q{#{setup} setup:get-configuration((), (), (), (), (), ())}
+
+    if r.body.match("error log")
+      logger.error r.body
+      logger.error "... Capture FAILED"
+      return false
+    else
+      JSON.parse(r.body).each do |item|
+        contents = item['result']
+        name = "#{@properties["ml.config.file"].sub( %r{.xml}, '' )}-#{@properties["ml.environment"]}.xml"
+        File.open(name, 'w') { |file| file.write(contents) }
+        logger.info("... Captured full configuration into #{name}")
+      end
+      return true
+    end
   end
 
   # Build an array of role/capability objects.

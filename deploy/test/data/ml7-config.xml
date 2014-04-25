@@ -79,57 +79,72 @@
     </scheduled-tasks>
   </task-server>
   <http-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
-    <!--Default Application Server-->
+    <!--Non-default Application Server-->
     <http-server>
+      <!--http-server-id>????</http-server-id-->
       <http-server-name>@ml.app-name</http-server-name>
+      <enabled>false</enabled>
+      <root>/@ml.app-name/</root>
       <port>@ml.app-port</port>
-      <database name="@ml.content-db"/>
+      <!--webDAV>false</webDAV-->
+      <!--execute>false</execute--><!-- [GJo] no such setting, internal flag? -->
       <modules name="@ml.app-modules-db"/>
-      <last-login>0</last-login>
-      <display-last-login>false</display-last-login>
-      <address>0.0.0.0</address>
-      <backlog>256</backlog>
-      <threads>32</threads>
-      <request-timeout>30</request-timeout>
-      <keep-alive-timeout>5</keep-alive-timeout>
-      <session-timeout>3600</session-timeout>
-      <max-time-limit>3600</max-time-limit>
-      <default-time-limit>600</default-time-limit>
-      <static-expires>3600</static-expires>
-      <pre-commit-trigger-depth>1000</pre-commit-trigger-depth>
-      <pre-commit-trigger-limit>10000</pre-commit-trigger-limit>
-      <collation>http://marklogic.com/collation/</collation>
-      <authentication>digest</authentication>
+      <database name="@ml.content-db"/>
+      <last-login>Last-Login</last-login>
+      <display-last-login>true</display-last-login>
+      <address>1.2.3.4</address>
+      <backlog>321</backlog>
+      <threads>123</threads>
+      <request-timeout>321</request-timeout>
+      <keep-alive-timeout>123</keep-alive-timeout>
+      <session-timeout>321</session-timeout>
+      <max-time-limit>123</max-time-limit>
+      <default-time-limit>321</default-time-limit>
+      <static-expires>123</static-expires>
+      <pre-commit-trigger-depth>321</pre-commit-trigger-depth>
+      <pre-commit-trigger-limit>123</pre-commit-trigger-limit>
+      <collation>http://marklogic.com/collation/codepoint</collation>
+      <authentication>basic</authentication>
+      <!--internal-security>false</internal-security--><!-- [GJo] setting to false needs pre-configured external security -->
+      <!--external-security>0</external-security--><!-- [GJo] setting external security needs multiple params -->
       <default-user>@ml.default-user</default-user>
       <privilege>admin-ui</privilege>
-      <concurrent-request-limit>0</concurrent-request-limit>
-      <compute-content-length>false</compute-content-length>
-      <log-errors>true</log-errors>
-      <debug-allow>true</debug-allow>
-      <profile-allow>true</profile-allow>
-      <default-xquery-version>1.0-ml</default-xquery-version>
-      <multi-version-concurrency-control>contemporaneous</multi-version-concurrency-control>
-      <output-sgml-character-entities>none</output-sgml-character-entities>
-      <output-encoding>UTF-8</output-encoding>
-      <output-method>default</output-method>
-      <output-byte-order-mark>default</output-byte-order-mark>
-      <output-cdata-section-namespace-uri/>
-      <output-cdata-section-localname/>
-      <output-doctype-public/>
-      <output-doctype-system/>
-      <output-escape-uri-attributes>default</output-escape-uri-attributes>
-      <output-include-content-type>default</output-include-content-type>
-      <output-indent>default</output-indent>
-      <output-indent-untyped>default</output-indent-untyped>
-      <output-media-type/>
-      <output-normalization-form>none</output-normalization-form>
-      <output-omit-xml-declaration>default</output-omit-xml-declaration>
-      <output-standalone>omit</output-standalone>
-      <output-undeclare-prefixes>default</output-undeclare-prefixes>
-      <output-version/>
-      <output-include-default-attributes>default</output-include-default-attributes>
+      <concurrent-request-limit>123</concurrent-request-limit>
+      <!--compute-content-length>false</compute-content-length--><!-- [GJo] only applicable for WEBDAV! -->
+      <log-errors>false</log-errors>
+      <debug-allow>false</debug-allow>
+      <profile-allow>false</profile-allow>
+      <default-xquery-version>1.0</default-xquery-version>
+      <multi-version-concurrency-control>nonblocking</multi-version-concurrency-control>
+      <distribute-timestamps>strict</distribute-timestamps>
+      
+      <output-sgml-character-entities>normal</output-sgml-character-entities>
+      <output-encoding>ASCII</output-encoding>
+      <output-method>xml</output-method>
+      <output-byte-order-mark>yes</output-byte-order-mark>
+      <output-cdata-section-namespace-uri>a</output-cdata-section-namespace-uri>
+      <output-cdata-section-localname>b</output-cdata-section-localname>
+      <output-doctype-public>c</output-doctype-public>
+      <output-doctype-system>d</output-doctype-system>
+      <output-escape-uri-attributes>yes</output-escape-uri-attributes>
+      <output-include-content-type>yes</output-include-content-type>
+      <output-indent>yes</output-indent>
+      <output-indent-untyped>yes</output-indent-untyped>
+      <output-media-type>text/xml</output-media-type>
+      <output-normalization-form>NFC</output-normalization-form>
+      <output-omit-xml-declaration>yes</output-omit-xml-declaration>
+      <output-standalone>yes</output-standalone>
+      <output-undeclare-prefixes>yes</output-undeclare-prefixes>
+      <output-version>1.0</output-version>
+      <output-include-default-attributes>yes</output-include-default-attributes>
+
       <error-handler>/roxy/error.xqy</error-handler>
-      <schemas/>
+      <schemas>
+        <schema>
+          <namespace-uri>http://www.ns.com/ns0</namespace-uri>
+          <schema-location>/test.xsd</schema-location>
+        </schema>
+      </schemas>
       <namespaces>
         <namespace>
           <prefix>ns1</prefix>
@@ -139,16 +154,72 @@
           <prefix>ns2</prefix>
           <namespace-uri>http://www.ns.com/ns2</namespace-uri>
         </namespace>
+        <using-namespace>
+          <namespace-uri>http://www.ns.com/ns3</namespace-uri>
+        </using-namespace>
       </namespaces>
-      <request-blackouts/>
+      <module-locations>
+        <module-location>
+          <namespace-uri>http://www.ns.com/ns4</namespace-uri>
+          <location>/test-lib.xqy</location>
+        </module-location>
+      </module-locations>
+      <request-blackouts>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period>
+            <start-time>12:34:00+02:00</start-time>
+            <end-time>23:45:00+02:00</end-time>
+          </period>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period>
+            <start-time>12:34:00+02:00</start-time>
+            <duration>PT1H23M</duration>
+          </period>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period/>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>once</blackout-type>
+          <days/>
+          <period>
+            <start-date>1234-11-22</start-date>
+            <start-time>12:34:00+02:00</start-time>
+            <end-date>1234-12-23</end-date>
+            <end-time>23:34:00+02:00</end-time>
+          </period>
+        </request-blackout>
+      </request-blackouts>
       <url-rewriter>/roxy/rewrite.xqy</url-rewriter>
       <rewrite-resolves-globally>true</rewrite-resolves-globally>
-      <!-- <ssl-certificate-template>6687743459482021793</ssl-certificate-template> -->
-      <ssl-allow-sslv3>true</ssl-allow-sslv3>
-      <ssl-allow-tls>true</ssl-allow-tls>
+      <!-- <ssl-certificate-template>????</ssl-certificate-template> -->
+      <ssl-allow-sslv3>false</ssl-allow-sslv3>
+      <ssl-allow-tls>false</ssl-allow-tls>
       <ssl-hostname>sixer</ssl-hostname>
-      <ssl-ciphers>ALL:!LOW:@STRENGTH</ssl-ciphers>
-      <ssl-require-client-certificate>true</ssl-require-client-certificate>
+      <ssl-ciphers>ALL:!LOW:@STRENGTH:ROXY</ssl-ciphers>
+      <ssl-require-client-certificate>false</ssl-require-client-certificate>
+      <ssl-client-certificate-authorities/>
     </http-server>
     @ml.test-appserver
   </http-servers>
