@@ -119,7 +119,10 @@ begin
       @properties = ServerConfig.properties
       command = ARGV.shift
 
-      if ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command)
+      if need_help? && Help.respond_to?(command)
+        Help.doHelp(@logger, command)
+        break
+      elsif ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command)
         raise HelpException.new(command, "Missing environment for #{command}") if @properties["environment"].nil?
         raise ExitException.new("Missing ml-config.xml file. Check config.file property") if @properties["ml.config.file"].nil?
 
