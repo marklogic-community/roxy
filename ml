@@ -35,10 +35,7 @@ PARAMS=("${@}")
 if [ "$1" == 'new' ]
 then
   shift
-  if [ "$1" == '-h' ]
-  then
-    usage
-  elif [ "$1" == '--help' ]
+  if [ "$1" == '-h' ] || [ "$1" == '--help' ]
   then
     usage
   elif [ $1 ]
@@ -123,6 +120,7 @@ then
       fi
     fi
   else
+    printf "\nNOTE: Please provide an app name..\n\n"
     usage
   fi
 elif [ "$1" == 'self-test' ]
@@ -138,22 +136,15 @@ then
     fi
     ruby -I deploy -I deploy/lib -I deploy/test deploy/test/test_main.rb || exit 1
   else
-    printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
+    printf "\nERROR: You must run this command inside a valid Roxy Project. Use 'ml new' to create a project.\n\n"
+    usage
   fi
-elif [ "${PWD##*/}" == 'roxy' ] && [ "$#" -eq 0 ]
-then
-  usage
-elif [ "${PWD##*/}" == 'roxy' ] && [ "$1" == '-h' ]
-then
-  usage
-elif [ "${PWD##*/}" == 'roxy' ] && [ "$1" == '--help' ]
-then
-  usage
 else
   if [ -e deploy/lib/ml.rb ]
   then
     ruby -I deploy -I deploy/lib deploy/lib/ml.rb $* || exit 1
   else
-    printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
+    printf "\nERROR: You must run this command inside a valid Roxy Project. Use 'ml new' to create a project.\n\n"
+    usage
   fi
 fi
