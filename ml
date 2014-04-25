@@ -40,6 +40,17 @@ then
     usage
   elif [ $1 ]
   then
+    # check if we are already in a valid Roxy project
+    if [ -e deploy/lib/ml.rb ]
+    then
+      read -r -n 1 -p "Running ml new from within a Roxy project is not recommended. Continue? [y/N] " response
+      printf "\n"
+      if ! [[ $response =~ ^(Y|y) ]]
+      then
+        exit 1
+      fi      
+    fi
+    
     app_name="$1"
     shift
 
