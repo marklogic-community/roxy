@@ -27,6 +27,11 @@ end
 
 ARGV << '--help' if ARGV.empty?
 
+if ARGV.length == 1 && need_help?
+  Help.doHelp(@logger, :usage)
+  exit
+end
+
 @profile = find_arg(['-p', '--profile'])
 if @profile then
   begin
@@ -97,7 +102,7 @@ begin
     #
     # put things in ServerConfig class methods that don't depend on environment or server info
     #
-    elsif ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command) || ServerConfig.instance_methods.include?(command.to_sym) || ServerConfig.instance_methods.include?(command)
+    elsif ServerConfig.respond_to?(command.to_sym) || ServerConfig.respond_to?(command)
       if need_help?
         Help.doHelp(@logger, command)
       else
@@ -105,22 +110,10 @@ begin
         ServerConfig.send command
       end
       break
-    elsif ARGV.length == 0
-      Help.doHelp(@logger, :usage, "Unknown generic command #{command}!")
     #
     # ServerConfig methods require environment to be set in order to talk to a ML server
     #
     else
-      # [GJo] check second arg before checking properties, makes help available within Roxy folder too..
-      command2 = ARGV[0]
-      if need_help? && (ServerConfig.instance_methods.include?(command2.to_sym) || ServerConfig.instance_methods.include?(command2))
-        Help.doHelp(@logger, command2)
-        break
-      elsif ! (ServerConfig.instance_methods.include?(command2.to_sym) || ServerConfig.instance_methods.include?(command2))
-        Help.doHelp(@logger, :usage, "Unknown environment command #{command2}!")
-        break
-      end
-      
       # unshift to get the environment in ServerConfig.properties
       ARGV.unshift command
       @properties = ServerConfig.properties
@@ -136,8 +129,7 @@ begin
           :logger => @logger
         ).send(command)
       else
-        # [GJo] no longer reached..
-        Help.doHelp(@logger, :usage, :error_message => "Unknown command #{command}!")
+        Help.doHelp(@logger, :usage, "Unknown command #{command}!")
         break
       end
     end
