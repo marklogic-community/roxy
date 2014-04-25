@@ -127,7 +127,26 @@ goto end
 
 :selftest
   if NOT EXIST deploy\test\test_main.rb GOTO missingdeploy
+
+  REM Save original env variable value
+  set ROXY_TEST_SERVER_VERSION_ORG=%ROXY_TEST_SERVER_VERSION%
+
+:loop2
+  if not "%1"=="" (
+    REM Look for --server-version param, and export that as env variable. Unit testing doesn't allow cmd params..
+    if "%1"=="--server-version" (
+      set ROXY_TEST_SERVER_VERSION=%2
+      shift
+    )
+    shift
+    goto :loop2
+  )
+
   ruby -Ideploy -Ideploy\lib -Ideploy\test deploy\test\test_main.rb
+
+  REM Restore original env variable value
+  set ROXY_TEST_SERVER_VERSION=%ROXY_TEST_SERVER_VERSION_ORG%
+  set ROXY_TEST_SERVER_VERSION_ORG=
   goto end
 
 :rubydeployer
