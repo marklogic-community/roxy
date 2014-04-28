@@ -81,13 +81,10 @@
   <http-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <!--Non-default Application Server-->
     <http-server>
-      <!--http-server-id>????</http-server-id-->
       <http-server-name>@ml.app-name</http-server-name>
       <enabled>false</enabled>
       <root>/@ml.app-name/</root>
       <port>@ml.app-port</port>
-      <!--webDAV>false</webDAV-->
-      <!--execute>false</execute--><!-- [GJo] no such setting, internal flag? -->
       <modules name="@ml.app-modules-db"/>
       <database name="@ml.content-db"/>
       <last-login>Last-Login</last-login>
@@ -105,12 +102,9 @@
       <pre-commit-trigger-limit>123</pre-commit-trigger-limit>
       <collation>http://marklogic.com/collation/codepoint</collation>
       <authentication>basic</authentication>
-      <!--internal-security>false</internal-security--><!-- [GJo] setting to false needs pre-configured external security -->
-      <!--external-security>0</external-security--><!-- [GJo] setting external security needs multiple params -->
       <default-user>@ml.default-user</default-user>
       <privilege>admin-ui</privilege>
       <concurrent-request-limit>123</concurrent-request-limit>
-      <!--compute-content-length>false</compute-content-length--><!-- [GJo] only applicable for WEBDAV! -->
       <log-errors>false</log-errors>
       <debug-allow>false</debug-allow>
       <profile-allow>false</profile-allow>
@@ -213,7 +207,6 @@
       </request-blackouts>
       <url-rewriter>/roxy/rewrite.xqy</url-rewriter>
       <rewrite-resolves-globally>true</rewrite-resolves-globally>
-      <!-- <ssl-certificate-template>????</ssl-certificate-template> -->
       <ssl-allow-sslv3>false</ssl-allow-sslv3>
       <ssl-allow-tls>false</ssl-allow-tls>
       <ssl-hostname>sixer</ssl-hostname>
