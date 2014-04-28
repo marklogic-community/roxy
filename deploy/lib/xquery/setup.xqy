@@ -2892,7 +2892,7 @@ declare function setup:create-odbcserver(
 };
 
 declare function setup:validate-odbcserver(
-  $server-config as element(gr:http-server)) as item()*
+  $server-config as element(gr:odbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]
   return
