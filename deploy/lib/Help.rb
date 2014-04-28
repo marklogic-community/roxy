@@ -5,7 +5,7 @@ class Help
       Usage:
         ml [ENVIRONMENT] COMMAND [ARGS]
 
-      Generic commands (no environment):
+      General commands (no environment):
         init          Creates configuration files for you to customize
         initcpf       Creates cpf configuration files for you to customize
         jar           Creates a Roxy jar
@@ -27,7 +27,7 @@ class Help
         restart       Restarts the given environment
         wipe          Removes your application from the given environment
 
-      Deployment commands (with environment):
+      Deployment/Data commands (with environment):
         corb          Runs Corb against the given environment
         deploy        Loads modules, data, cpf configuration into the given environment
         load          Loads a file or folder into the given environment
@@ -35,7 +35,7 @@ class Help
         test          Runs xquery unit tests against the given environment
         xqsync        Runs XQSync against the given environment
 
-      All commands can be run with -h or --help for more information. Leave out environment..
+      All commands can be run with -h or --help for more information.
     DOC
   end
 
