@@ -723,7 +723,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   def capture
     full_config = find_arg(['--full-ml-config'])
     target_db = find_arg(['--modules-db'])
-    
+
     # check params
     if full_config == nil && target_db == nil
       raise HelpException.new("capture", "either full-ml-config or modules-db is required")
@@ -820,6 +820,13 @@ private
 
   end
 
+  # Note: this is the beginning of a feature; not really useful yet. What we want is to specify one or more app servers,
+  # get all configuration related to them, and write that into the ml-config.xml format. This format is very similar to
+  # MarkLogic's databases.xml and other config files, but there are some differences.
+  # The related configuration is to include any databases connected to the app server(s) -- modules, content, triggers,
+  # schemas; CPF configuration; along with users and roles. For users and roles, we probably need an interactive system --
+  # we don't want or need to capture built-in users and roles. If the application uses app-level security, then we
+  # could start with "Capture user #{default user}?" and then check on each role that user has.
   def capture_environment_config
     raise ExitException.new("Capture requires the target environment's hostname to be defined") unless @hostname.present?
 
