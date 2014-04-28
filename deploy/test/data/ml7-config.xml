@@ -117,7 +117,7 @@
       <default-xquery-version>1.0</default-xquery-version>
       <multi-version-concurrency-control>nonblocking</multi-version-concurrency-control>
       <distribute-timestamps>strict</distribute-timestamps>
-      
+
       <output-sgml-character-entities>normal</output-sgml-character-entities>
       <output-encoding>ASCII</output-encoding>
       <output-method>xml</output-method>
@@ -222,6 +222,132 @@
       <ssl-client-certificate-authorities/>
     </http-server>
     @ml.test-appserver
+    <http-server>
+      <http-server-name>@ml.app-name-dav</http-server-name>
+      <enabled>false</enabled>
+      <root>/@ml.app-name/</root>
+      <port>@ml.dav-port</port>
+      <webDAV>true</webDAV>
+      <compute-content-length>true</compute-content-length>
+      <database name="@ml.content-db"/>
+      <last-login>Last-Login</last-login>
+      <display-last-login>true</display-last-login>
+      <address>1.2.3.4</address>
+      <backlog>321</backlog>
+      <threads>123</threads>
+      <request-timeout>321</request-timeout>
+      <keep-alive-timeout>123</keep-alive-timeout>
+      <session-timeout>321</session-timeout>
+      <max-time-limit>123</max-time-limit>
+      <default-time-limit>321</default-time-limit>
+      <static-expires>123</static-expires>
+      <pre-commit-trigger-depth>321</pre-commit-trigger-depth>
+      <pre-commit-trigger-limit>123</pre-commit-trigger-limit>
+      <collation>http://marklogic.com/collation/codepoint</collation>
+      <authentication>basic</authentication>
+      <default-user>@ml.default-user</default-user>
+      <privilege>admin-ui</privilege>
+      <concurrent-request-limit>123</concurrent-request-limit>
+      <log-errors>false</log-errors>
+      <debug-allow>false</debug-allow>
+      <profile-allow>false</profile-allow>
+      <default-xquery-version>1.0</default-xquery-version>
+      <multi-version-concurrency-control>nonblocking</multi-version-concurrency-control>
+      <distribute-timestamps>strict</distribute-timestamps>
+
+      <output-sgml-character-entities>normal</output-sgml-character-entities>
+      <output-encoding>ASCII</output-encoding>
+      <output-method>xml</output-method>
+      <output-byte-order-mark>yes</output-byte-order-mark>
+      <output-cdata-section-namespace-uri>a</output-cdata-section-namespace-uri>
+      <output-cdata-section-localname>b</output-cdata-section-localname>
+      <output-doctype-public>c</output-doctype-public>
+      <output-doctype-system>d</output-doctype-system>
+      <output-escape-uri-attributes>yes</output-escape-uri-attributes>
+      <output-include-content-type>yes</output-include-content-type>
+      <output-indent>yes</output-indent>
+      <output-indent-untyped>yes</output-indent-untyped>
+      <output-media-type>text/xml</output-media-type>
+      <output-normalization-form>NFC</output-normalization-form>
+      <output-omit-xml-declaration>yes</output-omit-xml-declaration>
+      <output-standalone>yes</output-standalone>
+      <output-undeclare-prefixes>yes</output-undeclare-prefixes>
+      <output-version>1.0</output-version>
+      <output-include-default-attributes>yes</output-include-default-attributes>
+
+      <schemas>
+        <schema>
+          <namespace-uri>http://www.ns.com/ns0</namespace-uri>
+          <schema-location>/test.xsd</schema-location>
+        </schema>
+      </schemas>
+      <namespaces>
+        <namespace>
+          <prefix>ns1</prefix>
+          <namespace-uri>http://www.ns.com/ns1</namespace-uri>
+        </namespace>
+        <namespace>
+          <prefix>ns2</prefix>
+          <namespace-uri>http://www.ns.com/ns2</namespace-uri>
+        </namespace>
+        <using-namespace>
+          <namespace-uri>http://www.ns.com/ns3</namespace-uri>
+        </using-namespace>
+      </namespaces>
+      <request-blackouts>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period>
+            <start-time>12:34:00+02:00</start-time>
+            <end-time>23:45:00+02:00</end-time>
+          </period>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period>
+            <start-time>12:34:00+02:00</start-time>
+            <duration>PT1H23M</duration>
+          </period>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period/>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>once</blackout-type>
+          <days/>
+          <period>
+            <start-date>1234-11-22</start-date>
+            <start-time>12:34:00+02:00</start-time>
+            <end-date>1234-12-23</end-date>
+            <end-time>23:34:00+02:00</end-time>
+          </period>
+        </request-blackout>
+      </request-blackouts>
+      <ssl-allow-sslv3>false</ssl-allow-sslv3>
+      <ssl-allow-tls>false</ssl-allow-tls>
+      <ssl-hostname>sixer</ssl-hostname>
+      <ssl-ciphers>ALL:!LOW:@STRENGTH:ROXY</ssl-ciphers>
+      <ssl-require-client-certificate>false</ssl-require-client-certificate>
+      <ssl-client-certificate-authorities/>
+    </http-server>
   </http-servers>
   <xdbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     @ml.xdbc-server

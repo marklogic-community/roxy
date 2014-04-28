@@ -121,7 +121,6 @@ declare variable $http-server-settings :=
     <setting>enabled</setting>
     <setting>root</setting>
     <setting>port</setting>
-    <!--setting>execute</setting--><!-- no such setting, internal flag? -->
     <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
     <setting value="setup:get-appserver-content-database($server-config)">database</setting>
     <setting value="setup:get-last-login($server-config)">last-login</setting>
@@ -139,12 +138,9 @@ declare variable $http-server-settings :=
     <setting>pre-commit-trigger-limit</setting>
     <setting>collation</setting>
     <setting>authentication</setting>
-    <!--setting>internal-security</setting--><!-- setting to false needs pre-configured external security -->
-    <!--setting>external-security</setting--><!-- setting external security needs multiple params -->
     <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
     <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
-    <!--setting>compute-content-length</setting--><!-- only applicable to WEBDAV! -->
     <setting>log-errors</setting>
     <setting>debug-allow</setting>
     <setting>profile-allow</setting>
@@ -184,7 +180,7 @@ declare variable $http-server-settings :=
 
 declare variable $webdav-server-settings :=
   <settings>{
-    $http-server-settings/*[fn:not(fn:data(.) = 'modules-database')],
+    $http-server-settings/*[fn:not(fn:data(.) = ('modules-database', 'error-handler', 'url-rewriter', 'rewrite-resolves-globally'))],
     <setting>compute-content-length</setting>
   }</settings>
 ;
@@ -3002,7 +2998,10 @@ declare function setup:validate-http-server(
   setup:validate-server(
     $server-config,
     xdmp:server($server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]),
-    $http-server-settings)
+    if ($server-config/gr:webDAV = fn:true()) then
+      $webdav-server-settings
+    else
+      $http-server-settings)
 };
 
 declare function setup:configure-xdbc-server(
@@ -3199,11 +3198,11 @@ declare function setup:configure-server(
           import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
 
           declare namespace gr="http://marklogic.com/xdmp/group";
-        
+
           declare variable $admin-config external;
           declare variable $server-id external;
           declare variable $module-locations external;
-    
+
           let $old-module-locations := admin:appserver-get-module-locations($admin-config, $server-id)
           let $config :=
             (: First delete any module-location that matches the namespace :)
@@ -3330,7 +3329,7 @@ declare function setup:validate-server(
 
             declare variable $admin-config external;
             declare variable $server-id external;
-  
+
             admin:appserver-get-module-locations($admin-config, $server-id)
             ',
             (xs:QName("admin-config"),$admin-config,
@@ -3351,7 +3350,7 @@ declare function setup:validate-server(
     return
       if ($existing[fn:deep-equal(., $expected)]) then ()
       else
-        setup:validation-fail(fn:concat("Appserver missing request blackout: ", $expected/gr:request-blackout))    
+        setup:validation-fail(fn:concat("Appserver missing request blackout: ", $expected/gr:request-blackout))
   )
 };
 
