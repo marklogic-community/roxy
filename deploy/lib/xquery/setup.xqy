@@ -116,12 +116,11 @@ declare variable $database-settings :=
     <setting min-version="7.0-0">journal-count</setting>
   </settings>;
 
-declare variable $http-server-settings :=
+declare variable $common-server-settings :=
   <settings>
     <setting>enabled</setting>
     <setting>root</setting>
     <setting>port</setting>
-    <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
     <setting value="setup:get-appserver-content-database($server-config)">database</setting>
     <setting value="setup:get-last-login($server-config)">last-login</setting>
     <setting>display-last-login</setting>
@@ -133,12 +132,10 @@ declare variable $http-server-settings :=
     <setting>session-timeout</setting>
     <setting>max-time-limit</setting>
     <setting>default-time-limit</setting>
-    <setting>static-expires</setting>
     <setting>pre-commit-trigger-depth</setting>
     <setting>pre-commit-trigger-limit</setting>
     <setting>collation</setting>
     <setting>authentication</setting>
-    <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
     <setting value="setup:get-appserver-privilege($server-config)">privilege</setting>
     <setting>concurrent-request-limit</setting>
     <setting>log-errors</setting>
@@ -166,9 +163,6 @@ declare variable $http-server-settings :=
     <setting min-version="5.0-0">output-undeclare-prefixes</setting>
     <setting min-version="5.0-0">output-version</setting>
     <setting min-version="5.0-0">output-include-default-attributes</setting>
-    <setting accept-blank="true">error-handler</setting>
-    <setting accept-blank="true">url-rewriter</setting>
-    <setting min-version="6.0-1">rewrite-resolves-globally</setting>
     <setting value="setup:get-ssl-certificate-template($server-config)">ssl-certificate-template</setting>
     <setting>ssl-allow-sslv3</setting>
     <setting>ssl-allow-tls</setting>
@@ -178,17 +172,32 @@ declare variable $http-server-settings :=
   </settings>
 ;
 
+declare variable $http-server-settings :=
+  <settings>
+    { $common-server-settings/* }
+    <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
+    <setting accept-blank="true">error-handler</setting>
+    <setting accept-blank="true">url-rewriter</setting>
+    <setting min-version="6.0-1">rewrite-resolves-globally</setting>
+    <setting>static-expires</setting>
+    <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
+  </settings>
+;
+
 declare variable $webdav-server-settings :=
-  <settings>{
-    $http-server-settings/*[fn:not(fn:data(.) = ('modules-database', 'error-handler', 'url-rewriter', 'rewrite-resolves-globally'))],
+  <settings>
+    { $common-server-settings/* }
     <setting>compute-content-length</setting>
-  }</settings>
+    <setting>static-expires</setting>
+    <setting value="setup:get-appserver-default-user($server-config)">default-user</setting>
+  </settings>
 ;
 
 declare variable $xdbc-server-settings :=
-  <settings>{
-    $http-server-settings/*[fn:not(fn:data(.) = ('static-expires', 'default-user', 'error-handler', 'url-rewriter', 'rewrite-resolves-globally'))]
-  }</settings>
+  <settings>
+    { $common-server-settings/* }
+    <setting value="setup:get-appserver-modules-database($server-config)">modules-database</setting>
+  </settings>
 ;
 
 declare variable $odbc-server-settings :=
