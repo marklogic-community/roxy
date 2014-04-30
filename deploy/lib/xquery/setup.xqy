@@ -1279,7 +1279,7 @@ declare function setup:add-field-includes-R(
         return
           admin:database-included-element(
             $e/db:namespace-uri,
-            $e/db:localname,
+            $e/db:localname/fn:string(.),
             ($e/db:weight, 1.0)[1],
             $e/db:attribute-namespace-uri,
             ($e/db:attribute-localname, "")[1],
@@ -1326,7 +1326,7 @@ declare function setup:add-field-excludes-R(
 
               admin:database-excluded-element(
                 $e/db:namespace-uri,
-                $e/db:localname,
+                $e/db:localname/fn:string(.),
                 ($e/db:attribute-namespace-uri, "")[1],
                 ($e/db:attribute-localname, "")[1],
                 ($e/db:attribute-value, "")[1])',
