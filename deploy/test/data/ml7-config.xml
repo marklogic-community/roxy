@@ -469,7 +469,7 @@
             </included-element>
             <included-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>word-query-include2</localname>
+              <localname>word-query-include2 word-query-include3</localname>
               <weight>1.0</weight>
               <attribute-namespace-uri/>
               <attribute-localname/>
@@ -486,7 +486,7 @@
             </excluded-element>
             <excluded-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>word-query-exclude2</localname>
+              <localname>word-query-exclude2 word-query-exclude3</localname>
               <attribute-namespace-uri/>
               <attribute-localname/>
               <attribute-value/>
@@ -512,7 +512,7 @@
             </included-element>
             <included-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>sample-included-element2</localname>
+              <localname>sample-included-element2 sample-included-element3</localname>
               <weight>1</weight>
               <attribute-namespace-uri/>
               <attribute-localname/>
@@ -529,7 +529,7 @@
             </excluded-element>
             <excluded-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>sample-excluded-element2</localname>
+              <localname>sample-excluded-element2 sample-excluded-element3</localname>
               <attribute-namespace-uri/>
               <attribute-localname/>
               <attribute-value/>
@@ -544,7 +544,7 @@
           <included-elements>
             <included-element>
               <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-              <localname>sample-included-element</localname>
+              <localname>sample2-included-element</localname>
               <weight>1</weight>
               <attribute-namespace-uri/>
               <attribute-localname/>
@@ -552,7 +552,7 @@
             </included-element>
             <included-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>sample-included-element2</localname>
+              <localname>sample2-included-element2 sample2-included-element3</localname>
               <weight>1</weight>
               <attribute-namespace-uri/>
               <attribute-localname/>
@@ -562,14 +562,14 @@
           <excluded-elements>
             <excluded-element>
               <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-              <localname>sample-excluded-element</localname>
+              <localname>sample2-excluded-element</localname>
               <attribute-namespace-uri/>
               <attribute-localname/>
               <attribute-value/>
             </excluded-element>
             <excluded-element>
               <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>sample-excluded-element2</localname>
+              <localname>sample2-excluded-element2 sample2-excluded-element3</localname>
               <attribute-namespace-uri/>
               <attribute-localname/>
               <attribute-value/>

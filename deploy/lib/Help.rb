@@ -31,6 +31,7 @@ class Help
         corb          Runs Corb against the given environment
         deploy        Loads modules, data, cpf configuration into the given environment
         load          Loads a file or folder into the given environment
+        mlcp          Runs MLCP against the given environment
         recordloader  Runs RecordLoader against the given environment
         test          Runs xquery unit tests against the given environment
         xqsync        Runs XQSync against the given environment
@@ -344,6 +345,26 @@ class Help
 
       General options:
         -v, [--verbose]  # Verbose output
+    DOC
+  end
+
+  def self.mlcp
+    <<-DOC.strip_heredoc
+      Usage: ml {env} mlcp [options]
+
+      Runs MLCP with given command-line options agains selected environment.
+      MLCP supports options files natively using the -option_file parameter.
+      The path must a relative or absolute path to a MLCP options file.
+      See http://docs.marklogic.com/guide/ingestion/content-pump#chapter
+
+      General options:
+        -v, [--verbose]  # Verbose output
+        -h, [--help]     # Shows this help
+
+      Roxy applies variable substitution within option files. You may use variables like:
+
+      -input_file_path
+      ${ml.data.dir}/
     DOC
   end
 
