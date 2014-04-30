@@ -730,7 +730,8 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     end
     
     if ARGV.length > 0
-      connection_string = %Q{ -username #{@properties['ml.user']} -password #{@properties['ml.password']} -host #{@properties['ml.server']} -port #{@properties['ml.xcc-port']}}
+      password_prompt
+      connection_string = %Q{ -username #{@properties['ml.user']} -password #{@ml_password} -host #{@properties['ml.server']} -port #{@properties['ml.xcc-port']}}
       
       args = ARGV.join(" ")
       
