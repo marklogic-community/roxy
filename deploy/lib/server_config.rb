@@ -735,7 +735,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       
       args = ARGV.join(" ")
       
-      runme = %Q{java -cp #{classpath} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
+      runme = %Q{java -cp #{classpath} #{@properties['ml.mlcp-vmargs']} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
     else
       runme = %Q{java -cp #{classpath} com.marklogic.contentpump.ContentPump}
     end
