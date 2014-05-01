@@ -66,4 +66,14 @@ class TestProperties < Test::Unit::TestCase
     Logger.new(STDOUT).info "Testing against MarkLogic version #{version}.."
     bootstrap_version version
   end
+
+  # issue #228
+  def test_load_properties_from_command
+    ARGV << "--ml.yoda-age=900"
+    ARGV << "--ml.missing-key=val1"
+    properties = ServerConfig.properties(File.expand_path("../data/ml7-properties/", __FILE__))
+    assert_equal('900', properties['ml.yoda-age'])
+    assert(!properties.has_key?('missing-key'))
+  end
+
 end
