@@ -428,12 +428,12 @@ class Help
 
       Example:
         $ ml transform ex:sample
-        will create a sample.xsl file in your rest-transform directory,
+        will create a sample.xslt file in your rest-transform directory,
         using the "ex" namespace prefix.
 
       Example:
         $ ml transform sample
-        will create a sample.xsl file in your rest-transform directory.
+        will create a sample.xslt file in your rest-transform directory.
 
       Example:
         $ ml transform sample xqy

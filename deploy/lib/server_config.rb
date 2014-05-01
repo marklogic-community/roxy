@@ -1068,8 +1068,8 @@ private
     if transformname 
       if File.exist?(@properties['ml.rest-transforms.dir']+"/#{transformname}.xqy")
         path += "/#{transformname}.xqy"
-      elsif File.exist?(@properties['ml.rest-transforms.dir']+"/#{transformname}.xsl")
-        path += "/#{transformname}.xsl"
+      elsif File.exist?(@properties['ml.rest-transforms.dir']+"/#{transformname}.xslt")
+        path += "/#{transformname}.xslt"
       end  
     end
 
