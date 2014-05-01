@@ -242,8 +242,9 @@ class Help
         content     # deploys content to your content db in the given environment
         schemas     # deploys schemas to your schemas db in the given environment
         cpf         # deploys your cpf config to the server in the given environment
-        mvc         # deploys the mvc code your modules db in the given environment
-        rest        # deploys your rest extensions to the server in the given environment
+        src         # deploys the src code to your modules db in the given environment
+        rest        # deploys properties, extensions, and transforms to our modules db in the given environment
+        ext         # deploys your rest extensions to the server in the given environment
                     if a name is specified, then only that extension will be deployed
         transform   # deploys your rest extensions to the server in the given environment
                     if a name is specified, then only that transform will be deployed

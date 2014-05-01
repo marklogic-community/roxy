@@ -475,10 +475,12 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         deploy_content
       when 'modules'
         deploy_modules
-      when 'mvc'
-        deploy_mvc
+      when 'src'
+        deploy_src
       when 'rest'
         deploy_rest
+      when 'ext'
+        deploy_ext
       when 'transform'
         deploy_transform
       when 'schemas'
@@ -954,12 +956,11 @@ private
   end
 
   def deploy_modules
-    deploy_mvc()
+    deploy_src()
     deploy_rest()
-    deploy_transforms()
   end
 
-  def deploy_mvc
+  def deploy_src
     test_dir = @properties['ml.xquery-test.dir']
     xquery_dir = @properties['ml.xquery.dir']
     # modules_db = @properties['ml.modules-db']
@@ -1029,12 +1030,6 @@ private
   end
 
   def deploy_rest
-    extensionname = ARGV.shift
-    path = @properties['ml.rest-ext.dir']
-    if extensionname
-      path += "/#{extensionname}.xqy"
-    end
-
     # Deploy options, extensions to the REST API server
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
       # Figure out where we need to deploy this stuff
@@ -1057,22 +1052,30 @@ private
       else
         logger.debug "Could not find REST API options directory: #{@properties['ml.rest-options.dir']}\n";
       end
-      if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
-        logger.info "\nLoading REST extensions from #{path}\n"
-        mlRest.install_extensions(ServerConfig.expand_path(path))
-      end
+      deploy_ext()
+      deploy_transforms()
+    end
+  end
+
+  def deploy_ext
+    extension = find_arg(['--file'])
+    path = @properties['ml.rest-ext.dir']
+    if !extension.blank?
+      path += "/#{extension}"
+    end
+
+    # Deploy extensions to the REST API server
+    if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
+      logger.info "\nLoading REST extensions from #{path}\n"
+      mlRest.install_extensions(ServerConfig.expand_path(path))
     end
   end
 
   def deploy_transform
-    transformname = ARGV.shift
+    transform = find_arg(['--file'])
     path = @properties['ml.rest-transforms.dir']
-    if transformname 
-      if File.exist?(@properties['ml.rest-transforms.dir']+"/#{transformname}.xqy")
-        path += "/#{transformname}.xqy"
-      elsif File.exist?(@properties['ml.rest-transforms.dir']+"/#{transformname}.xslt")
-        path += "/#{transformname}.xslt"
-      end  
+    if !transform.blank? 
+      path += "/#{transformname}" 
     end
 
     # Deploy transforms to the REST API server
