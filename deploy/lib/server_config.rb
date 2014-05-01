@@ -475,6 +475,8 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         deploy_content
       when 'modules'
         deploy_modules
+      when 'mvc'
+        deploy_mvc
       when 'rest'
         deploy_rest
       when 'transform'
@@ -952,7 +954,12 @@ private
   end
 
   def deploy_modules
-    no_extns = find_arg(['--no-extns']).present?
+    deploy_mvc()
+    deploy_rest()
+    deploy_transforms()
+  end
+
+  def deploy_mvc
     test_dir = @properties['ml.xquery-test.dir']
     xquery_dir = @properties['ml.xquery.dir']
     # modules_db = @properties['ml.modules-db']
@@ -1018,11 +1025,6 @@ private
       end
 
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
-    end
-
-    if !no_extns 
-      deploy_rest()
-      deploy_transforms()
     end
   end
 

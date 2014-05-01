@@ -235,14 +235,14 @@ class Help
         --batch=(yes|no) # enable or disable batch commit. By default
                            batch is disabled for the local environment
                            and enabled for all others.
-         --no-extns      # only used when WHAT is modules, will not deploy rest and transform
 
       Please choose a WHAT below.
 
-        modules     # deploys code to your modules db in the given environment
+        modules     # deploys all code to your modules db in the given environment
         content     # deploys content to your content db in the given environment
         schemas     # deploys schemas to your schemas db in the given environment
         cpf         # deploys your cpf config to the server in the given environment
+        mvc         # deploys the mvc code your modules db in the given environment
         rest        # deploys your rest extensions to the server in the given environment
                     if a name is specified, then only that extension will be deployed
         transform   # deploys your rest extensions to the server in the given environment
