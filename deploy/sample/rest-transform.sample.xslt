@@ -21,7 +21,7 @@ For example, an XSL transform named add-attr must be contained in a file named a
     <xsl:template match="/*">
         <xsl:copy>
             <xsl:attribute
-                    name='{(map:get($params,"name"),"transformed")[1]}'
+                    name='{{(map:get($params,"name"),"transformed")[1]}}'
                     select='(map:get($params,"value"),"UNDEFINED")[1]'/>
             <xsl:copy-of select="@*"/>
             <xsl:copy-of select="node()"/>
