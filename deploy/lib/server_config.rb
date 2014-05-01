@@ -715,7 +715,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
           end
           
           logger.debug "Options after resolving properties:"
-          lines = options.split(/[\n\r]+/).reject! { |line| line.empty? || line.match("^#") }
+          lines = options.split(/[\n\r]+/).reject { |line| line.empty? || line.match("^#") }
           
           lines.each do |line|
             logger.debug line
