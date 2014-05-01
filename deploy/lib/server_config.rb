@@ -477,6 +477,8 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         deploy_modules
       when 'rest'
         deploy_rest
+      when 'transform'
+        deploy_transform
       when 'schemas'
         deploy_schemas
       when 'cpf'
@@ -950,6 +952,7 @@ private
   end
 
   def deploy_modules
+    no_extns = find_arg(['--no-extns']).present?
     test_dir = @properties['ml.xquery-test.dir']
     xquery_dir = @properties['ml.xquery.dir']
     # modules_db = @properties['ml.modules-db']
@@ -1017,11 +1020,20 @@ private
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
     end
 
-    deploy_rest()
+    if !no_extns 
+      deploy_rest()
+      deploy_transforms()
+    end
   end
 
   def deploy_rest
-    # Deploy options, extensions, and transforms to the REST API server
+    extensionname = ARGV.shift
+    path = @properties['ml.rest-ext.dir']
+    if extensionname
+      path += "/#{extensionname}.xqy"
+    end
+
+    # Deploy options, extensions to the REST API server
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
       # Figure out where we need to deploy this stuff
       rest_modules_db = ''
@@ -1044,13 +1056,28 @@ private
         logger.debug "Could not find REST API options directory: #{@properties['ml.rest-options.dir']}\n";
       end
       if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
-        logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}\n"
-        mlRest.install_extensions(ServerConfig.expand_path(@properties['ml.rest-ext.dir']))
+        logger.info "\nLoading REST extensions from #{path}\n"
+        mlRest.install_extensions(ServerConfig.expand_path(path))
       end
+    end
+  end
 
+  def deploy_transform
+    transformname = ARGV.shift
+    path = @properties['ml.rest-transforms.dir']
+    if transformname 
+      if File.exist?(@properties['ml.rest-transforms.dir']+"/#{transformname}.xqy")
+        path += "/#{transformname}.xqy"
+      elsif File.exist?(@properties['ml.rest-transforms.dir']+"/#{transformname}.xsl")
+        path += "/#{transformname}.xsl"
+      end  
+    end
+
+    # Deploy transforms to the REST API server
+    if ['rest', 'hybrid'].include? @properties["ml.app-type"]
       if (@properties.has_key?('ml.rest-transforms.dir') && File.exist?(@properties['ml.rest-transforms.dir']))
-        logger.info "\nLoading REST transforms from #{@properties['ml.rest-transforms.dir']}\n"
-        mlRest.install_transforms(ServerConfig.expand_path(@properties['ml.rest-transforms.dir']))
+        logger.info "\nLoading REST transforms from #{path}\n"
+        mlRest.install_transforms(ServerConfig.expand_path(path))
       end
     end
   end
