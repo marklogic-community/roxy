@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
+require 'util'
 require 'uri'
 require 'net/http'
 require 'fileutils'
@@ -688,39 +689,39 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     if @properties['ml.mlcp-home'] == nil || ! File.directory?(File.expand_path(mlcp_home)) || ! File.exists?(File.expand_path("#{mlcp_home}/bin/mlcp.sh"))
       raise "MLCP not found or mis-configured, please check the mlcp-home setting."
     end
-    
+
     # Find all jars required for running MLCP. At least:
     jars = Dir.glob(ServerConfig.expand_path("#{mlcp_home}/lib/*.jar"))
     classpath = jars.join(path_separator)
-    
+
     ARGV.each do |arg|
       if arg == "-option_file"
         # remove flag from ARGV
         index = ARGV.index(arg)
         ARGV.slice!(index)
-        
+
         # capture and remove value from ARGV
         option_file = ARGV[index]
         ARGV.slice!(index)
-        
+
         # find and read file if exists
         option_file = ServerConfig.expand_path("#{@@path}/#{option_file}")
         if File.exist? option_file
           logger.debug "Reading options file #{option_file}.."
           options = File.read option_file
-          
+
           # substitute properties
           @properties.sort {|x,y| y <=> x}.each do |k, v|
             options.gsub!("@#{k}", v)
           end
-          
+
           logger.debug "Options after resolving properties:"
           lines = options.split(/[\n\r]+/).reject! { |line| line.empty? || line.match("^#") }
-          
+
           lines.each do |line|
             logger.debug line
           end
-          
+
           # and insert the properties back into ARGV
           ARGV[index,0] = lines
         else
@@ -728,25 +729,25 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         end
       end
     end
-    
+
     if ARGV.length > 0
       password_prompt
       connection_string = %Q{ -username #{@properties['ml.user']} -password #{@ml_password} -host #{@properties['ml.server']} -port #{@properties['ml.xcc-port']}}
-      
+
       args = ARGV.join(" ")
-      
+
       runme = %Q{java -cp #{classpath} #{@properties['ml.mlcp-vmargs']} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
     else
       runme = %Q{java -cp #{classpath} com.marklogic.contentpump.ContentPump}
     end
-    
+
     logger.debug runme
     logger.info ""
-    
+
     system runme
-    
+
     logger.info ""
-    
+
     ARGV.clear
   end
 
@@ -1602,6 +1603,8 @@ private
     properties.merge!(ServerConfig.load_properties(env_properties_file, "ml.")) if File.exists? env_properties_file
 
     properties = ServerConfig.substitute_properties(properties, properties, "ml.")
+
+    properties = load_prop_from_args(properties)
   end
 
 end
