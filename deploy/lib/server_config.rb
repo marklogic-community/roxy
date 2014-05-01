@@ -1041,17 +1041,23 @@ private
             :remove_prefix => @properties['ml.rest-options.dir'],
             :db => rest_modules_db
       else
-        logger.debug "Could not find REST API options directory: #{@properties['ml.rest-options.dir']}\n";
+        logger.info "\nNo REST API options found in: #{@properties['ml.rest-options.dir']}";
       end
+      
       if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
-        logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}\n"
+        logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}"
         mlRest.install_extensions(ServerConfig.expand_path(@properties['ml.rest-ext.dir']))
+      else
+        logger.info "\nNo REST extensions found in: #{@properties['ml.rest-ext.dir']}";
       end
 
       if (@properties.has_key?('ml.rest-transforms.dir') && File.exist?(@properties['ml.rest-transforms.dir']))
-        logger.info "\nLoading REST transforms from #{@properties['ml.rest-transforms.dir']}\n"
+        logger.info "\nLoading REST transforms from #{@properties['ml.rest-transforms.dir']}"
         mlRest.install_transforms(ServerConfig.expand_path(@properties['ml.rest-transforms.dir']))
+      else
+        logger.info "\nNo REST transforms found in: #{@properties['ml.rest-transforms.dir']}";
       end
+      logger.info("")
     end
   end
 
