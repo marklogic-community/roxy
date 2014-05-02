@@ -1053,7 +1053,7 @@ private
         logger.debug "Could not find REST API options directory: #{@properties['ml.rest-options.dir']}\n";
       end
       deploy_ext()
-      deploy_transforms()
+      deploy_transform()
     end
   end
 
