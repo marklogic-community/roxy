@@ -109,3 +109,18 @@ This file describes changes made to Roxy per release
 
 ## 1.6 (branch: dev)
 
+### New Features
+* \#83  Require confirmation before running "ml new" in a Roxy project directory
+* \#142 Added confirmation before doing wipe on non-local environments
+* \#177 Password now encoded before passing to corb
+* \#209 added support for Module Locations config
+* \#217 Added --fork parameter to "ml new"
+* \#225 Integrated mlcp
+* \#228 Added ability to specify properties on the command line
+
+### Resolved Issues
+* \#164 Special characters in passwords now fixed on Windows
+* \#211 self-test now validates appserver settings
+* \#220 Fixed problem with bootstrapping fields
+* \#230 Scaffolded XSLT transform is now valid
+
