@@ -71,9 +71,12 @@ class TestProperties < Test::Unit::TestCase
   def test_load_properties_from_command
     ARGV << "--ml.yoda-age=900"
     ARGV << "--ml.missing-key=val1"
+    Logger.new(STDOUT).info "A warning about a non-existing property named 'ml.missing-key' will follow, that is supposed to happen.."
     properties = ServerConfig.properties(File.expand_path("../data/ml7-properties/", __FILE__))
     assert_equal('900', properties['ml.yoda-age'])
     assert(!properties.has_key?('missing-key'))
+    ARGV.shift
+    ARGV.shift
   end
 
 end
