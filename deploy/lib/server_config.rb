@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ###############################################################################
+require 'util'
 require 'uri'
 require 'net/http'
 require 'fileutils'
@@ -475,8 +476,14 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         deploy_content
       when 'modules'
         deploy_modules
+      when 'src'
+        deploy_src
       when 'rest'
         deploy_rest
+      when 'ext'
+        deploy_ext
+      when 'transform'
+        deploy_transform
       when 'schemas'
         deploy_schemas
       when 'cpf'
@@ -688,39 +695,39 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     if @properties['ml.mlcp-home'] == nil || ! File.directory?(File.expand_path(mlcp_home)) || ! File.exists?(File.expand_path("#{mlcp_home}/bin/mlcp.sh"))
       raise "MLCP not found or mis-configured, please check the mlcp-home setting."
     end
-    
+
     # Find all jars required for running MLCP. At least:
     jars = Dir.glob(ServerConfig.expand_path("#{mlcp_home}/lib/*.jar"))
     classpath = jars.join(path_separator)
-    
+
     ARGV.each do |arg|
       if arg == "-option_file"
         # remove flag from ARGV
         index = ARGV.index(arg)
         ARGV.slice!(index)
-        
+
         # capture and remove value from ARGV
         option_file = ARGV[index]
         ARGV.slice!(index)
-        
+
         # find and read file if exists
         option_file = ServerConfig.expand_path("#{@@path}/#{option_file}")
         if File.exist? option_file
           logger.debug "Reading options file #{option_file}.."
           options = File.read option_file
-          
+
           # substitute properties
           @properties.sort {|x,y| y <=> x}.each do |k, v|
             options.gsub!("@#{k}", v)
           end
-          
+
           logger.debug "Options after resolving properties:"
           lines = options.split(/[\n\r]+/).reject { |line| line.empty? || line.match("^#") }
           
           lines.each do |line|
             logger.debug line
           end
-          
+
           # and insert the properties back into ARGV
           ARGV[index,0] = lines
         else
@@ -728,25 +735,25 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         end
       end
     end
-    
+
     if ARGV.length > 0
       password_prompt
       connection_string = %Q{ -username #{@properties['ml.user']} -password #{@ml_password} -host #{@properties['ml.server']} -port #{@properties['ml.xcc-port']}}
-      
+
       args = ARGV.join(" ")
-      
+
       runme = %Q{java -cp #{classpath} #{@properties['ml.mlcp-vmargs']} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
     else
       runme = %Q{java -cp #{classpath} com.marklogic.contentpump.ContentPump}
     end
-    
+
     logger.debug runme
     logger.info ""
-    
+
     system runme
-    
+
     logger.info ""
-    
+
     ARGV.clear
   end
 
@@ -950,6 +957,11 @@ private
   end
 
   def deploy_modules
+    deploy_src()
+    deploy_rest()
+  end
+
+  def deploy_src
     test_dir = @properties['ml.xquery-test.dir']
     xquery_dir = @properties['ml.xquery.dir']
     # modules_db = @properties['ml.modules-db']
@@ -1016,12 +1028,10 @@ private
 
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
     end
-
-    deploy_rest()
   end
 
   def deploy_rest
-    # Deploy options, extensions, and transforms to the REST API server
+    # Deploy options, extensions to the REST API server
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
       # Figure out where we need to deploy this stuff
       rest_modules_db = ''
@@ -1044,18 +1054,41 @@ private
         logger.info "\nNo REST API options found in: #{@properties['ml.rest-options.dir']}";
       end
       
-      if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
-        logger.info "\nLoading REST extensions from #{@properties['ml.rest-ext.dir']}"
-        mlRest.install_extensions(ServerConfig.expand_path(@properties['ml.rest-ext.dir']))
-      else
-        logger.info "\nNo REST extensions found in: #{@properties['ml.rest-ext.dir']}";
-      end
+      deploy_ext()
+      deploy_transform()
+    end
+  end
 
+  def deploy_ext
+    extension = find_arg(['--file'])
+    path = @properties['ml.rest-ext.dir']
+    if !extension.blank?
+      path += "/#{extension}"
+    end
+
+    # Deploy extensions to the REST API server
+    if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
+      logger.info "\nLoading REST extensions from #{path}\n"
+      mlRest.install_extensions(ServerConfig.expand_path(path))
+    else
+      logger.info "\nNo REST extensions found in: #{path}";
+    end
+  end
+
+  def deploy_transform
+    transform = find_arg(['--file'])
+    path = @properties['ml.rest-transforms.dir']
+    if !transform.blank? 
+      path += "/#{transformname}" 
+    end
+
+    # Deploy transforms to the REST API server
+    if ['rest', 'hybrid'].include? @properties["ml.app-type"]
       if (@properties.has_key?('ml.rest-transforms.dir') && File.exist?(@properties['ml.rest-transforms.dir']))
-        logger.info "\nLoading REST transforms from #{@properties['ml.rest-transforms.dir']}"
-        mlRest.install_transforms(ServerConfig.expand_path(@properties['ml.rest-transforms.dir']))
+        logger.info "\nLoading REST transforms from #{path}\n"
+        mlRest.install_transforms(ServerConfig.expand_path(path))
       else
-        logger.info "\nNo REST transforms found in: #{@properties['ml.rest-transforms.dir']}";
+        logger.info "\nNo REST transforms found in: #{path}";
       end
       logger.info("")
     end
@@ -1608,6 +1641,8 @@ private
     properties.merge!(ServerConfig.load_properties(env_properties_file, "ml.")) if File.exists? env_properties_file
 
     properties = ServerConfig.substitute_properties(properties, properties, "ml.")
+
+    properties = load_prop_from_args(properties)
   end
 
 end

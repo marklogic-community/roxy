@@ -36,6 +36,22 @@ def find_arg(args = [])
   nil
 end
 
+def load_prop_from_args(props)
+  ARGV.each do |a|
+    if a.match(/(^--)(ml\..*)(=)(.*)/)
+      matches = a.match(/(^--)(ml\..*)(=)(.*)/).to_a
+      ml_key = matches[2]
+      ml_val = matches[4]
+      if props.has_key?("#{ml_key}")
+        props["#{ml_key}"] = ml_val
+      else
+        logger.warn "Property #{ml_key} does not exist. It will be skipped."
+      end
+    end
+  end
+  props
+end
+
 def pluralize(count, singular, plural = nil)
   count == 1 || count =~ /^1(\.0+)?$/ ? singular : plural
 end
@@ -65,7 +81,7 @@ class String
   end
 
   def xquery_unsafe
-    REXML::Text::unnormalize(self).gsub(/\{{/, '{').gsub(/\}}/, '}')
+    REXML::Text::unnormalize(self).gsub(/\{\{/, '{').gsub(/\}\}/, '}')
   end
 
 end
