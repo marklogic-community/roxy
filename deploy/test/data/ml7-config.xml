@@ -157,6 +157,10 @@
           <namespace-uri>http://www.ns.com/ns4</namespace-uri>
           <location>/test-lib.xqy</location>
         </module-location>
+        <module-location>
+          <namespace-uri>http://www.ns.com/ns5</namespace-uri>
+          <location>/test-lib2.xqy</location>
+        </module-location>
       </module-locations>
       <request-blackouts>
         <request-blackout>
