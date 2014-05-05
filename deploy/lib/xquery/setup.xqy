@@ -3197,9 +3197,9 @@ declare function setup:configure-server(
     else
       $admin-config
 
-  let $module-locations := $server-config/gr:module-locations/gr:module-location
+  let $module-locations := $server-config/gr:module-locations
   let $admin-config :=
-    if ($module-locations) then
+    if ($module-locations/*) then
       if (setup:at-least-version("7.0-0")) then
         xdmp:eval('
           xquery version "1.0-ml";
@@ -3218,7 +3218,7 @@ declare function setup:configure-server(
             admin:appserver-delete-module-location(
               $admin-config,
               $server-id,
-              for $module-location in $module-locations
+              for $module-location in $module-locations/*
               let $same-ns :=
                 $old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location ne $module-location/gr:location]
               return
@@ -3229,7 +3229,7 @@ declare function setup:configure-server(
             admin:appserver-add-module-location(
               $config,
               $server-id,
-              for $module-location in $module-locations
+              for $module-location in $module-locations/*
               return
                 if ($old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location = $module-location/gr:location]) then ()
                 else

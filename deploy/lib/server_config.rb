@@ -722,8 +722,8 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
           end
 
           logger.debug "Options after resolving properties:"
-          lines = options.split(/[\n\r]+/).reject! { |line| line.empty? || line.match("^#") }
-
+          lines = options.split(/[\n\r]+/).reject { |line| line.empty? || line.match("^#") }
+          
           lines.each do |line|
             logger.debug line
           end
@@ -1051,8 +1051,9 @@ private
             :remove_prefix => @properties['ml.rest-options.dir'],
             :db => rest_modules_db
       else
-        logger.debug "Could not find REST API options directory: #{@properties['ml.rest-options.dir']}\n";
+        logger.info "\nNo REST API options found in: #{@properties['ml.rest-options.dir']}";
       end
+      
       deploy_ext()
       deploy_transform()
     end
@@ -1069,6 +1070,8 @@ private
     if (@properties.has_key?('ml.rest-ext.dir') && File.exist?(@properties['ml.rest-ext.dir']))
       logger.info "\nLoading REST extensions from #{path}\n"
       mlRest.install_extensions(ServerConfig.expand_path(path))
+    else
+      logger.info "\nNo REST extensions found in: #{path}";
     end
   end
 
@@ -1084,7 +1087,10 @@ private
       if (@properties.has_key?('ml.rest-transforms.dir') && File.exist?(@properties['ml.rest-transforms.dir']))
         logger.info "\nLoading REST transforms from #{path}\n"
         mlRest.install_transforms(ServerConfig.expand_path(path))
+      else
+        logger.info "\nNo REST transforms found in: #{path}";
       end
+      logger.info("")
     end
   end
 

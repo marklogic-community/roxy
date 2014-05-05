@@ -27,11 +27,6 @@ end
 
 ARGV << '--help' if ARGV.empty?
 
-if ARGV.length == 1 && need_help?
-  Help.doHelp(@logger, :usage)
-  exit
-end
-
 @profile = find_arg(['-p', '--profile'])
 if @profile then
   begin
@@ -49,6 +44,11 @@ end
   sev = "#{severity}: " if severity == "ERROR"
   "#{sev}#{msg}\n"
 }
+
+if ARGV.length == 1 && need_help?
+  Help.doHelp(@logger, :usage)
+  exit
+end
 
 if RUBY_VERSION < "1.8.7"
   @logger.warn <<-MSG
