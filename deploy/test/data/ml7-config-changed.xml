@@ -539,7 +539,12 @@
               <attribute-value/>
             </excluded-element>
           </excluded-elements>
-          <tokenizer-overrides/>
+          <tokenizer-overrides>
+            <tokenizer-override>
+              <character>_</character>
+              <tokenizer-class>word</tokenizer-class>
+            </tokenizer-override>
+          </tokenizer-overrides>
         </field>
         <field>
           <field-name>test2</field-name>
@@ -579,7 +584,12 @@
               <attribute-value/>
             </excluded-element>
           </excluded-elements>
-          <tokenizer-overrides/>
+          <tokenizer-overrides>
+            <tokenizer-override>
+              <character>_</character>
+              <tokenizer-class>word</tokenizer-class>
+            </tokenizer-override>
+          </tokenizer-overrides>
         </field>
         <field>
           <field-name>test3</field-name>
@@ -594,7 +604,12 @@
           <word-lexicons/>
           <included-elements/>
           <excluded-elements/>
-          <tokenizer-overrides/>
+          <tokenizer-overrides>
+            <tokenizer-override>
+              <character>_</character>
+              <tokenizer-class>word</tokenizer-class>
+            </tokenizer-override>
+          </tokenizer-overrides>
         </field>
       </fields>
       <range-element-indexes>
