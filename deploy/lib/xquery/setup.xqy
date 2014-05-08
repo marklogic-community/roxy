@@ -3145,13 +3145,13 @@ declare function setup:configure-server(
     if ($namespaces) then
       let $old-ns := admin:appserver-get-namespaces($admin-config, $server-id)
       let $config :=
-        (: First delete any namespace that matches the prefix :)
+        (: First delete any namespace that matches the prefix, prefix must be unique :)
         admin:appserver-delete-namespace(
           $admin-config,
           $server-id,
           for $ns in $namespaces
           let $same-prefix :=
-            $old-ns[gr:prefix = $ns/gr:prefix][gr:namespace-uri ne $ns/gr:namespace-uri]
+            $old-ns[gr:prefix eq $ns/gr:prefix][gr:namespace-uri ne $ns/gr:namespace-uri]
           return
             if ($same-prefix) then
               admin:group-namespace($same-prefix/gr:prefix, $same-prefix/gr:namespace-uri)
@@ -3174,16 +3174,13 @@ declare function setup:configure-server(
     if ($schemas) then
       let $old-schemas := admin:appserver-get-schemas($admin-config, $server-id)
       let $config :=
-        (: First delete any schema that matches the namespace :)
+        (: First delete any schema that matches the namespace, namespace must be unique :)
         admin:appserver-delete-schema(
           $admin-config,
           $server-id,
           for $schema in $schemas
-          let $same-ns :=
-            $old-schemas[gr:namespace-uri = $schema/gr:namespace-uri][gr:schema-location ne $schema/gr:schema-location]
           return
-            if ($same-ns) then $schema
-            else ())
+            $old-schemas[gr:namespace-uri eq $schema/gr:namespace-uri][gr:schema-location ne $schema/gr:schema-location])
       return
         (: Then add in any schema whose namespace isn't already defined :)
         admin:appserver-add-schema(
@@ -3191,7 +3188,7 @@ declare function setup:configure-server(
           $server-id,
           for $schema in $schemas
           return
-            if ($old-schemas[gr:namespace-uri = $schema/gr:namespace-uri][gr:schema-location = $schema/gr:schema-location]) then ()
+            if ($old-schemas[gr:namespace-uri eq $schema/gr:namespace-uri][gr:schema-location eq $schema/gr:schema-location]) then ()
             else
               $schema)
     else
@@ -3219,11 +3216,8 @@ declare function setup:configure-server(
               $admin-config,
               $server-id,
               for $module-location in $module-locations/*
-              let $same-ns :=
-                $old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location ne $module-location/gr:location]
               return
-                if ($same-ns) then $module-location
-                else ())
+                $old-module-locations[gr:namespace-uri = $module-location/gr:namespace-uri][gr:location ne $module-location/gr:location])
           return
             (: Then add in any module-location whose namespace isnt already defined :)
             admin:appserver-add-module-location(
@@ -3255,11 +3249,8 @@ declare function setup:configure-server(
           $admin-config,
           $server-id,
           for $request-blackout in $request-blackouts
-          let $same-blackout :=
-            $old-request-blackouts[setup:get-request-blackout-hash(.) = setup:get-request-blackout-hash($request-blackout)][gr:users ne $request-blackout/gr:users or gr:roles ne $request-blackout/gr:roles]
           return
-            if ($same-blackout) then $request-blackout
-            else ())
+            $old-request-blackouts[setup:get-request-blackout-hash(.) = setup:get-request-blackout-hash($request-blackout)][gr:users ne $request-blackout/gr:users or gr:roles ne $request-blackout/gr:roles])
       return
         (: Then add in any request-blackout whose type and period aren't already defined :)
         admin:appserver-add-request-blackout(
