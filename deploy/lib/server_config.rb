@@ -393,7 +393,9 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     logger.info "Bootstrapping your project into MarkLogic on #{@hostname}..."
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
+    logger.debug "code: #{r.code.to_i}"
 
+    r.body = parse_json(r.body)
     logger.debug r.body
 
     if r.body.match("error log")
@@ -415,6 +417,9 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     logger.info "Wiping MarkLogic setup for your project on #{@hostname}..."
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:do-wipe(#{get_config})}
+    logger.debug "code: #{r.code.to_i}"
+
+    r.body = parse_json(r.body)
     logger.debug r.body
 
     if r.body.match("<error:error")
@@ -437,30 +442,22 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     begin
       r = execute_query %Q{#{setup} setup:validate-install(#{get_config})}
-      logger.info "code: #{r.code.to_i}"
-      logger.info r.body
+      logger.debug "code: #{r.code.to_i}"
 
-      if r.body.match('"result":"<error:error')
-        JSON.parse(r.body).each do |item|
-          logger.error item['result']
-        end
-        result = false
-      elsif r.body.match("<error:error")
+      r.body = parse_json(r.body)
+      logger.debug r.body
+
+      if r.body.match("<error:error")
         logger.error r.body
+        logger.info "... Validation ERROR"
         result = false
       else
         logger.info "... Validation SUCCESS"
         result = true
       end
     rescue Net::HTTPFatalError => e
-      if e.response.body.match('"result":"<error:error')
-        JSON.parse(e.response.body).each do |item|
-          logger.error item['result']
-        end
-        result = false
-      else
-        logger.error e.response.body
-      end
+      e.response.body = parse_json(e.response.body)
+      logger.error e.response.body
       logger.error "... Validation FAILED"
       result = false
     end
