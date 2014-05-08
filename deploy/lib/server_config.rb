@@ -796,18 +796,19 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
   def capture
     full_config = find_arg(['--full-ml-config'])
+    config = find_arg(['--ml-config'])
     target_db = find_arg(['--modules-db'])
 
     # check params
-    if full_config == nil && target_db == nil
-      raise HelpException.new("capture", "either full-ml-config or modules-db is required")
+    if full_config == nil && config == nil && target_db == nil
+      raise HelpException.new("capture", "either full-ml-config, ml-config or modules-db is required")
     elsif target_db != nil && @properties['ml.app-type'] != 'rest'
       raise ExitException.new("This is a #{@properties['ml.app-type']} application; capture modules only works for app-type=rest")
     end
 
     # retrieve full setup config from environment
-    if full_config != nil
-      capture_environment_config
+    if full_config != nil || config != nil
+      capture_environment_config(full_config)
     end
 
     # retrieve modules from selected database from environment
@@ -901,12 +902,30 @@ private
   # schemas; CPF configuration; along with users and roles. For users and roles, we probably need an interactive system --
   # we don't want or need to capture built-in users and roles. If the application uses app-level security, then we
   # could start with "Capture user #{default user}?" and then check on each role that user has.
-  def capture_environment_config
+  def capture_environment_config(full_config)
     raise ExitException.new("Capture requires the target environment's hostname to be defined") unless @hostname.present?
 
+    if (full_config == nil)
+      databases = quote_arglist(find_arg(['--databases']) || "#{@properties["ml.content-db"]},#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]},#{@properties["ml.app-modules-db"]}")
+      # TODO: take content-forests-per-host into account properly, just taking first by default
+      forests = quote_arglist(find_arg(['--forests']) || "#{@properties["ml.content-db"]},#{@properties["ml.content-db"]}-001-1,#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]},,#{@properties["ml.app-modules-db"]}")
+      # TODO: include dav, xdbc, odbc servers?
+      servers = quote_arglist(find_arg(['--servers']) || "#{@properties["ml.app-name"]}")
+      mimes = quote_arglist(find_arg(['--mime-types']) || "##none##")
+
+      # setup.xqy expects ids for users and roles, unfortunately
+      #users = quote_arglist(find_arg(['--users'])) || '9999999'
+      #roles = quote_arglist(find_arg(['--roles'])) || '9999999'
+      # TODO: fix setup.xqy to (also) accept users/roles by name
+      # TODO: add app-user, default-user, and app-role as defaults
+      users = '9999999' # non-existing id
+      roles = '9999999' # non-existing id
+    end
+
     logger.info "Capturing configuration of MarkLogic on #{@hostname}..."
+    logger.debug %Q{calling setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (#{users}), (#{roles}), (#{mimes}))..}
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:get-configuration((), (), (), (), (), ())}
+    r = execute_query %Q{#{setup} setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (#{users}), (#{roles}), (#{mimes}))}
 
     if r.body.match("error log")
       logger.error r.body
@@ -920,6 +939,15 @@ private
         logger.info("... Captured full configuration into #{name}")
       end
       return true
+    end
+  end
+  
+  def quote_arglist(arglist)
+    if arglist != nil
+      # TODO: remove duplicates
+      args = arglist.split(/[,]+/).reject { |arg| arg.empty? }
+      arglist = args.join("\",\"")
+      return "\"#{arglist}\""
     end
   end
 
