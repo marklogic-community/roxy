@@ -5,6 +5,7 @@ require 'util'
 class TestProperties < Test::Unit::TestCase
 
   def teardown
+    Logger.new(STDOUT).info "Teardown: Wiping self-test deployment.." if @s
     @s.wipe if @s
   end
 
@@ -59,6 +60,21 @@ class TestProperties < Test::Unit::TestCase
 
     assert(@s.bootstrap, "Boostrap should succeeded")
     assert(@s.validate_install, "Bootstrap passes validation")
+
+    if File.exist? File.expand_path("../data/ml#{version}-config-changed.xml", __FILE__)
+      @s = ServerConfig.new({
+          :config_file => File.expand_path("../data/ml#{version}-config-changed.xml", __FILE__),
+          :properties => properties,
+          :logger => Logger.new(STDOUT)
+        })
+
+      assert(@s.bootstrap, "Boostrap should succeeded")
+      assert(@s.validate_install, "Bootstrap passes validation")
+    end
+    
+    # TODO: temporary fix to wipe self-test until teardown is fixed
+    Logger.new(STDOUT).info "Wiping self-test deployment.."
+    @s.wipe
   end
 
   def test_bootstrap
