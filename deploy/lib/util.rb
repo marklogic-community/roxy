@@ -99,3 +99,15 @@ class Object
     present? && ['true', 'TRUE', 'yes', 'YES', 'y', 'Y', 't', 'T'].include?(self)
   end
 end
+
+def parse_json(body)
+  if (body.match('^\[\{"qid":null,'))
+    items = []
+    JSON.parse(body).each do |item|
+      items.push item['result']
+    end
+    return items.join("\n")
+  else
+    return body
+  end
+end
