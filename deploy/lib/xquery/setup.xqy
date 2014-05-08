@@ -1249,6 +1249,28 @@ declare function setup:apply-field-settings(
       xdmp:set(
         $admin-config,
         xdmp:value(fn:concat("admin:database-set-field-", $setting, "($admin-config, $database, $field-name, $value)")))
+  
+  let $add-tokenizers :=
+    if ($db-config/db:fields/db:field/db:tokenizer-overrides/db:tokenizer-override) then
+      if (setup:at-least-version("7.0-0")) then
+        for $field in $db-config/db:fields/db:field
+        let $field-name as xs:string := $field/db:field-name
+        let $overrides :=
+          for $override in $field/db:tokenizer-overrides/db:tokenizer-override
+          return
+            xdmp:value("admin:database-tokenizer-override($override/db:character, $override/db:tokenizer-class)")
+        where $overrides
+        return
+          xdmp:set(
+            $admin-config,
+            xdmp:value("admin:database-add-field-tokenizer-override($admin-config, $database, $field-name, $overrides)")
+          )
+      else
+        fn:error(
+          xs:QName("VERSION_NOT_SUPPORTED"),
+          fn:concat("MarkLogic ", xdmp:version(), " does not support field tokenizer-overrides. Use 7.0-0 or higher."))
+    else ()
+  
   return
     $admin-config
 };
