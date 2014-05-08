@@ -923,18 +923,16 @@ private
     logger.debug %Q{calling setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (#{users}), (#{roles}), (#{mimes}))..}
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (#{users}), (#{roles}), (#{mimes}))}
+    r.body = parse_json(r.body)
 
     if r.body.match("error log")
       logger.error r.body
       logger.error "... Capture FAILED"
       return false
     else
-      JSON.parse(r.body).each do |item|
-        contents = item['result']
-        name = "#{@properties["ml.config.file"].sub( %r{.xml}, '' )}-#{@properties["ml.environment"]}.xml"
-        File.open(name, 'w') { |file| file.write(contents) }
-        logger.info("... Captured full configuration into #{name}")
-      end
+      name = "#{@properties["ml.config.file"].sub( %r{.xml}, '' )}-#{@properties["ml.environment"]}.xml"
+      File.open(name, 'w') { |file| file.write(r.body) }
+      logger.info("... Captured full configuration into #{name}")
       return true
     end
   end
