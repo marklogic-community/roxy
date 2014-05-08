@@ -414,9 +414,39 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def wipe
-    logger.info "Wiping MarkLogic setup for your project on #{@hostname}..."
+    appbuilder = find_arg(['--app-builder'])
+    
+    if (appbuilder != nil)
+      logger.info "Wiping MarkLogic App-Builder deployment #{appbuilder} from #{@hostname}..."
+      config = %Q{
+        <configuration>
+          <http-servers xmlns="http://marklogic.com/xdmp/group">
+            <http-server>
+              <http-server-name>#{appbuilder}</http-server-name>
+            </http-server>
+          </http-servers>
+          <assignments xmlns="http://marklogic.com/xdmp/assignments">
+            <assignment>
+              <forest-name>#{appbuilder}-modules-1</forest-name>
+            </assignment>
+          </assignments>
+          <databases xmlns="http://marklogic.com/xdmp/database">
+            <database>
+              <database-name>#{appbuilder}-modules</database-name>
+              <forests>
+                <forest-id name="#{appbuilder}-modules-1"/>
+              </forests>
+            </database>
+          </databases>
+        </configuration>
+      }
+    else
+      logger.info "Wiping MarkLogic setup for your project from #{@hostname}..."
+      config = get_config
+    end
+    
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-wipe(#{get_config})}
+    r = execute_query %Q{#{setup} setup:do-wipe(#{config})}
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_json(r.body)
