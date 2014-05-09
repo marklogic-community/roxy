@@ -825,6 +825,26 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     full_config = find_arg(['--full-ml-config'])
     config = find_arg(['--ml-config'])
     target_db = find_arg(['--modules-db'])
+    appbuilder = find_arg(['--app-builder'])
+    
+    if (appbuilder != nil)
+      serverstats = execute_query %Q{
+        xquery version "1.0-ml";
+
+        let $status := xdmp:server-status(xdmp:host(), xdmp:server("#{appbuilder}"))
+        return (
+          string($status//*:port),
+          $status//*:modules/xdmp:database-name(.)
+        )
+      }
+      
+      logger.info parse_json(serverstats.body)
+      
+      serverstats.body = parse_json(serverstats.body).split(/[\r\n]+/)
+      
+      port = serverstats.body[0]
+      target_db = serverstats.body[1]
+    end
 
     # check params
     if full_config == nil && config == nil && target_db == nil
@@ -852,6 +872,13 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         @properties['ml.rest-options.dir']
       )
       FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
+      
+      # Make sure REST properties are in accurate format, so you can directly deploy them again..
+      if (port != nil)
+        r = go "http://#{@hostname}:#{port}/v1/config/properties", "get"
+        r.body = parse_json(r.body)
+        File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'w') { |file| file.write(r.body) }
+      end
 
       # If we have an application/custom directory, we've probably done a capture
       # before. Don't overwrite that directory. Kill the downloaded custom directory
