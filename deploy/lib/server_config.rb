@@ -838,7 +838,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         )
       }
       
-      logger.info parse_json(serverstats.body)
+      logger.debug parse_json(serverstats.body)
       
       serverstats.body = parse_json(serverstats.body).split(/[\r\n]+/)
       
