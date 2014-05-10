@@ -13,7 +13,7 @@
     <profile-allow>true</profile-allow>
     <scheduled-tasks>
       <scheduled-task>
-        <task-path>/other/daily-task.xqy</task-path>
+        <task-path>/some/daily-task.xqy</task-path>
         <task-root>/</task-root>
         <task-type>daily</task-type>
         <task-period>2</task-period>
@@ -23,7 +23,7 @@
         <task-user name="@ml.app-name-user"/>
       </scheduled-task>
       <scheduled-task>
-        <task-path>/other/hourly-task.xqy</task-path>
+        <task-path>/some/hourly-task.xqy</task-path>
         <task-root>/</task-root>
         <task-type>hourly</task-type>
         <task-period>2</task-period>
@@ -33,7 +33,7 @@
         <task-user name="@ml.app-name-user"/>
       </scheduled-task>
       <scheduled-task>
-        <task-path>/other/minutely-task.xqy</task-path>
+        <task-path>/some/minutely-task.xqy</task-path>
         <task-root>/</task-root>
         <task-type>minutely</task-type>
         <task-period>3</task-period>
@@ -42,7 +42,7 @@
         <task-user name="@ml.app-name-user"/>
       </scheduled-task>
       <scheduled-task>
-        <task-path>/other/monthly-task.xqy</task-path>
+        <task-path>/some/monthly-task.xqy</task-path>
         <task-root>/</task-root>
         <task-type>monthly</task-type>
         <task-period>1</task-period>
@@ -53,7 +53,7 @@
         <task-user name="@ml.app-name-user"/>
       </scheduled-task>
       <scheduled-task>
-        <task-path>/other/once-task.xqy</task-path>
+        <task-path>/some/once-task.xqy</task-path>
         <task-root>/</task-root>
         <task-type>once</task-type>
         <task-start>2019-01-01T13:00:00-05:00</task-start>
@@ -62,7 +62,7 @@
         <task-user name="@ml.app-name-user"/>
       </scheduled-task>
       <scheduled-task>
-        <task-path>/other/weekly-task.xqy</task-path>
+        <task-path>/some/weekly-task.xqy</task-path>
         <task-root>/</task-root>
         <task-type>weekly</task-type>
         <task-period>1</task-period>
