@@ -1423,7 +1423,16 @@ declare function setup:add-range-element-indexes-R(
 {
   if ($index-configs) then
     setup:add-range-element-indexes-R(
-      admin:database-add-range-element-index($admin-config, $database, $index-configs[1]),
+      admin:database-add-range-element-index($admin-config, $database,
+        admin:database-range-element-index(
+           $index-configs[1]/db:scalar-type,
+           $index-configs[1]/db:namespace-uri,
+           $index-configs[1]/db:localname,
+           $index-configs[1]/db:collation,
+           ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
+           ($index-configs[1]/db:invalid-values, "reject")[1]
+        )
+      ),
       $database,
       fn:subsequence($index-configs, 2))
   else
@@ -1473,7 +1482,18 @@ declare function setup:add-range-element-attribute-indexes-R(
 {
   if ($index-configs) then
     setup:add-range-element-attribute-indexes-R(
-      admin:database-add-range-element-attribute-index($admin-config, $database, $index-configs[1]),
+      admin:database-add-range-element-attribute-index($admin-config, $database,
+        admin:database-range-element-attribute-index(
+           $index-configs[1]/db:scalar-type,
+           $index-configs[1]/db:parent-namespace-uri,
+           $index-configs[1]/db:parent-localname,
+           $index-configs[1]/db:namespace-uri,
+           $index-configs[1]/db:localname,
+           $index-configs[1]/db:collation,
+           ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
+           ($index-configs[1]/db:invalid-values, "reject")[1]
+        )
+      ),
       $database,
       fn:subsequence($index-configs, 2))
   else
