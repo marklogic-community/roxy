@@ -1249,7 +1249,7 @@ declare function setup:apply-field-settings(
       xdmp:set(
         $admin-config,
         xdmp:value(fn:concat("admin:database-set-field-", $setting, "($admin-config, $database, $field-name, $value)")))
-  
+
   let $add-tokenizers :=
     if ($db-config/db:fields/db:field/db:tokenizer-overrides/db:tokenizer-override) then
       if (setup:at-least-version("7.0-0")) then
@@ -1270,7 +1270,7 @@ declare function setup:apply-field-settings(
           xs:QName("VERSION_NOT_SUPPORTED"),
           fn:concat("MarkLogic ", xdmp:version(), " does not support field tokenizer-overrides. Use 7.0-0 or higher."))
     else ()
-  
+
   return
     $admin-config
 };
@@ -1421,17 +1421,31 @@ declare function setup:add-range-element-indexes-R(
   $database as xs:unsignedLong,
   $index-configs as element(db:range-element-index)*) as element(configuration)
 {
+  xdmp:log(fn:concat("add-range-element-indexes-R: at-least-version(6.0-1)? ", setup:at-least-version("6.0-1"))),
   if ($index-configs) then
     setup:add-range-element-indexes-R(
       admin:database-add-range-element-index($admin-config, $database,
-        admin:database-range-element-index(
-           $index-configs[1]/db:scalar-type,
-           $index-configs[1]/db:namespace-uri,
-           $index-configs[1]/db:localname,
-           $index-configs[1]/db:collation,
-           ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
-           ($index-configs[1]/db:invalid-values, "reject")[1]
-        )
+        let $function := xdmp:function(xs:QName("admin:database-range-element-index"))
+        return
+          if (setup:at-least-version("6.0-1")) then
+            xdmp:apply(
+              $function,
+              $index-configs[1]/db:scalar-type,
+              $index-configs[1]/db:namespace-uri,
+              $index-configs[1]/db:localname,
+              $index-configs[1]/db:collation,
+              ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
+              ($index-configs[1]/db:invalid-values, "reject")[1]
+            )
+          else
+            xdmp:apply(
+              $function,
+              $index-configs[1]/db:scalar-type,
+              $index-configs[1]/db:namespace-uri,
+              $index-configs[1]/db:localname,
+              $index-configs[1]/db:collation,
+              ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1]
+            )
       ),
       $database,
       fn:subsequence($index-configs, 2))
@@ -1483,16 +1497,31 @@ declare function setup:add-range-element-attribute-indexes-R(
   if ($index-configs) then
     setup:add-range-element-attribute-indexes-R(
       admin:database-add-range-element-attribute-index($admin-config, $database,
-        admin:database-range-element-attribute-index(
-           $index-configs[1]/db:scalar-type,
-           $index-configs[1]/db:parent-namespace-uri,
-           $index-configs[1]/db:parent-localname,
-           $index-configs[1]/db:namespace-uri,
-           $index-configs[1]/db:localname,
-           $index-configs[1]/db:collation,
-           ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
-           ($index-configs[1]/db:invalid-values, "reject")[1]
-        )
+        let $function := xdmp:function(xs:QName("admin:database-range-element-attribute-index"))
+        return
+          if (setup:at-least-version("6.0-1")) then
+            xdmp:apply(
+              $function,
+              $index-configs[1]/db:scalar-type,
+              $index-configs[1]/db:parent-namespace-uri,
+              $index-configs[1]/db:parent-localname,
+              $index-configs[1]/db:namespace-uri,
+              $index-configs[1]/db:localname,
+              $index-configs[1]/db:collation,
+              ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
+              ($index-configs[1]/db:invalid-values, "reject")[1]
+            )
+          else
+            xdmp:apply(
+              $function,
+              $index-configs[1]/db:scalar-type,
+              $index-configs[1]/db:parent-namespace-uri,
+              $index-configs[1]/db:parent-localname,
+              $index-configs[1]/db:namespace-uri,
+              $index-configs[1]/db:localname,
+              $index-configs[1]/db:collation,
+              ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1]
+            )
       ),
       $database,
       fn:subsequence($index-configs, 2))
