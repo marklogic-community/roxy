@@ -15,14 +15,15 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-import module namespace vh = "http://marklogic.com/roxy/view-helper" at "/roxy/lib/view-helper.xqy";
+import module namespace vh = "http://marklogic.com/roxy/view-helper"
+ at "/roxy/lib/view-helper.xqy";
 
-import module namespace uv = "http://www.marklogic.com/roxy/user-view" at "/app/views/helpers/user-lib.xqy";
+import module namespace uv = "http://www.marklogic.com/roxy/user-view"
+ at "/app/views/helpers/user-lib.xqy";
 
 declare variable $view as item()* := vh:get("view");
 declare variable $sidebar as item()* := vh:get("sidebar");
 declare variable $title as xs:string? := vh:get("title");
-declare variable $username as xs:string? := vh:get("username");
 declare variable $q as xs:string? := vh:get("q");
 
 '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">',
@@ -45,18 +46,18 @@ declare variable $q as xs:string? := vh:get("q");
       <a class="text" href="/" title="Home">My Application</a>
     </div>
     {
-      uv:build-user($username, fn:concat("/user/profile?user=", $username), "/user/login", "/user/register", "/user/logout")
+      uv:build-user()
     }
     <div class="canvas">
       <div class="header" arcsize="5 5 0 0">
         <label>Search</label>
         <form id="searchform" name="searchform" method="GET" action="/">
-	        <input type="text" id="q" name="q" class="searchbox" value="{$q}"/>
-	          <div id="suggestions"><!--suggestions here--></div>
-	          <div id="searchbutton" class="searchbutton">
+          <input type="text" id="q" name="q" class="searchbox" value="{$q}"/>
+            <div id="suggestions"><!--suggestions here--></div>
+            <div id="searchbutton" class="searchbutton">
               <button type="submit" title="Run Search"><img src="/images/mt_icon_search.gif"/></button>
             </div>
-	      </form>
+        </form>
       </div>
       { $sidebar }
       <div class="content">

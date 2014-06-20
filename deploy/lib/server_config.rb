@@ -758,6 +758,73 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     FileUtils.rm_rf(tmp_dir)
   end
 
+  def list_users()
+    logger.info "listing application users..."
+    r = execute_query %Q{
+      xquery version "1.0-ml";
+      import module namespace sec="http://marklogic.com/xdmp/security" at
+        "/MarkLogic/security.xqy";
+      for $u as xs:string in collection(
+        sec:users-collection())/sec:user/sec:user-name
+      where sec:user-get-roles($u) = '#{@properties["ml.app-role"]}'
+      return $u
+    },
+    { :db_name => "Security" }
+    logger.info r.body
+  end
+
+  def delete_user()
+    # args: username
+    username = ARGV.shift
+    if !username or username.length < 1
+      logger.info "missing required argument: username"
+      return
+    end
+
+    r = execute_query %Q{
+      xquery version "1.0-ml";
+      import module namespace sec="http://marklogic.com/xdmp/security" at
+        "/MarkLogic/security.xqy";
+      if (not(sec:user-exists('#{username}'))) then ()
+      else sec:remove-user('#{username}')
+    },
+    { :db_name => "Security" }
+  end
+
+  def create_user()
+    # args: username
+    username = ARGV.shift
+    if !username or username.length < 1
+      logger.info "missing required argument: username"
+      return
+    end
+
+    # prompt for password
+    puts "Password for #{username}:"
+    # we don't want to install highline
+    # we can't rely on STDIN.noecho with older ruby versions
+    system "stty -echo"
+    password = gets.chomp
+    system "stty echo"
+
+    logger.info "Creating #{username}..."
+    r = execute_query %Q{
+      import module namespace sec="http://marklogic.com/xdmp/security" at
+        "/MarkLogic/security.xqy";
+      if (sec:user-exists('#{username}'))
+      then sec:user-set-password(
+        '#{username}',
+        '#{password}')
+      else sec:create-user(
+        '#{username}',
+        '#{@properties["ml.app-name"]} user #{username}',
+        '#{password}',
+        '#{@properties["ml.app-logged-in-role"]}',
+        (), ())
+    },
+    { :db_name => "Security" }
+  end
+
 private
 
   def save_files_to_fs(target_db, target_dir)

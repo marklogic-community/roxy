@@ -445,6 +445,43 @@
         </privilege>
       </privileges>
     </role>
+<!--
+    <role>
+      <role-name>@ml.app-logged-in-role</role-name>
+      <description>
+        A role for logged-in users of the @ml.app-name application,
+        when using application-level login.
+      </description>
+      <role-names>
+        <role-name>@ml.app-role</role-name>
+      </role-names>
+      <permissions>
+        <permission>
+          <capability>execute</capability>
+          <role-name>@ml.app-logged-in-role</role-name>
+        </permission>
+        <permission>
+          <capability>update</capability>
+          <role-name>@ml.app-logged-in-role</role-name>
+        </permission>
+        <permission>
+          <capability>insert</capability>
+          <role-name>@ml.app-logged-in-role</role-name>
+        </permission>
+        <permission>
+          <capability>read</capability>
+          <role-name>@ml.app-logged-in-role</role-name>
+        </permission>
+      </permissions>
+      <collections>
+      </collections>
+      <privileges>
+        <privilege>
+          <privilege-name>roxy-logged-in</privilege-name>
+        </privilege>
+      </privileges>
+    </role>
+-->
   </roles>
   <users xmlns="http://marklogic.com/xdmp/security">
     <user>
@@ -478,6 +515,14 @@
     <privilege>
       <privilege-name>my-action</privilege-name>
       <action>http://marklogic.com/custom/privilege/my-action</action>
+      <kind>execute</kind>
+    </privilege>
+-->
+<!--
+    Sample logged-in execute privilege.
+    <privilege>
+      <privilege-name>roxy-logged-in</privilege-name>
+      <action>ns://github.com/marklogic/roxy/privilege/logged-in</action>
       <kind>execute</kind>
     </privilege>
 -->

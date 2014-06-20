@@ -15,16 +15,17 @@ limitations under the License.
 :)
 xquery version "1.0-ml";
 
-import module namespace vh = "http://marklogic.com/roxy/view-helper" at "/roxy/lib/view-helper.xqy";
+import module namespace vh = "http://marklogic.com/roxy/view-helper"
+ at "/roxy/lib/view-helper.xqy";
 
-import module namespace uv = "http://www.marklogic.com/roxy/user-view" at "/app/views/helpers/user-lib.xqy";
+import module namespace uv = "http://www.marklogic.com/roxy/user-view"
+ at "/app/views/helpers/user-lib.xqy";
 
 (:declare variable $facets as item()* := vh:get("facets");:)
 declare variable $view as item()* := vh:get("view");
 declare variable $column3 as item()* := vh:get("column3");
 declare variable $sidebar as item()* := vh:get("sidebar");
 declare variable $title as xs:string? := vh:get("title");
-declare variable $username as xs:string? := vh:get("username");
 declare variable $q as xs:string? := vh:get("q");
 
 '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">',
@@ -46,7 +47,7 @@ declare variable $q as xs:string? := vh:get("q");
       <a href="/" class="logo"/>
       <h1><a href="/">{$title}</a></h1>
       {
-        uv:build-user($username, fn:concat("/user/profile?user=", $username), "/user/login", "/user/register", "/user/logout")
+        uv:build-user()
       }
       <div class="search">
         <label>Search</label>
@@ -58,19 +59,19 @@ declare variable $q as xs:string? := vh:get("q");
       </div>
     </div>
     <div class="colmask threecol">
-    	<div class="colmid">
-    		<div class="colleft">
-    			<div class="col1">
-    			  {$view}
-    			</div>
-    			<div class="col2">
-    			  {$sidebar}
-    			</div>
-    			<div class="col3">
-    			  {$column3}
-    			</div>
-    		</div>
-    	</div>
+      <div class="colmid">
+        <div class="colleft">
+          <div class="col1">
+            {$view}
+          </div>
+          <div class="col2">
+            {$sidebar}
+          </div>
+          <div class="col3">
+            {$column3}
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="footer">

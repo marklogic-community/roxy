@@ -388,6 +388,18 @@ declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)
   let $routes := req:expand-resources($routes)
   let $matching-request :=
     (
+      for $protect in $routes/rest:protect
+      let $matches := (
+        fn:matches($path, $protect/@uri) and (
+          fn:empty($protect/*) or fn:not(
+            every $p in $protect/* satisfies
+            typeswitch($p)
+            case element(rest:privilege) return xdmp:has-privilege($p, 'execute')
+            default return fn:false())))
+      where $matches
+      return $protect
+      ,
+      (: TODO Why use *:foo here? Why not rest:foo instead? :)
       $routes/*:request[fn:matches($path, @uri)]
                        [if (*:http/@method) then $verb = *:http/@method
                         else fn:true()]
