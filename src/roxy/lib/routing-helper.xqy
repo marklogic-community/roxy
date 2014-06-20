@@ -68,6 +68,27 @@ declare function rh:render-layout($layout as xs:string, $format as xs:string, $d
         xdmp:rethrow()
     }
 };
+
+(:
+  Lookup the content type from some well known formats.
+:)
+declare function rh:lookup-content-type($format) {
+  let $type as xs:string? := $c:ROXY-OPTIONS/formats/format[@name = $format]/@type/fn:string(.)
+  return 
+    if (fn:exists($type)) then
+      $type
+    else if ($format eq "xml") then
+      "application/xml"
+    else if ($format eq "html") then
+      "text/html"
+    else if ($format eq "json") then
+      "application/json"
+    else if ($format eq "text") then
+      "text/plain"
+    else
+      $format
+};
+
 declare function rh:set-content-type($format)
 {
   let $type as xs:string? := $c:ROXY-OPTIONS/formats/format[@name = $format]/@type/fn:string(.)
