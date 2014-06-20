@@ -74,21 +74,6 @@ declare function router:end-profiling($request-id) {
 };
 
 (:
-  Build the reply, returning back the results of the controller function
-  and (if enabled) the profiling report.
-:)
-declare function router:make-reply($controller, $func, $controller-path) {
-  let $request-id := router:start-profiling()
-  let $data :=  
-    xdmp:apply(
-      xdmp:function(
-        fn:QName(fn:concat("http://marklogic.com/roxy/controller/", $controller), $func),
-        $controller-path))
-  let $profile-report := router:end-profiling($request-id)
-  return ($data, $profile-report)
-};
-
-(:
   Render the view result if there's a controller helper map and there
   exists a view.
 :)
@@ -188,10 +173,14 @@ declare function router:route()
     If the ML-X-Profile header is set to 'yes', collect profiling information.  Otherwise,
     we only have the returned data as normal.
   :)
-  let $reply := router:make-reply($controller, $func, $controller-path)
-  let $data := $reply[1]
-  let $profile-report := if (fn:count($reply) gt 1) then $reply[2] else ()
-
+  let $request-id := router:start-profiling()
+  let $data :=  
+    xdmp:apply(
+      xdmp:function(
+        fn:QName(fn:concat("http://marklogic.com/roxy/controller/", $controller), $func),
+        $controller-path))
+  let $profile-report := router:end-profiling($request-id)
+  
   (: Roxy options :)
   let $options :=
     for $key in map:keys($ch:map)
