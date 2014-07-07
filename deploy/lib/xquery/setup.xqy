@@ -3927,11 +3927,12 @@ declare function setup:create-amps($import-config)
       xdmp:eval(
         'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
          declare variable $amp external;
+         declare variable $db := if($amp/sec:db-name = "filesystem") then 0 else xdmp:database($amp/sec:db-name);
          sec:create-amp(
            $amp/sec:namespace,
            $amp/sec:local-name,
            $amp/sec:doc-uri,
-           xdmp:database($amp/sec:db-name),
+           $db,
            $amp/sec:role-name
         )',
         (xs:QName("amp"), $amp),
