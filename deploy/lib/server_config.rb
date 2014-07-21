@@ -415,7 +415,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
   def wipe
     appbuilder = find_arg(['--app-builder'])
-    
+
     if (appbuilder != nil)
       logger.info "Wiping MarkLogic App-Builder deployment #{appbuilder} from #{@hostname}..."
       config = %Q{
@@ -444,7 +444,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       logger.info "Wiping MarkLogic setup for your project from #{@hostname}..."
       config = get_config
     end
-    
+
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:do-wipe(#{config})}
     logger.debug "code: #{r.code.to_i}"
@@ -750,7 +750,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
           logger.debug "Options after resolving properties:"
           lines = options.split(/[\n\r]+/).reject { |line| line.empty? || line.match("^#") }
-          
+
           lines.each do |line|
             logger.debug line
           end
@@ -826,7 +826,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     config = find_arg(['--ml-config'])
     target_db = find_arg(['--modules-db'])
     appbuilder = find_arg(['--app-builder'])
-    
+
     if (appbuilder != nil)
       serverstats = execute_query %Q{
         xquery version "1.0-ml";
@@ -837,11 +837,11 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
           $status//*:modules/xdmp:database-name(.)
         )
       }
-      
+
       logger.debug parse_json(serverstats.body)
-      
+
       serverstats.body = parse_json(serverstats.body).split(/[\r\n]+/)
-      
+
       port = serverstats.body[0]
       target_db = serverstats.body[1]
     end
@@ -872,12 +872,12 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         @properties['ml.rest-options.dir']
       )
       FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
-      
+
       # Make sure REST properties are in accurate format, so you can directly deploy them again..
       if (port != nil)
         r = go "http://#{@hostname}:#{port}/v1/config/properties", "get"
         r.body = parse_json(r.body)
-        File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'w') { |file| file.write(r.body) }
+        File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
       end
 
       # If we have an application/custom directory, we've probably done a capture
@@ -924,7 +924,7 @@ private
           },
           { :db_name => target_db }
 
-          File.open("#{target_dir}#{uri}", 'w') { |file| file.write(r.body) }
+          File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(r.body) }
         end
       end
     else
@@ -942,7 +942,7 @@ private
           Dir.mkdir("#{target_dir}" + uri)
         else
           r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get"
-          File.open("#{target_dir}#{uri}", 'w') { |file| file.write(r.body) }
+          File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(r.body) }
         end
       end
     end
@@ -988,12 +988,12 @@ private
       return false
     else
       name = "#{@properties["ml.config.file"].sub( %r{.xml}, '' )}-#{@properties["ml.environment"]}.xml"
-      File.open(name, 'w') { |file| file.write(r.body) }
+      File.open(name, 'wb') { |file| file.write(r.body) }
       logger.info("... Captured full configuration into #{name}")
       return true
     end
   end
-  
+
   def quote_arglist(arglist)
     if arglist != nil
       # TODO: remove duplicates
@@ -1133,7 +1133,7 @@ private
       else
         logger.info "\nNo REST API options found in: #{@properties['ml.rest-options.dir']}";
       end
-      
+
       deploy_ext()
       deploy_transform()
     end
@@ -1158,8 +1158,8 @@ private
   def deploy_transform
     transform = find_arg(['--file'])
     path = @properties['ml.rest-transforms.dir']
-    if !transform.blank? 
-      path += "/#{transformname}" 
+    if !transform.blank?
+      path += "/#{transformname}"
     end
 
     # Deploy transforms to the REST API server
