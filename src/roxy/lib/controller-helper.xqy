@@ -129,3 +129,13 @@ declare function ch:set-format($new-format as xs:string, $formats as xs:string*)
     )
   )
 };
+
+declare function ch:http-error($error-code as xs:int, $message as xs:string)
+{
+  ch:http-error($error-code, $message, ())
+};
+
+declare function ch:http-error($error-code as xs:int, $message as xs:string, $body)
+{
+  fn:error((), "HTTP-ERROR", ($error-code, $message, $body))
+};

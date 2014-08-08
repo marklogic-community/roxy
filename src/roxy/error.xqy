@@ -144,7 +144,12 @@ declare function local:error($title as xs:string?, $heading, $msg)
   </html>
 };
 
-if (($ex/error:code = "XDMP-UNDFUN" and $ex/error:data/error:datum = fn:concat($router:func, "()")) or
+if ($ex/error:code = "RESTAPI-EXTNERR") then
+  xdmp:invoke(
+    "/MarkLogic/rest-api/error-handler.xqy",
+    (xs:QName("error:errors"), $error:errors)
+  )
+else if (($ex/error:code = "XDMP-UNDFUN" and $ex/error:data/error:datum = fn:concat($router:func, "()")) or
     ($ex/error:code = ("SVC-FILOPN", "XDMP-MODNOTFOUND") and $ex/error:data/error:datum/fn:ends-with(., $router:controller-path))) then
   local:four-o-four()
 else if (($ex/error:name, $ex/error:code) = ("XDMP-UNDFUN") and fn:starts-with($ex/error:data/error:datum, "c:")) then
@@ -153,6 +158,11 @@ else if ($ex/error:name = $MESSAGES/message/@code) then
   local:error($MESSAGES/message[@code = $ex/error:name]/@title, fn:string($ex/error:message), $MESSAGES/message[@code = $ex/error:name]/node())
 else if ($ex/error:name = "four-o-four" or 404 = xdmp:get-response-code()[1]) then
   local:four-o-four()
+else if ($ex/error:code = "HTTP-ERROR") then
+(
+  xdmp:set-response-code(xs:int($ex/error:data/error:datum[1]), $ex/error:data/error:datum[2]),
+  $ex/error:data/error:datum[3]/fn:data()
+)
 else
   (
     xdmp:set-response-content-type("text/plain"),
