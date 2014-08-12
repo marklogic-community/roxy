@@ -248,9 +248,10 @@ function runSuite(suite) {
   spinner.show();
 
   $.ajax({
-    url: "run",
+    url: "default.xqy",
     cache: false,
     data: {
+      func: 'run',
       suite: suite,
       tests: tests.join(","),
       runsuiteteardown: suiteTearDown,
