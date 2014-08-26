@@ -1304,7 +1304,7 @@ declare function setup:add-field-includes-R(
             $e/db:localname/fn:string(.),
             ($e/db:weight, 1.0)[1],
             $e/db:attribute-namespace-uri,
-            ($e/db:attribute-localname/string(.), "")[1],
+            ($e/db:attribute-localname/fn:string(.), "")[1],
             ($e/db:attribute-value, "")[1])),
       $database,
       fn:subsequence($field-configs, 2))
@@ -1350,7 +1350,7 @@ declare function setup:add-field-excludes-R(
                 $e/db:namespace-uri,
                 $e/db:localname/fn:string(.),
                 ($e/db:attribute-namespace-uri, "")[1],
-                ($e/db:attribute-localname/string(.), "")[1],
+                ($e/db:attribute-localname/fn:string(.), "")[1],
                 ($e/db:attribute-value, "")[1])',
               (xs:QName("e"), $e),
               <options xmlns="xdmp:eval">
@@ -2382,7 +2382,7 @@ declare function setup:validate-fragment-roots(
   let $existing := admin:database-get-fragment-roots($admin-config, $database)
   for $expected in $db-config/db:fragment-roots/db:fragment-root
   return
-    if ($existing[db:namespace-uri = $expected/db:namespace-uri and db:localname/string(.) = $expected/db:localname/string(.)]) then ()
+    if ($existing[db:namespace-uri = $expected/db:namespace-uri and db:localname/fn:string(.) = $expected/db:localname/fn:string(.)]) then ()
     else
       setup:validation-fail(fn:concat("Missing fragment root: ", $expected/db:localname/fn:string(.)))
 };
@@ -2435,7 +2435,7 @@ declare function setup:validate-fragment-parents(
   let $existing := admin:database-get-fragment-parents($admin-config, $database)
   for $expected in $db-config/db:fragment-parents/db:fragment-parent
   return
-    if ($existing[db:namespace-uri = $expected/db:namespace-uri and db:localname/string(.) = $expected/db:localname/string(.)]) then ()
+    if ($existing[db:namespace-uri = $expected/db:namespace-uri and db:localname/fn:string(.) = $expected/db:localname/fn:string(.)]) then ()
     else
       setup:validation-fail(fn:concat("Missing fragment root: ", $expected/db:localname/fn:string(.)))
 };
