@@ -1171,7 +1171,7 @@ declare function setup:add-fields(
   setup:add-fields-R(
     setup:remove-existing-fields($admin-config, $database),
     $database,
-    $db-config/db:fields/db:field[db:field-name != ""]
+    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")]
   )
 };
 
@@ -1240,7 +1240,7 @@ declare function setup:apply-field-settings(
 {
   let $apply-settings :=
     for $field in $db-config/db:fields/db:field
-    let $field-name as xs:string := $field/db:field-name
+    let $field-name as xs:string := fn:string($field/db:field-name)
     for $setting in $field-settings/setting
     let $value := fn:data(xdmp:value(fn:concat("$field/db:", $setting)))
     let $min-version as xs:string? := $setting/@min-version
@@ -1283,7 +1283,7 @@ declare function setup:add-field-includes(
   setup:add-field-includes-R(
     $admin-config,
     $database,
-    $db-config/db:fields/db:field[db:field-name != ""])
+    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")])
 };
 
 declare function setup:add-field-includes-R(
@@ -1320,7 +1320,7 @@ declare function setup:add-field-excludes(
   setup:add-field-excludes-R(
     $admin-config,
     $database,
-    $db-config/db:fields/db:field[db:field-name != ""])
+    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")])
 };
 
 declare function setup:add-field-excludes-R(
@@ -1370,7 +1370,7 @@ declare function setup:add-field-word-lexicons(
   setup:add-field-word-lexicons-R(
     $admin-config,
     $database,
-    $db-config/db:fields/db:field[db:field-name != ""])
+    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")])
 };
 
 declare function setup:add-field-word-lexicons-R(
@@ -2475,7 +2475,7 @@ declare function setup:config-word-query(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  let $empty-field := $db-config/db:fields/db:field[db:field-name = ""]
+  let $empty-field := $db-config/db:fields/db:field[fn:empty(db:field-name) or db:field-name = ""]
   return
   (
     xdmp:set($admin-config, setup:remove-existing-word-query-included-elements($admin-config, $database)),
@@ -2627,7 +2627,7 @@ declare function setup:validate-word-query(
   $database as xs:unsignedLong,
   $db-config as element(db:database))
 {
-  let $empty-field := $db-config/db:fields/db:field[db:field-name = ""]
+  let $empty-field := $db-config/db:fields/db:field[fn:empty(db:field-name) or db:field-name = ""]
   return
   (
     let $existing := admin:database-get-word-query-included-elements($admin-config, $database)
