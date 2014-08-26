@@ -4532,7 +4532,9 @@ declare function setup:strip-default-properties-from-odbc-server(
       try
       {
         xdmp:eval('
+          xquery version "1.0-ml";
           import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+          declare namespace gr="http://marklogic.com/xdmp/group";
           declare variable $default-group external;
           declare variable $default-modules external;
           declare variable $default-database external;
