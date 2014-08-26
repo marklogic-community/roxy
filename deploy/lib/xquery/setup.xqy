@@ -2876,17 +2876,18 @@ declare function setup:create-appserver(
       let $root := ($server-config/gr:root[fn:string-length(fn:string(.)) > 0], "/")[1]
       let $port := xs:unsignedLong($server-config/gr:port)
       let $database := setup:get-appserver-content-database($server-config)
+      let $modules := setup:get-appserver-modules-database($server-config)
       let $admin-config := admin:get-configuration()
       let $admin-config :=
         if (xs:boolean($server-config/gr:webDAV)) then
-          (: Note: database id is stored as modules for webdav servers :)
+          (: Note: database id is stored as modules for webdav servers, allowing both in ml-config :)
           admin:webdav-server-create(
             $admin-config,
             $default-group,
             $server-name,
             $root,
             $port,
-            $database)
+            ($database[. != '0'], $modules)[1])
         else
           admin:http-server-create(
             $admin-config,
@@ -2894,7 +2895,7 @@ declare function setup:create-appserver(
             $server-name,
             $root,
             $port,
-            setup:get-appserver-modules-database($server-config),
+            $modules,
             $database)
       return
       (
