@@ -524,7 +524,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     dir = ARGV.shift
     db = find_arg(['--db']) || @properties['ml.content-db']
     remove_prefix = find_arg(['--remove-prefix'])
-    remove_prefix = ServerConfig.expand_path(remove_prefix) if remove_prefix
+    remove_prefix = File.expand_path(remove_prefix) if remove_prefix
     quiet = find_arg(['--quiet'])
 
     add_prefix = find_arg(['--add-prefix'])
@@ -540,7 +540,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
     options[:batch_commit] = batch
     options[:permissions] = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER) unless options[:permissions]
-    xcc.load_files(ServerConfig.expand_path(dir), options)
+    xcc.load_files(File.expand_path(dir), options)
   end
 
   #
