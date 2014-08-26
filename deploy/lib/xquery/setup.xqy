@@ -3636,17 +3636,12 @@ declare function setup:create-roles(
   for $role in $import-config/sec:roles/sec:role
   let $role-name as xs:string := $role/sec:role-name
   let $description as xs:string? := $role/sec:description
-  let $role-names as xs:string* := $role/sec:role-names/sec:role-name
-  let $permissions as element(sec:permission)* := $role/sec:permissions/*
   let $collections as xs:string* := $role/sec:collections/sec:collection/fn:string()
-  let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
-  let $amps as element(sec:amp)* := $role/sec:amps/*
   let $eval-options :=
     <options xmlns="xdmp:eval">
       <database>{$default-security}</database>
     </options>
   return
-  (
     (: if the role exists, then don't create it :)
     if (setup:get-roles(())/sec:role[sec:role-name = $role-name]) then ()
     else
@@ -3664,6 +3659,20 @@ declare function setup:create-roles(
         setup:add-rollback("roles", $role)
     ),
 
+  for $role in $import-config/sec:roles/sec:role
+  let $role-name as xs:string := $role/sec:role-name
+  let $description as xs:string? := $role/sec:description
+  let $role-names as xs:string* := $role/sec:role-names/sec:role-name
+  let $permissions as element(sec:permission)* := $role/sec:permissions/*
+  let $collections as xs:string* := $role/sec:collections/sec:collection/fn:string()
+  let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
+  let $amps as element(sec:amp)* := $role/sec:amps/*
+  let $eval-options :=
+    <options xmlns="xdmp:eval">
+      <database>{$default-security}</database>
+    </options>
+  return
+  (
     xdmp:eval(
       'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
        declare variable $role-name as xs:string external;
