@@ -837,7 +837,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     # Create or update environment properties file
     filename = "#{@environment}.properties"
     properties = {}
-    properties_file = ServerConfig.expand_path("../#{filename}", File.dirname(@@context))
+    properties_file = ServerConfig.expand_path("#{@@path}/#{filename}")
     begin
       if (File.exists?(properties_file))
         properties = ServerConfig.load_properties(properties_file, "")
