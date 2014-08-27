@@ -1440,8 +1440,8 @@ private
         :user_name => @ml_username,
         :password => @ml_password,
         :server => @hostname,
-        :app_port => 7998,
-        :rest_port => 7998,
+        :app_port => @properties['ml.evaler-port'],
+        :rest_port => @properties['ml.evaler-port'],
         :logger => @logger,
         :auth_method => @properties["ml.authentication-method"]
       })
