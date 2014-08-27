@@ -1123,6 +1123,11 @@ private
       else
         rest_modules_db = @properties['ml.modules-db']
       end
+      
+      if ['filesystem', 'file-system', '0'].include? rest_modules_db
+        logger.warn "\nWARN: Cannot deploy REST features to a REST-api running from file-system!\n"
+        return
+      end
 
       if (@properties.has_key?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
         prop_path = "#{@properties['ml.rest-options.dir']}/properties.xml"
