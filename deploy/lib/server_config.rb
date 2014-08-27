@@ -362,6 +362,9 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       r = execute_query_4 query, properties
     elsif @server_version == 5 || @server_version == 6
       r = execute_query_5 query, properties
+    # temporary fix to support MarkLogic 8 EA2
+    elsif @properties["ml.server-version"] == "8ea"
+      r = execute_query_8ea query, properties
     else
       r = execute_query_7 query, properties
     end
@@ -390,7 +393,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   def bootstrap
     raise ExitException.new("Bootstrap requires the target environment's hostname to be defined") unless @hostname.present?
 
-    logger.info "Bootstrapping your project into MarkLogic on #{@hostname}..."
+    logger.info "Bootstrapping your project into MarkLogic #{@properties['ml.server-version']} on #{@hostname}..."
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
     logger.debug "code: #{r.code.to_i}"
@@ -1407,6 +1410,71 @@ private
       r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?sid=#{sid}&action=eval&querytype=xquery",
              "post",
              {},
+             nil,
+             query)
+    end
+
+    raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
+
+    r
+  end
+
+  # temporary fix to support MarkLogic 8 EA2
+  def execute_query_8ea(query, properties = {})
+    # check for presense of temporary Roxy exteval extension
+    r = go("http#{@use_https ? 's' : ''}://#{@hostname}:8002/v1/rest-apis", "get")
+    if ! r.body.match(/roxy-evaler/)
+      logger.info "\nDeploying Roxy evaler.."
+      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:8002/v1/rest-apis",
+             "post",
+             {"Content-Type" => "application/xml"},
+             nil,
+             "<rapi:rest-api xmlns:rapi='http://marklogic.com/rest-api'>
+                <rapi:name>roxy-evaler</rapi:name>
+                <rapi:group>Default</rapi:group>
+                <rapi:database>Documents</rapi:database>
+                <rapi:modules-database>Modules</rapi:modules-database>
+                <rapi:port>#{@properties['ml.evaler-port']}</rapi:port>
+              </rapi:rest-api>")
+      roxyRest = Roxy::MLRest.new({
+        :user_name => @ml_username,
+        :password => @ml_password,
+        :server => @hostname,
+        :app_port => 7998,
+        :rest_port => 7998,
+        :logger => @logger,
+        :auth_method => @properties["ml.authentication-method"]
+      })
+      roxyRest.install_extensions(ServerConfig.expand_path("#{@@path}/lib/ext/"))
+    end
+    
+    # We need a context for this query. Here's what we look for, in order of preference:
+    # 1. A caller-specified database
+    # 2. A caller-specified application server
+    # 3. An application server that is present by default
+    # 4. Any database
+    if properties[:db_name] != nil
+      db_id = get_db_id(properties[:db_name])
+    elsif properties[:app_name] != nil
+      sid = get_sid(properties[:app_name])
+    else
+      sid = get_sid("Manage")
+    end
+
+    db_id = get_any_db_id if db_id.nil? && sid.nil?
+
+    if db_id.present?
+      logger.debug "using dbid: #{db_id}"
+      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@properties['ml.evaler-port']}/v1/resources/exteval?rs:dbid=#{db_id}",
+             "post",
+             {'Content-type' => 'application/xquery'},
+             nil,
+             query)
+    else
+      logger.debug "using sid: #{sid}"
+      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@properties['ml.evaler-port']}/v1/resources/exteval?rs:sid=#{sid}",
+             "post",
+             {'Content-type' => 'application/xquery'},
              nil,
              query)
     end
