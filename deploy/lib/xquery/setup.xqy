@@ -1432,7 +1432,7 @@ declare function setup:add-range-element-indexes-R(
               $index-configs[1]/db:scalar-type,
               $index-configs[1]/db:namespace-uri,
               $index-configs[1]/db:localname/fn:string(.),
-              $index-configs[1]/db:collation,
+              fn:string($index-configs[1]/db:collation[../db:scalar-type = 'string']),
               ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
               ($index-configs[1]/db:invalid-values, "reject")[1]
             )
@@ -1442,7 +1442,7 @@ declare function setup:add-range-element-indexes-R(
               $index-configs[1]/db:scalar-type,
               $index-configs[1]/db:namespace-uri,
               $index-configs[1]/db:localname/fn:string(.),
-              $index-configs[1]/db:collation,
+              fn:string($index-configs[1]/db:collation[../db:scalar-type = 'string']),
               ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1]
             )
       ),
@@ -1506,7 +1506,7 @@ declare function setup:add-range-element-attribute-indexes-R(
               $index-configs[1]/db:parent-localname/fn:string(.),
               $index-configs[1]/db:namespace-uri,
               $index-configs[1]/db:localname/fn:string(.),
-              $index-configs[1]/db:collation,
+              fn:string($index-configs[1]/db:collation[../db:scalar-type = 'string']),
               ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
               ($index-configs[1]/db:invalid-values, "reject")[1]
             )
@@ -1518,7 +1518,7 @@ declare function setup:add-range-element-attribute-indexes-R(
               $index-configs[1]/db:parent-localname/fn:string(.),
               $index-configs[1]/db:namespace-uri,
               $index-configs[1]/db:localname/fn:string(.),
-              $index-configs[1]/db:collation,
+              fn:string($index-configs[1]/db:collation[../db:scalar-type = 'string']),
               ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1]
             )
       ),
@@ -1738,7 +1738,7 @@ declare function setup:validate-range-path-indexes(
        $database,
        $x/db:scalar-type,
        $x/db:path-expression,
-       $x/db:collation,
+       fn:string($x/db:collation[../db:scalar-type = "string"]),
        $x/db:range-value-positions,
        $x/db:invalid-values)',
       (xs:QName("database"), $database,
