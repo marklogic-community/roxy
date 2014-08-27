@@ -418,6 +418,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
   def wipe
     appbuilder = find_arg(['--app-builder'])
+    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
 
     if (appbuilder != nil)
       logger.info "Wiping MarkLogic App-Builder deployment #{appbuilder} from #{@hostname}..."
@@ -444,11 +445,44 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
         </configuration>
       }
     else
-      logger.info "Wiping MarkLogic setup for your project from #{@hostname}..."
-      config = get_config
+      databases = find_arg(['--databases']) || '##none##'
+      forests = find_arg(['--forests']) || '##none##'
+      servers = find_arg(['--servers']) || '##none##'
+      
+      logger.debug %Q{(#{databases}), (#{forests}), (#{servers})}
+      
+      if databases != '##none##' || forests != '##none##' || servers != '##none##'
+        
+        if (databases.split(',') & ['App-Services', 'Documents', 'Extensions', 'Fab', 'Last-Login', 'Meters', 'Modules', 'Schemas', 'Security', 'Triggers']).length > 0
+          logger.warn "\nWARN: Cannot wipe built-in databases..\n"
+          return
+        end
+        if (forests.split(',') & ['App-Services', 'Documents', 'Extensions', 'Fab', 'Last-Login', 'Meters', 'Modules', 'Schemas', 'Security', 'Triggers']).length > 0
+          logger.warn "\nWARN: Cannot wipe built-in forests..\n"
+          return
+        end
+        if (servers.split(',') & ['Admin', 'App-Services', 'HealthCheck', 'Manage']).length > 0
+          logger.warn "\nWARN: Cannot wipe built-in servers..\n"
+          return
+        end
+        
+        databases = quote_arglist(databases)
+        forests = quote_arglist(forests)
+        servers = quote_arglist(servers)
+        
+        logger.info "Getting wipe configuration from #{@hostname}..."
+        logger.debug %Q{calling setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (9999999), (9999999), ("##none##"))..}
+        r = execute_query %Q{#{setup} setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (9999999), (9999999), ("##none##"))}
+        
+        config = parse_json(r.body)
+        logger.info "Wiping MarkLogic #{databases}, #{forests}, #{servers} from #{@hostname}..."
+      else
+        logger.info "Wiping MarkLogic setup for your project from #{@hostname}..."
+        config = get_config
+      end
     end
 
-    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
+    logger.debug %Q{#{setup} setup:do-wipe(#{config})}
     r = execute_query %Q{#{setup} setup:do-wipe(#{config})}
     logger.debug "code: #{r.code.to_i}"
 
