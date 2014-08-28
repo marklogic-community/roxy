@@ -101,7 +101,7 @@ class Object
 end
 
 def parse_json(body)
-  if (body.match('^\[\{"qid":null,'))
+  if (body.match('^\[\{"qid":'))
     items = []
     JSON.parse(body).each do |item|
       items.push item['result']
