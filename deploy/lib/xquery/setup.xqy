@@ -2886,7 +2886,7 @@ declare function setup:create-appserver(
             $server-name,
             $root,
             $port,
-            ($database[. != '0'], $modules)[1])
+            ($database[. != 0], $modules)[1])
         else
           admin:http-server-create(
             $admin-config,
