@@ -1171,7 +1171,7 @@ declare function setup:add-fields(
   setup:add-fields-R(
     setup:remove-existing-fields($admin-config, $database),
     $database,
-    $db-config/db:fields/db:field[db:field-name != ""]
+    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")]
   )
 };
 
@@ -1240,7 +1240,7 @@ declare function setup:apply-field-settings(
 {
   let $apply-settings :=
     for $field in $db-config/db:fields/db:field
-    let $field-name as xs:string := $field/db:field-name
+    let $field-name as xs:string := fn:string($field/db:field-name)
     for $setting in $field-settings/setting
     let $value := fn:data(xdmp:value(fn:concat("$field/db:", $setting)))
     let $min-version as xs:string? := $setting/@min-version
@@ -1283,7 +1283,7 @@ declare function setup:add-field-includes(
   setup:add-field-includes-R(
     $admin-config,
     $database,
-    $db-config/db:fields/db:field[db:field-name != ""])
+    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")])
 };
 
 declare function setup:add-field-includes-R(
@@ -1304,7 +1304,7 @@ declare function setup:add-field-includes-R(
             $e/db:localname/fn:string(.),
             ($e/db:weight, 1.0)[1],
             $e/db:attribute-namespace-uri,
-            ($e/db:attribute-localname, "")[1],
+            ($e/db:attribute-localname/fn:string(.), "")[1],
             ($e/db:attribute-value, "")[1])),
       $database,
       fn:subsequence($field-configs, 2))
@@ -1320,7 +1320,7 @@ declare function setup:add-field-excludes(
   setup:add-field-excludes-R(
     $admin-config,
     $database,
-    $db-config/db:fields/db:field[db:field-name != ""])
+    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")])
 };
 
 declare function setup:add-field-excludes-R(
@@ -1339,7 +1339,7 @@ declare function setup:add-field-excludes-R(
           if (fn:starts-with(xdmp:version(), "4")) then
             admin:database-excluded-element(
               $e/db:namespace-uri,
-              $e/db:localname)
+              $e/db:localname/fn:string(.))
           else
             xdmp:eval(
              'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
@@ -1350,7 +1350,7 @@ declare function setup:add-field-excludes-R(
                 $e/db:namespace-uri,
                 $e/db:localname/fn:string(.),
                 ($e/db:attribute-namespace-uri, "")[1],
-                ($e/db:attribute-localname, "")[1],
+                ($e/db:attribute-localname/fn:string(.), "")[1],
                 ($e/db:attribute-value, "")[1])',
               (xs:QName("e"), $e),
               <options xmlns="xdmp:eval">
@@ -1370,7 +1370,7 @@ declare function setup:add-field-word-lexicons(
   setup:add-field-word-lexicons-R(
     $admin-config,
     $database,
-    $db-config/db:fields/db:field[db:field-name != ""])
+    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")])
 };
 
 declare function setup:add-field-word-lexicons-R(
@@ -1421,7 +1421,6 @@ declare function setup:add-range-element-indexes-R(
   $database as xs:unsignedLong,
   $index-configs as element(db:range-element-index)*) as element(configuration)
 {
-  xdmp:log(fn:concat("add-range-element-indexes-R: at-least-version(6.0-1)? ", setup:at-least-version("6.0-1"))),
   if ($index-configs) then
     setup:add-range-element-indexes-R(
       admin:database-add-range-element-index($admin-config, $database,
@@ -1432,8 +1431,8 @@ declare function setup:add-range-element-indexes-R(
               $function,
               $index-configs[1]/db:scalar-type,
               $index-configs[1]/db:namespace-uri,
-              $index-configs[1]/db:localname,
-              $index-configs[1]/db:collation,
+              $index-configs[1]/db:localname/fn:string(.),
+              fn:string($index-configs[1]/db:collation[../db:scalar-type = 'string']),
               ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
               ($index-configs[1]/db:invalid-values, "reject")[1]
             )
@@ -1442,8 +1441,8 @@ declare function setup:add-range-element-indexes-R(
               $function,
               $index-configs[1]/db:scalar-type,
               $index-configs[1]/db:namespace-uri,
-              $index-configs[1]/db:localname,
-              $index-configs[1]/db:collation,
+              $index-configs[1]/db:localname/fn:string(.),
+              fn:string($index-configs[1]/db:collation[../db:scalar-type = 'string']),
               ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1]
             )
       ),
@@ -1463,7 +1462,7 @@ declare function setup:validate-range-element-indexes(
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Missing range element index: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Missing range element index: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-range-element-attribute-indexes(
@@ -1504,10 +1503,10 @@ declare function setup:add-range-element-attribute-indexes-R(
               $function,
               $index-configs[1]/db:scalar-type,
               $index-configs[1]/db:parent-namespace-uri,
-              $index-configs[1]/db:parent-localname,
+              $index-configs[1]/db:parent-localname/fn:string(.),
               $index-configs[1]/db:namespace-uri,
-              $index-configs[1]/db:localname,
-              $index-configs[1]/db:collation,
+              $index-configs[1]/db:localname/fn:string(.),
+              fn:string($index-configs[1]/db:collation[../db:scalar-type = 'string']),
               ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1],
               ($index-configs[1]/db:invalid-values, "reject")[1]
             )
@@ -1516,10 +1515,10 @@ declare function setup:add-range-element-attribute-indexes-R(
               $function,
               $index-configs[1]/db:scalar-type,
               $index-configs[1]/db:parent-namespace-uri,
-              $index-configs[1]/db:parent-localname,
+              $index-configs[1]/db:parent-localname/fn:string(.),
               $index-configs[1]/db:namespace-uri,
-              $index-configs[1]/db:localname,
-              $index-configs[1]/db:collation,
+              $index-configs[1]/db:localname/fn:string(.),
+              fn:string($index-configs[1]/db:collation[../db:scalar-type = 'string']),
               ($index-configs[1]/db:range-value-positions/xs:boolean(.), false())[1]
             )
       ),
@@ -1539,7 +1538,7 @@ declare function setup:validate-range-element-attribute-indexes(
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Missing range element attribute index: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Missing range element attribute index: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-path-namespaces(
@@ -1739,7 +1738,7 @@ declare function setup:validate-range-path-indexes(
        $database,
        $x/db:scalar-type,
        $x/db:path-expression,
-       $x/db:collation,
+       fn:string($x/db:collation[../db:scalar-type = "string"]),
        $x/db:range-value-positions,
        $x/db:invalid-values)',
       (xs:QName("database"), $database,
@@ -1794,7 +1793,7 @@ declare function setup:validate-element-word-lexicons($admin-config, $database, 
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Database mismatched element word lexicon: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Database mismatched element word lexicon: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-element-attribute-word-lexicons(
@@ -1841,7 +1840,7 @@ declare function setup:validate-element-attribute-word-lexicons($admin-config, $
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Database mismatched element attribute word lexicon: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Database mismatched element attribute word lexicon: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-element-word-query-throughs(
@@ -1888,7 +1887,7 @@ declare function setup:validate-element-word-query-throughs($admin-config, $data
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Database mismatched element word query through: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Database mismatched element word query through: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-phrase-throughs(
@@ -1935,7 +1934,7 @@ declare function setup:validate-phrase-throughs($admin-config, $database, $db-co
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Database mismatched phrase through: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Database mismatched phrase through: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-phrase-arounds(
@@ -1982,7 +1981,7 @@ declare function setup:validate-phrase-arounds($admin-config, $database, $db-con
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Database mismatched phrase around: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Database mismatched phrase around: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-range-field-indexes(
@@ -2129,7 +2128,7 @@ declare function setup:validate-geospatial-element-indexes(
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Missing geospatial element index: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Missing geospatial element index: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-geospatial-element-attribute-pair-indexes(
@@ -2180,7 +2179,7 @@ declare function setup:validate-geospatial-element-attribute-pair-indexes(
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Missing geospatial element attribute pair index: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Missing geospatial element attribute pair index: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-geospatial-element-pair-indexes(
@@ -2229,7 +2228,7 @@ declare function setup:validate-geospatial-element-pair-indexes(
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Missing geospatial element pair index: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Missing geospatial element pair index: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-geospatial-element-child-indexes(
@@ -2279,7 +2278,7 @@ declare function setup:validate-geospatial-element-child-indexes(
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      setup:validation-fail(fn:concat("Missing geospatial element child index: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Missing geospatial element child index: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-word-lexicons(
@@ -2368,7 +2367,7 @@ declare function setup:add-fragment-roots-R(
         $database,
         admin:database-fragment-root(
           $fragment-roots[1]/db:namespace-uri,
-          $fragment-roots[1]/db:localname)),
+          $fragment-roots[1]/db:localname/fn:string(.))),
       $database,
       fn:subsequence($fragment-roots, 2))
   else
@@ -2383,9 +2382,9 @@ declare function setup:validate-fragment-roots(
   let $existing := admin:database-get-fragment-roots($admin-config, $database)
   for $expected in $db-config/db:fragment-roots/db:fragment-root
   return
-    if ($existing[db:namespace-uri = $expected/db:namespace-uri and db:localname = $expected/db:localname]) then ()
+    if ($existing[db:namespace-uri = $expected/db:namespace-uri and db:localname/fn:string(.) = $expected/db:localname/fn:string(.)]) then ()
     else
-      setup:validation-fail(fn:concat("Missing fragment root: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Missing fragment root: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-fragment-parents(
@@ -2421,7 +2420,7 @@ declare function setup:add-fragment-parents-R(
         $database,
         admin:database-fragment-parent(
           $fragment-parents[1]/db:namespace-uri,
-          $fragment-parents[1]/db:localname)),
+          $fragment-parents[1]/db:localname/fn:string(.))),
       $database,
       fn:subsequence($fragment-parents, 2))
   else
@@ -2436,9 +2435,9 @@ declare function setup:validate-fragment-parents(
   let $existing := admin:database-get-fragment-parents($admin-config, $database)
   for $expected in $db-config/db:fragment-parents/db:fragment-parent
   return
-    if ($existing[db:namespace-uri = $expected/db:namespace-uri and db:localname = $expected/db:localname]) then ()
+    if ($existing[db:namespace-uri = $expected/db:namespace-uri and db:localname/fn:string(.) = $expected/db:localname/fn:string(.)]) then ()
     else
-      setup:validation-fail(fn:concat("Missing fragment root: ", $expected/db:localname))
+      setup:validation-fail(fn:concat("Missing fragment root: ", $expected/db:localname/fn:string(.)))
 };
 
 declare function setup:remove-existing-word-query-included-elements(
@@ -2476,7 +2475,7 @@ declare function setup:config-word-query(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  let $empty-field := $db-config/db:fields/db:field[db:field-name = ""]
+  let $empty-field := $db-config/db:fields/db:field[fn:empty(db:field-name) or db:field-name = ""]
   return
   (
     xdmp:set($admin-config, setup:remove-existing-word-query-included-elements($admin-config, $database)),
@@ -2628,7 +2627,7 @@ declare function setup:validate-word-query(
   $database as xs:unsignedLong,
   $db-config as element(db:database))
 {
-  let $empty-field := $db-config/db:fields/db:field[db:field-name = ""]
+  let $empty-field := $db-config/db:fields/db:field[fn:empty(db:field-name) or db:field-name = ""]
   return
   (
     let $existing := admin:database-get-word-query-included-elements($admin-config, $database)
@@ -2636,14 +2635,14 @@ declare function setup:validate-word-query(
     return
       if ($existing[fn:deep-equal(., $expected)]) then ()
       else
-        setup:validation-fail(fn:concat("Missing word query included element: ", $expected/db:localname)),
+        setup:validation-fail(fn:concat("Missing word query included element: ", $expected/db:localname/fn:string(.))),
 
     let $existing := admin:database-get-word-query-excluded-elements($admin-config, $database)
     for $expected in $empty-field/db:excluded-elements/db:excluded-element
     return
       if ($existing[fn:deep-equal(., $expected)]) then ()
       else
-        setup:validation-fail(fn:concat("Missing word query excluded element: ", $expected/db:localname)),
+        setup:validation-fail(fn:concat("Missing word query excluded element: ", $expected/db:localname/fn:string(.))),
 
     let $actual := admin:database-get-word-query-fast-case-sensitive-searches($admin-config, $database)
     let $expected := $empty-field/db:fast-case-sensitive-searches
@@ -2876,17 +2875,18 @@ declare function setup:create-appserver(
       let $root := ($server-config/gr:root[fn:string-length(fn:string(.)) > 0], "/")[1]
       let $port := xs:unsignedLong($server-config/gr:port)
       let $database := setup:get-appserver-content-database($server-config)
+      let $modules := setup:get-appserver-modules-database($server-config)
       let $admin-config := admin:get-configuration()
       let $admin-config :=
         if (xs:boolean($server-config/gr:webDAV)) then
-          (: Note: database id is stored as modules for webdav servers :)
+          (: Note: database id is stored as modules for webdav servers, allowing both in ml-config :)
           admin:webdav-server-create(
             $admin-config,
             $default-group,
             $server-name,
             $root,
             $port,
-            $database)
+            ($database[. != '0'], $modules)[1])
         else
           admin:http-server-create(
             $admin-config,
@@ -2894,7 +2894,7 @@ declare function setup:create-appserver(
             $server-name,
             $root,
             $port,
-            setup:get-appserver-modules-database($server-config),
+            $modules,
             $database)
       return
       (
@@ -3636,17 +3636,12 @@ declare function setup:create-roles(
   for $role in $import-config/sec:roles/sec:role
   let $role-name as xs:string := $role/sec:role-name
   let $description as xs:string? := $role/sec:description
-  let $role-names as xs:string* := $role/sec:role-names/sec:role-name
-  let $permissions as element(sec:permission)* := $role/sec:permissions/*
   let $collections as xs:string* := $role/sec:collections/sec:collection/fn:string()
-  let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
-  let $amps as element(sec:amp)* := $role/sec:amps/*
   let $eval-options :=
     <options xmlns="xdmp:eval">
       <database>{$default-security}</database>
     </options>
   return
-  (
     (: if the role exists, then don't create it :)
     if (setup:get-roles(())/sec:role[sec:role-name = $role-name]) then ()
     else
@@ -3664,6 +3659,20 @@ declare function setup:create-roles(
         setup:add-rollback("roles", $role)
     ),
 
+  for $role in $import-config/sec:roles/sec:role
+  let $role-name as xs:string := $role/sec:role-name
+  let $description as xs:string? := $role/sec:description
+  let $role-names as xs:string* := $role/sec:role-names/sec:role-name
+  let $permissions as element(sec:permission)* := $role/sec:permissions/*
+  let $collections as xs:string* := $role/sec:collections/sec:collection/fn:string()
+  let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
+  let $amps as element(sec:amp)* := $role/sec:amps/*
+  let $eval-options :=
+    <options xmlns="xdmp:eval">
+      <database>{$default-security}</database>
+    </options>
+  return
+  (
     xdmp:eval(
       'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
        declare variable $role-name as xs:string external;
@@ -4523,7 +4532,9 @@ declare function setup:strip-default-properties-from-odbc-server(
       try
       {
         xdmp:eval('
+          xquery version "1.0-ml";
           import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+          declare namespace gr="http://marklogic.com/xdmp/group";
           declare variable $default-group external;
           declare variable $default-modules external;
           declare variable $default-database external;
