@@ -452,7 +452,7 @@
       <description>A user for the @ml.app-name application</description>
       <password>@ml.appuser-password</password>
       <role-names>
-        <role-name>@ml.app-role</role-names>
+        <role-name>@ml.app-role</role-name>
       </role-names>
       <permissions/>
       <collections/>
