@@ -1340,6 +1340,29 @@ private
     nil
   end
 
+  def create_roxy_workspace
+    ws_id = nil
+    q_id = nil
+
+    url = "http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/workspaces.xqy"
+
+    # weird stuff on windows is fixed by {} for params
+    r = go(url, "post", {}, {})
+    return nil unless r.code.to_i == 200
+
+    r.body.split("\n").each do |line|
+      ws_id = $1 if line =~ /.*"workspace":\{"id":"(\d+)".*/
+      q_id = $1 if line =~ /.*"queries":\[\{"id":"(\d+)".*/
+    end
+
+    return ws_id, q_id
+  end
+
+  def delete_workspace(ws_id)
+    r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/workspaces.xqy?wsid=#{ws_id}", "delete")
+    return ws_id unless r.code.to_i == 200
+  end
+
   def execute_query_5(query, properties = {})
     # We need a context for this query. Here's what we look for, in order of preference:
     # 1. A caller-specified database
@@ -1393,23 +1416,30 @@ private
       sid = get_sid("Manage")
     end
 
+    ws_id, q_id = create_roxy_workspace()
+    raise ExitException.new("Can't create Roxy workspace in QConsole") unless ws_id && q_id
+
     db_id = get_any_db_id if db_id.nil? && sid.nil?
 
+    # necessary to work around weirdness on windows
+    headers = {
+      'content-type' => 'text/plain'
+    }
     if db_id.present?
-      logger.debug "using dbid: #{db_id}"
-      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?dbid=#{db_id}&action=eval&querytype=xquery",
+      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?wsid=#{ws_id}&qid=#{q_id}&dbid=#{db_id}&action=eval&querytype=xquery&dirty=true",
              "post",
-             {},
+             headers,
              nil,
              query)
     else
-      logger.debug "using sid: #{sid}"
-      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?sid=#{sid}&action=eval&querytype=xquery",
+      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?wsid=#{ws_id}&qid=#{q_id}&sid=#{sid}&action=eval&querytype=xquery&dirty=true",
              "post",
-             {},
+             headers,
              nil,
              query)
     end
+
+    delete_workspace(ws_id) if ws_id
 
     raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
 
