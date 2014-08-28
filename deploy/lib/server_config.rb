@@ -362,9 +362,6 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       r = execute_query_4 query, properties
     elsif @server_version == 5 || @server_version == 6
       r = execute_query_5 query, properties
-    # temporary fix to support MarkLogic 8 EA2
-    elsif @properties["ml.server-version"] == "8ea"
-      r = execute_query_8ea query, properties
     else
       r = execute_query_7 query, properties
     end
@@ -448,11 +445,11 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       databases = find_arg(['--databases']) || '##none##'
       forests = find_arg(['--forests']) || '##none##'
       servers = find_arg(['--servers']) || '##none##'
-      
+
       logger.debug %Q{(#{databases}), (#{forests}), (#{servers})}
-      
+
       if databases != '##none##' || forests != '##none##' || servers != '##none##'
-        
+
         if (databases.split(',') & ['App-Services', 'Documents', 'Extensions', 'Fab', 'Last-Login', 'Meters', 'Modules', 'Schemas', 'Security', 'Triggers']).length > 0
           logger.warn "\nWARN: Cannot wipe built-in databases..\n"
           return
@@ -465,15 +462,15 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
           logger.warn "\nWARN: Cannot wipe built-in servers..\n"
           return
         end
-        
+
         databases = quote_arglist(databases)
         forests = quote_arglist(forests)
         servers = quote_arglist(servers)
-        
+
         logger.info "Getting wipe configuration from #{@hostname}..."
         logger.debug %Q{calling setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (9999999), (9999999), ("##none##"))..}
         r = execute_query %Q{#{setup} setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (9999999), (9999999), ("##none##"))}
-        
+
         config = parse_json(r.body)
         logger.info "Wiping MarkLogic #{databases}, #{forests}, #{servers} from #{@hostname}..."
       else
@@ -1157,7 +1154,7 @@ private
       else
         rest_modules_db = @properties['ml.modules-db']
       end
-      
+
       if ['filesystem', 'file-system', '0'].include? rest_modules_db
         logger.warn "\nWARN: Cannot deploy REST features to a REST-api running from file-system!\n"
         return
@@ -1482,71 +1479,6 @@ private
     end
 
     delete_workspace(ws_id) if ws_id
-
-    raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
-
-    r
-  end
-
-  # temporary fix to support MarkLogic 8 EA2
-  def execute_query_8ea(query, properties = {})
-    # check for presense of temporary Roxy exteval extension
-    r = go("http#{@use_https ? 's' : ''}://#{@hostname}:8002/v1/rest-apis", "get")
-    if ! r.body.match(/roxy-evaler/)
-      logger.info "\nDeploying Roxy evaler.."
-      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:8002/v1/rest-apis",
-             "post",
-             {"Content-Type" => "application/xml"},
-             nil,
-             "<rapi:rest-api xmlns:rapi='http://marklogic.com/rest-api'>
-                <rapi:name>roxy-evaler</rapi:name>
-                <rapi:group>Default</rapi:group>
-                <rapi:database>Documents</rapi:database>
-                <rapi:modules-database>Modules</rapi:modules-database>
-                <rapi:port>#{@properties['ml.evaler-port']}</rapi:port>
-              </rapi:rest-api>")
-      roxyRest = Roxy::MLRest.new({
-        :user_name => @ml_username,
-        :password => @ml_password,
-        :server => @hostname,
-        :app_port => @properties['ml.evaler-port'],
-        :rest_port => @properties['ml.evaler-port'],
-        :logger => @logger,
-        :auth_method => @properties["ml.authentication-method"]
-      })
-      roxyRest.install_extensions(ServerConfig.expand_path("#{@@path}/lib/ext/"))
-    end
-    
-    # We need a context for this query. Here's what we look for, in order of preference:
-    # 1. A caller-specified database
-    # 2. A caller-specified application server
-    # 3. An application server that is present by default
-    # 4. Any database
-    if properties[:db_name] != nil
-      db_id = get_db_id(properties[:db_name])
-    elsif properties[:app_name] != nil
-      sid = get_sid(properties[:app_name])
-    else
-      sid = get_sid("Manage")
-    end
-
-    db_id = get_any_db_id if db_id.nil? && sid.nil?
-
-    if db_id.present?
-      logger.debug "using dbid: #{db_id}"
-      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@properties['ml.evaler-port']}/v1/resources/exteval?rs:dbid=#{db_id}",
-             "post",
-             {'Content-type' => 'application/xquery'},
-             nil,
-             query)
-    else
-      logger.debug "using sid: #{sid}"
-      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@properties['ml.evaler-port']}/v1/resources/exteval?rs:sid=#{sid}",
-             "post",
-             {'Content-type' => 'application/xquery'},
-             nil,
-             query)
-    end
 
     raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
 
