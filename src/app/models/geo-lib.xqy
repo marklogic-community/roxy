@@ -1,5 +1,5 @@
 (:
-Copyright 2012 MarkLogic Corporation
+Copyright 2014 MarkLogic Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,9 +20,16 @@ module namespace m = "http://marklogic.com/roxy/models/geo";
 import module namespace c = "http://marklogic.com/roxy/config" at "/app/config/config.xqy";
 import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
 
-(: Get all the points contained in fragments that match a query :)
-declare function m:get-geo-points($ml-query) {
-	let $ml-query := cts:query($ml-query)
+(:
+ : ***********************************************
+ : Get all the lat-lon points contained in fragments that match a query.
+ : @param cts-query The query to apply before retrieving values. Only points
+ :   contained within fragments selected by the query will be returned.
+ : @output A list of lat-lon points
+ : ***********************************************
+ :)
+declare function m:get-geo-points($cts-query as element()) {
+	let $cts-query := cts:query($cts-query)
 	let $points :=
 		try {
 			if (fn:empty($c:GEO-ELEMENT-INDEX-NAMES)) then
@@ -32,7 +39,7 @@ declare function m:get-geo-points($ml-query) {
 					$c:GEO-ELEMENT-INDEX-NAMES,
 					(),
 					("limit=" || $c:GEO-VALUES-LIMIT),
-					$ml-query
+					$cts-query
 				)
 		} catch ($e) {
 			()
@@ -47,7 +54,7 @@ declare function m:get-geo-points($ml-query) {
 					$c:GEO-ELEMENT-CHILD-INDEX-NAMES,
 					(),
 					("limit=" || $c:GEO-VALUES-LIMIT),
-					$ml-query
+					$cts-query
 				)
 		} catch ($e) {
 			()
@@ -63,7 +70,7 @@ declare function m:get-geo-points($ml-query) {
 					$c:GEO-ELEMENT-PAIR-INDEX-LON-NAMES,
 					(),
 					("limit=" || $c:GEO-VALUES-LIMIT),
-					$ml-query
+					$cts-query
 				)
 		} catch ($e) {
 			()
@@ -79,7 +86,7 @@ declare function m:get-geo-points($ml-query) {
 					$c:GEO-ATTRIBUTE-PAIR-INDEX-LON-NAMES,
 					(),
 					("limit=" || $c:GEO-VALUES-LIMIT),
-					$ml-query
+					$cts-query
 				)
 		} catch ($e) {
 			()
@@ -93,7 +100,7 @@ declare function m:get-geo-points($ml-query) {
 					(for $path in $c:GEO-PATH-INDEX-PATHS return cts:path-reference($path)),
 					(),
 					("limit=" || $c:GEO-VALUES-LIMIT),
-					$ml-query
+					$cts-query
 				)
 		} catch ($e) {
 			()
@@ -102,7 +109,22 @@ declare function m:get-geo-points($ml-query) {
 	return ($points, $points2, $points3, $points4, $points5)
 };
 
-declare function m:build-geo-query($geo-json as xs:string) {
+(:
+ : ***********************************************
+ : Build a geospatial cts:query based on a json input string.
+ : @param geo-json The json string that contains the regions to query.
+ :   Its format is:
+ :   {"circles":[{"center":[48.45835188280866,-119.080810546875],"radius":1031967.6211189767}],
+ :    "rectangles":[{"bounds":[16.63619187839765,-33.299560546875,39.90973623453719,8.184814453125]}],
+ :    "polygons":[{"paths":[{"path":[[47.517200697839414,-73.377685546875],[46.55886030311719,-43.846435546875],
+ :                                   [6.315298538330033,-44.549560546875],[6.315298538330033,-79.705810546875],
+ :                                   [19.973348786110602,-87.440185546875]]}]}]
+ :   }
+ : 
+ : @output A cts:query built from the input json
+ : ***********************************************
+ :)
+declare function m:build-geo-query($geo-json as xs:string) as element() {
 	let $xml := if ($geo-json) then json:transform-from-json($geo-json) else ()
 	let $circles := $xml/*:circles/*:json
 	let $rectangles := $xml/*:rectangles/*:json/*:bounds

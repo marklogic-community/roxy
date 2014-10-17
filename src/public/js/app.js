@@ -1,24 +1,39 @@
 $(function() {
 	var search_object = {facets: [], startIndex: 1, count: parseInt($('#PAGELENGTH').val())};
-	var message_view_state = {query: '', uri: ''};
+	var document_viewer_state = {query: '', uri: ''};
 	var NOT_OPERATOR = $('#SEARCH_NOT_OPERATOR').val();
 
+	/**
+	* Fired when the user pushes the back button in our app.
+	* Retreives the previous view information and updates the app based on
+	* that data.
+	*/
 	$(window).bind('popstate', function(evt) {
 		var state = evt.originalEvent.state;
 		var id = state['id'];
-		var hash = state['hash'];
-
-		updateView(state);
+		var dvs = state['documentViewerState'];
+		if (dvs['uri'] != document_viewer_state['uri'] || dvs['query'] != document_viewer_state['query']) {
+			document_viewer_state = dvs;
+			load_document(document_viewer_state);
+		}
 
 		$('#main_tabs a[href="' + id + '"]').tab('show');
 	});
 
+	/**
+	* Fired when the user pushes the search button. Updates the global
+	* search object and runs the search.
+	*/
 	$('.search_button').on('click', function(evt, ui) {
 		search_object['q'] =  $(this).parents('.tab-pane').find('textarea,input').val();
 		search_object['startIndex'] = 1;
 		run_search(search_object);
 	});
 
+	/**
+	* Fired when the user types in the search box. Traps the "enter" key
+	* and runs a search if necessary.
+	*/
 	$('.search_text').on('keydown', function(evt, ui) {
 		if (evt.keyCode == 13) {
 			var tagname = $(this).prop('tagName');
@@ -29,20 +44,26 @@ $(function() {
 		}
 	});
 
+	/**
+	* Fired when the user changes the displayed tab (Search or Document Viewer)
+	*/
 	$('#main_tabs a[data-toggle="tab"]').on('shown.bs.tab', function(evt, ui) {
 		var currentTab = evt.target;
 		var id = $(currentTab).attr('href');
 		var hash = window.location.hash;
 		if (hash.indexOf(id) != 0) {
-			var state = {'id': id, 'hash': hash, messageViewState: message_view_state};
+			var state = {'id': id, 'hash': hash, documentViewerState: document_viewer_state};
 			var newhash = id;
 			if (id.indexOf('#documents') == 0) {
-				newhash += '/' + message_view_state['uri'];
+				newhash += '/' + document_viewer_state['uri'];
 			}
 		    history.pushState(state, 'MarkLogic', newhash);
 		}
 	});
 
+	/**
+	* Fired when the user clicks one of the pager links
+	*/
 	$('body').on('click', '.page_link', function(evt, ui) {
 		evt.preventDefault();
 		if ($(this).parent().hasClass('disabled')) {
@@ -53,6 +74,9 @@ $(function() {
 		$("html, body").animate({ scrollTop: 0 }, "slow");
 	});
 
+	/**
+	* Fired when the user clicks on a facet
+	*/
 	$('body').on('click', '.facet_link', function(evt, ui) {
 		evt.preventDefault();
 		var facet = $(this).data('value');
@@ -62,6 +86,9 @@ $(function() {
 		run_search(search_object);
 	});
 
+	/**
+	* Fired when the user right-clicks on a facet
+	*/
 	$('body').on('contextmenu', '.facet_link', function(evt, ui) {
 		if ((!$(this).hasClass('list-group-item-danger') && $(this).hasClass('active')) || ($(this).hasClass('list-group-item-danger'))) {
 			$(this).trigger('click');
@@ -74,15 +101,21 @@ $(function() {
 		return false;
 	});
 
+	/**
+	* Fired when the user clicks on a search result
+	*/
 	$('body').on('click', '.search_result', function(evt, ui) {
 		evt.preventDefault();
 		var uri = $(this).data('uri');
 		var query = ($(this).hasClass('search_result')) ? search_object['q'] : '';
-		message_view_state = {'uri': uri, 'query': query};
-		load_message(message_view_state);
+		document_viewer_state = {'uri': uri, 'query': query};
+		load_document(document_viewer_state);
 		$('a[href="#documents"]').tab('show');
 	});
 
+	/**
+	* Fired when the user types in the date field or the value changes.
+	*/
 	$('#search_div .date-input').on('change keyup', function(evt, ui) {
 		var val = $(this).val();
 		if (val.match(/^$|\d{2}\/\d{2}\/\d{4}/)) {
@@ -90,21 +123,21 @@ $(function() {
 		}
 	});
 
-	function updateView(state) {
-		var mvs = state['messageViewState'];
-		if (mvs['uri'] != message_view_state['uri'] || mvs['query'] != message_view_state['query']) {
-			message_view_state = mvs;
-			load_message(message_view_state);
-		}
+	/** 
+	* Load the document in the document viewer
+	* @param dvs The document_viewer_state object.
+	*/
+	function load_document(dvs) {
+		$('#document_id_input').val(dvs['uri']);
+		$('#doc_viewer').attr('src', '../main/renderDocument.html?uri=' + dvs['uri']);
 	}
 
-	// Load the document
-	function load_message(mvs) {
-		$('#document_id_input').val(mvs['uri']);
-		$('#doc_viewer').attr('src', '../main/renderDocument.html?uri=' + mvs['uri']);
-	}
-
-	// Run a search
+	/** 
+	* Run a search. Update the result display and handle errors.
+	* @param search_object The global search_object object that contains search parameters like
+	*   startIndex, count, q (the query string), and facets (the list of selected facets)
+	* 
+	*/
 	function run_search(search_object) {
 		$('.search_button_text').hide();
 		$('.search_button_image').show();
@@ -215,8 +248,12 @@ $(function() {
 			$('#results_div').html('<div class="alert alert-danger">An error occurred processing your search</div>');
 		});
 		$('body').trigger('run_search', [searchData]);
-	}
+	} //end run_search
 
+	/** 
+	* Add the pager to the bottom of the results list.
+	* @param data The json response from the call to search.json
+	*/
 	function do_pager(data) {
 		var start = data['startIndex'];
 		var pagesize = data['count'];
@@ -283,28 +320,33 @@ $(function() {
 		$('#page_prev a').data('startIndex', ((currentpage - 1) * pagesize) - pagesize + 1);
 		$('#page_next a').data('startIndex', ((currentpage + 1) * pagesize) - pagesize + 1);
 		$('#page_last a').data('startIndex', (totalpages * pagesize) - pagesize + 1);
-	}
+	} //end do_pager
 
-	if (window.location.hash == '') {
+	/**
+	* When the page is done loading, check the hash to see if the user got here
+	* from a link that has a hash. If so, parse the hash and see what we need
+	* to show the user.
+	*/
+	if (window.location.hash == '') { //No hash present
 		var id = '#search';
-		var state = {'id': id, 'hash': '#search/', messageViewState: message_view_state};
+		var state = {'id': id, 'hash': '#search/', documentViewerState: document_viewer_state};
 		history.replaceState(state, 'MarkLogic', id + '/');
-	} else {
+	} else { //Hash present. Parse the hash.
 		var hash = window.location.hash;
-		var state = {'id': null, 'hash': '#search/', messageViewState: message_view_state};
-		if (hash.indexOf('#documents/') == 0) {
+		var state = {'id': null, 'hash': '#search/', documentViewerState: document_viewer_state};
+		if (hash.indexOf('#documents/') == 0) { //The user should be shown the document viewer
 			var uri = hash.substring(hash.indexOf('#documents/') + 10);
-			message_view_state['uri'] = uri;
+			document_viewer_state['uri'] = uri;
 			$('#main_tabs a[href="#documents"]').tab('show');
 			state['id'] = '#documents';
 		}
 		history.replaceState(state, 'MarkLogic', hash);
 	}
 
-	$('#search_button').click();
-	$('#quicksearch_text').focus();
-	$('#startDate').datepicker({multidate: false, autoclose: true});
-	$('#endDate').datepicker({multidate: false, autoclose: true});
+	$('#search_button').click(); //Run an empty search when the page first loads
+	$('#quicksearch_text').focus(); //Focus the search input box so the user can start typing immediately
+	$('#startDate').datepicker({multidate: false, autoclose: true}); //Create a datepicker widget
+	$('#endDate').datepicker({multidate: false, autoclose: true}); //Create a datepicker widget
 
-	load_message(message_view_state);
+	load_document(document_viewer_state); //Initialize the document viewer
 });

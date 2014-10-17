@@ -1,5 +1,5 @@
 (:
-Copyright 2012 MarkLogic Corporation
+Copyright 2014 MarkLogic Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -94,11 +94,11 @@ declare private function c:build-query() {
 
 (: Gets the time-series data for a query :)
 declare function c:getTimeseriesData() as item()* {
-    let $value := req:get("value", (), "type=xs:string")
+    let $date-string := req:get("dateString", (), "type=xs:string")
 
     let $query := c:build-query()
 
-    let $data-map := ts:build-timeseries-map($query, $value)
+    let $data-map := ts:build-timeseries-map($query, $date-string)
 
     let $responseMap := map:map()
     let $_ := map:put($responseMap, "success", fn:true())

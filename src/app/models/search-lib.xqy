@@ -1,5 +1,5 @@
 (:
-Copyright 2012 MarkLogic Corporation
+Copyright 2014 MarkLogic Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,22 +29,50 @@ declare namespace lbl = "http://marklogic.com/xqutils/labels";
 
 declare option xdmp:mapping "false";
 
-(: Execute a search with the configured options :)
+(:
+ : ***********************************************
+ : Execute a search with the configured options
+ : @param query The query to run
+ : @output search results object
+ : ***********************************************
+ :)
 declare function m:search($query as xs:string, $startIndex as xs:int, $count as xs:int) {
     search:search($query, $c:SEARCH-OPTIONS, $startIndex, $count)
 };
 
 (: Run a cts-query with the configured options :)
+(:
+ : ***********************************************
+ : Run a search with a cts:query with the configured options
+ : @param cts-query The query to run
+ : @output search results object
+ : ***********************************************
+ :)
 declare function m:run-query($cts-query as element(), $startIndex as xs:int, $count as xs:int) {
 	search:resolve($cts-query, $c:SEARCH-OPTIONS, $startIndex, $count)
 };
 
+(:
+ : ***********************************************
+ : Build a cts:query based on a list of facets
+ : @param facets A sequence of facets in the form facet:value
+ : @output A cts:query of the facet selections
+ : ***********************************************
+ :)
 declare function m:build-facet-query($facets as xs:string*) {
 	let $and-joiner := (($c:SEARCH-OPTIONS, search:get-default-options())/search:grammar/search:joiner[@element/fn:string()="cts:and-query"]/fn:string())[1]
 	let $facet-string := fn:string-join($facets, " " || $and-joiner || " ")
 	return cts:query(search:parse($facet-string, $c:SEARCH-OPTIONS))
 };
 
+(:
+ : ***********************************************
+ : Build a cts:query against the configured dateTime range indexes
+ : @param startDate One or more dateTime values to constrain the start
+ : @param endDate One or more dateTime values to constrain the end
+ : @output A cts:query constrained by the input dateTime values
+ : ***********************************************
+ :)
 declare function m:build-datetime-query($startDate as xs:dateTime*, $endDate as xs:dateTime*) {
 	<x>
 	{
@@ -56,11 +84,25 @@ declare function m:build-datetime-query($startDate as xs:dateTime*, $endDate as 
 	</x>/node()
 };
 
-(: Parse a search string and apply the configured search options :)
+(:
+ : ***********************************************
+ : Parse a search string and return its cts:query representation
+ : @param query The search string
+ : @output A cts:query representation of the search string
+ : ***********************************************
+ :)
 declare function m:parse($query as xs:string) {
 	search:parse($query, $c:SEARCH-OPTIONS)
 };
 
+(:
+ : ***********************************************
+ : Format the results for display as json
+ : @param response A search result object
+ : @param language The language to apply to the facet display, taken from the Accept-Lanuge header
+ : @output The json formatted response
+ : ***********************************************
+ :)
 declare function m:format-results($response, $language) {
 	let $execTimestamp := fn:current-dateTime()
 
@@ -83,7 +125,12 @@ declare function m:format-results($response, $language) {
 		json:transform-to-json($xml)
 };
 
-declare function m:format-result($result) {
+(:
+ : ***********************************************
+ : Helper function. Format a single result.
+ : ***********************************************
+ :)
+declare private function m:format-result($result) {
 	let $uri := $result/@uri/fn:string()
 	let $doc := fn:doc($uri)
 	let $xml := 
@@ -100,7 +147,12 @@ declare function m:format-result($result) {
 		$xml
 };
 
-declare function m:format-facets($facets, $language) {
+(:
+ : ***********************************************
+ : Helper function. Format the facets.
+ : ***********************************************
+ :)
+declare private function m:format-facets($facets, $language) {
 	<facets type="object" xmlns="http://marklogic.com/xdmp/json/basic">
 	{	
 		for $g in $c:FACET-GROUPS/c:group
@@ -130,15 +182,30 @@ declare function m:format-facets($facets, $language) {
 	</facets>
 };
 
-declare function m:snippet($result) {
+(:
+ : ***********************************************
+ : Helper function for snippeting.
+ : ***********************************************
+ :)
+declare private function m:snippet($result) {
 	<jsonb:snippets type="array">{m:snippet-transform($result)}</jsonb:snippets>
 };
 
-declare function m:snippet-passthrough($x as node()) as node()* {
+(:
+ : ***********************************************
+ : Helper function for snippeting.
+ : ***********************************************
+ :)
+declare private function m:snippet-passthrough($x as node()) as node()* {
 	for $z in $x/node() return m:snippet-transform($z)
 };
 
-declare function m:snippet-transform($x as node()) as node()* {
+(:
+ : ***********************************************
+ : Helper function for snippeting.
+ : ***********************************************
+ :)
+declare private function m:snippet-transform($x as node()) as node()* {
 	typeswitch($x)
 		case text() return $x
 		case element (search:highlight) return <span class='snippet-term-highlight'>{$x/fn:string()}</span>
