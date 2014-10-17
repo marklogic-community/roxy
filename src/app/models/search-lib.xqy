@@ -25,6 +25,7 @@ import module namespace impl = "http://marklogic.com/appservices/search-impl" at
 import module namespace json="http://marklogic.com/xdmp/json" at "/MarkLogic/json/json.xqy";
 
 declare namespace jsonb = "http://marklogic.com/xdmp/json/basic";
+declare namespace lbl = "http://marklogic.com/xqutils/labels";
 
 declare option xdmp:mapping "false";
 
@@ -60,7 +61,7 @@ declare function m:parse($query as xs:string) {
 	search:parse($query, $c:SEARCH-OPTIONS)
 };
 
-declare function m:format-results($response) {
+declare function m:format-results($response, $language) {
 	let $execTimestamp := fn:current-dateTime()
 
 	(: Build the main search response object :)
@@ -76,7 +77,7 @@ declare function m:format-results($response) {
 				return m:format-result($result)
 			}
 			</results>
-			{ m:format-facets($response/search:facet) }
+			{ m:format-facets($response/search:facet, $language) }
 		</json>
 	return
 		json:transform-to-json($xml)
@@ -99,7 +100,7 @@ declare function m:format-result($result) {
 		$xml
 };
 
-declare function m:format-facets($facets) {
+declare function m:format-facets($facets, $language) {
 	<facets type="object" xmlns="http://marklogic.com/xdmp/json/basic">
 	{	
 		for $g in $c:FACET-GROUPS/c:group
@@ -107,8 +108,9 @@ declare function m:format-facets($facets) {
 			element { $g/@name } {
 				attribute type { "object" },
 				for $facet in $facets//search:facet-value/..[@name = $g/c:facet-name]
+				let $label := ($c:LABELS/lbl:label[@key = $facet/@name]/lbl:value[@xml:lang = $language]/fn:string(), $facet/@name)[1]
 				return
-					element {$facet/@name} {
+					element {fn:replace($label, ' ', '_20_')} {
 						attribute {"type"} {"array"},
 						for $fv in $facet/search:facet-value
 						return

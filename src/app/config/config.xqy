@@ -89,8 +89,8 @@ declare variable $c:SEARCH-OPTIONS :=
  :)
 declare variable $c:LABELS :=
   <labels xmlns="http://marklogic.com/xqutils/labels">
-    <label key="facet1">
-      <value xml:lang="en">Sample Facet</value>
+    <label key="country">
+      <value xml:lang="en">Country</value>
     </label>
   </labels>;
 
@@ -122,9 +122,9 @@ declare variable $c:GEO-ELEMENT-INDEX-NAMES := ((:fn:QName("http://marklogic.com
 declare variable $c:GEO-ELEMENT-CHILD-INDEX-PARENT-NAMES := ((:fn:QName("http://marklogic.com/roxy", "GEO"):));
 declare variable $c:GEO-ELEMENT-CHILD-INDEX-NAMES := ((:fn:QName("http://marklogic.com/roxy", "POINT"):));
 (: Geospatial Element Pair Index :)
-declare variable $c:GEO-ELEMENT-PAIR-INDEX-PARENT-NAMES := (fn:QName("urn:us:gov:ic:rmt:geo", "GEO"));
-declare variable $c:GEO-ELEMENT-PAIR-INDEX-LAT-NAMES := (fn:QName("", "Latitude"));
-declare variable $c:GEO-ELEMENT-PAIR-INDEX-LON-NAMES := (fn:QName("", "Longitude"));
+declare variable $c:GEO-ELEMENT-PAIR-INDEX-PARENT-NAMES := ((:fn:QName("http://marklogic.com/roxy", "GEO"):));
+declare variable $c:GEO-ELEMENT-PAIR-INDEX-LAT-NAMES := ((:fn:QName("", "Latitude"):));
+declare variable $c:GEO-ELEMENT-PAIR-INDEX-LON-NAMES := ((:fn:QName("", "Longitude"):));
 (: Geospatial Attribute Pair Index :)
 declare variable $c:GEO-ATTRIBUTE-PAIR-INDEX-PARENT-NAMES := (fn:QName("urn:us:gov:ic:rmt:geo", "GEO"));
 declare variable $c:GEO-ATTRIBUTE-PAIR-INDEX-LAT-NAMES := (fn:QName("", "Latitude"));

@@ -54,11 +54,14 @@ declare function c:main() as item()*
 declare function c:search() as item()* {
   let $startIndex as xs:int := req:get("startIndex", 1, "type=xs:int")
   let $count := req:get("count", $conf:DEFAULT-PAGE-LENGTH, "type=xs:int")
+  let $language := fn:substring(xdmp:get-request-header("Accept-Language", "en-US,en;q=0.8"), 1, 2)
 
   let $query := c:build-query()
+
+  let $_ := xdmp:log(xdmp:quote($query))
     
   let $results := s:run-query($query, $startIndex, $count)
-  return s:format-results($results)
+  return s:format-results($results, $language)
 };
 
 declare function c:renderDocument() as item()* {
@@ -83,8 +86,8 @@ declare private function c:build-query() {
     {
       s:parse($q),
       s:build-facet-query($facets),
-      s:build-datetime-query($start-date, $end-date),
-      if (fn:empty($geo-json)) then () else geo:build-geo-query($geo-json)
+      if (fn:not($conf:DATE-RANGE-ENABLED)) then () else s:build-datetime-query($start-date, $end-date),
+      if (fn:empty($geo-json) or fn:not($conf:GEO-ENABLED)) then () else geo:build-geo-query($geo-json)
     }
     </cts:and-query>
 };
@@ -108,7 +111,7 @@ declare function c:getTimeseriesData() as item()* {
 declare function c:getGeoData() as item()* {
     let $query := c:build-query()
 
-    let $points := geo:get-geo-points($query)
+    let $points := if (fn:not($conf:GEO-ENABLED)) then () else geo:get-geo-points($query)
 
     let $xml :=
         <json type="object" xmlns="http://marklogic.com/xdmp/json/basic">
