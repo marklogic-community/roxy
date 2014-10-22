@@ -188,10 +188,8 @@ $(function() {
 
 				var facets = [];
 				var facet_data = data['facets'];
-				for (var category in facet_data) {
-					for (var facet in facet_data[category]) {
-						facets.push({key: facet, value: facet_data[category][facet]});
-					}
+				for (var facet in facet_data) {
+					facets.push({key: facet, value: facet_data[facet]});
 				}
 
 				for (var i=0; i < search_object['facets'].length; i++) {

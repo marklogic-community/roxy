@@ -155,28 +155,26 @@ declare private function m:format-result($result) {
 declare private function m:format-facets($facets, $language) {
 	<facets type="object" xmlns="http://marklogic.com/xdmp/json/basic">
 	{	
-		for $g in $c:FACET-GROUPS/c:group
+		for $facet in $facets//search:facet-value/..
+		let $label := ($c:LABELS/lbl:label[@key = $facet/@name]/lbl:value[@xml:lang = $language]/fn:string(), $facet/@name)[1]
 		return
-			element { $g/@name } {
-				attribute type { "object" },
-				for $facet in $facets//search:facet-value/..[@name = $g/c:facet-name]
-				let $label := ($c:LABELS/lbl:label[@key = $facet/@name]/lbl:value[@xml:lang = $language]/fn:string(), $facet/@name)[1]
+			element {fn:replace($label, ' ', '_20_')} {
+				attribute {"type"} {"array"},
+				for $fv in $facet/search:facet-value
 				return
-					element {fn:replace($label, ' ', '_20_')} {
-						attribute {"type"} {"array"},
-						for $fv in $facet/search:facet-value
-						return
-							<json type="object">
-							{	
-								for $attr in $fv/@*
-								return
-									element { $attr/fn:name() } { 
-										attribute {"type"} { "string" },
-										$attr/fn:string()
-									}
-							}
-							</json>
-					}
+					if ($fv/@name != '') then
+						<json type="object">
+						{	
+							for $attr in $fv/@*
+							return
+								element { $attr/fn:name() } { 
+									attribute {"type"} { "string" },
+									$attr/fn:string()
+								}
+						}
+						</json>
+					else
+						()
 			}
 	}
 	</facets>
