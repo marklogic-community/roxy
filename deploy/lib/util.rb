@@ -64,6 +64,44 @@ def path_separator
 	is_windows? ? ";" : ":"
 end
 
+def is_jar?
+  __FILE__.match(/.*\.jar.*/) != nil
+end
+
+def copy_file(src, target)
+  if is_jar?
+    contents = read_file(src)
+    File.open(target, "w") { |file| file.write(contents) }
+  else
+    FileUtils.cp(src, target)
+  end
+end
+
+def read_file(filename)
+  if is_jar?
+    require 'java'
+    stream = self.to_java.get_class.get_class_loader.get_resource_as_stream(filename)
+    br = java.io.BufferedReader.new(java.io.InputStreamReader.new(stream))
+    contents = ""
+    while (line = br.read_line())
+      contents = contents + line + "\n"
+    end
+    br.close()
+    return contents
+  else
+    File.read(filename)
+  end
+end
+
+def file_exists?(filename)
+  if is_jar?
+    require 'java'
+    self.to_java.get_class.get_class_loader.get_resource_as_stream(filename) != nil
+  else
+    return File.exists?(filename)
+  end
+end
+
 class String
   unless respond_to? :try
     def try(method)

@@ -1,3 +1,4 @@
+require 'test/unit'
 require 'util'
 
 class TestProperties < Test::Unit::TestCase
