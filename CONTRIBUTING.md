@@ -44,7 +44,7 @@ chances of your issue being dealt with quickly:
 
 #### Fork Roxy
 
-Fork the project [on GitHub](https://github.com/marklogic/roxy/fork) and check out
+Fork the project [on GitHub](https://github.com/marklogic/roxy/fork) and clone
 your copy.
 
 ```sh
@@ -70,6 +70,12 @@ and start hacking:
 ```sh
 $ git checkout -b my-feature-branch -t origin/dev
 ```
+
+#### Formatting code
+
+We use [.editorconfig][] to configure our editors for proper code formatting. If you don't
+use a tool that supports editorconfig be sure to configure your editor to use the settings
+equivalent to our .editorconfig file.
 
 #### Commit your changes
 
@@ -178,3 +184,4 @@ from the main (upstream) repository:
 
 [issue tracker]: https://github.com/marklogic/roxy/issues
 [mailing list]: http://developer.marklogic.com/mailman/listinfo/roxy
+[.editorconfig]: http://editorconfig.org/
