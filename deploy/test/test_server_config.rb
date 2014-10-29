@@ -1,98 +1,197 @@
-require 'test/unit'
+require 'minitest/autorun'
+require 'minitest/mock'
 require 'server_config'
 require 'util'
 
-class TestProperties < Test::Unit::TestCase
+describe ServerConfig do
 
-  def teardown
-    Logger.new(STDOUT).info "Teardown: Wiping self-test deployment.." if @s
-    @s.wipe if @s
+  describe "load_properties" do
+    before do
+      @properties = ServerConfig.load_properties(File.expand_path("../data/ml6-properties/default.properties", __FILE__), "test.")
+    end
+
+    it "should load the properties" do
+      @properties.must_be_kind_of Hash
+      @properties['test.user'].must_equal 'admin'
+      @properties['test.password'].must_equal 'admin'
+      @properties['test.app-name'].must_equal 'roxy'
+    end
   end
 
-  def test_load_properties
-    properties = ServerConfig.load_properties(File.expand_path("../data/ml6-properties/default.properties", __FILE__), "test.")
-    assert(properties.is_a?(Hash))
-    assert_equal('admin', properties['test.user'])
-    assert_equal('admin', properties['test.password'])
-    assert_equal('roxy', properties['test.app-name'])
+  describe "substitute_properties" do
+
+    it "should substitute properties" do
+      sub_me = { 'username' => 'bob-${last-name}', 'password' => '123' }
+      with_me = { 'last-name' => 'smith' }
+      properties = ServerConfig.substitute_properties(sub_me, with_me)
+
+      properties.must_be_kind_of Hash
+
+      properties['username'].must_equal 'bob-smith'
+      properties['password'].must_equal '123'
+    end
+
+    it "should substitute properties with a prefix" do
+      sub_me = { 'username' => 'bob-${last-name}', 'password' => '123' }
+      with_me = { 'ml.last-name' => 'smith' }
+      properties = ServerConfig.substitute_properties(sub_me, with_me, "ml.")
+
+      properties.must_be_kind_of Hash
+
+      properties['username'].must_equal 'bob-smith'
+      properties['password'].must_equal '123'
+    end
   end
 
-  def test_substitute_properties
-    sub_me = { 'username' => 'bob-${last-name}', 'password' => '123' }
-    with_me = { 'last-name' => 'smith' }
-    properties = ServerConfig.substitute_properties(sub_me, with_me)
-    assert(properties.is_a?(Hash))
-    assert_equal('bob-smith', properties['username'])
-    assert_equal('123', properties['password'])
+  describe "load properties" do
 
-    sub_me = { 'username' => 'bob-${last-name}', 'password' => '123' }
-    with_me = { 'ml.last-name' => 'smith' }
-    properties = ServerConfig.substitute_properties(sub_me, with_me, "ml.")
-    assert(properties.is_a?(Hash))
-    assert_equal('bob-smith', properties['username'])
-    assert_equal('123', properties['password'])
+    it "should load properties from a file" do
+      properties = ServerConfig.properties(File.expand_path("../data/ml6-properties/", __FILE__))
+
+      properties.must_be_kind_of Hash
+      properties['ml.user'].must_equal 'admin'
+      properties['ml.password'].must_equal 'admin'
+      properties['ml.app-name'].must_equal 'roxy-deployer-tester'
+    end
   end
 
-  def test_properties
-    properties = ServerConfig.properties(File.expand_path("../data/ml6-properties/", __FILE__))
-    assert(properties.is_a?(Hash))
-    assert_equal('admin', properties['ml.user'])
-    assert_equal('admin', properties['ml.password'])
-    assert_equal('roxy-deployer-tester', properties['ml.app-name'])
+  describe "bootstrap" do
+
+    before do
+      @version = ENV['ROXY_TEST_SERVER_VERSION'] || 7
+      @logger = Logger.new(STDOUT)
+      @logger.info "Testing against MarkLogic version #{@version}.."
+
+      # cheat the local environment into the command line
+      ARGV << "local"
+
+      @properties = ServerConfig.properties(File.expand_path("../data/ml#{@version}-properties/", __FILE__))
+      @s = ServerConfig.new({
+          :config_file => File.expand_path("../data/ml#{@version}-config.xml", __FILE__),
+          :properties => @properties,
+          :logger => @logger
+        })
+
+      @s.bootstrap.must_equal true
+      @s.validate_install.must_equal true
+    end
+
+    it "should bootstrap successfully twice consecutively" do
+      @s.bootstrap.must_equal true
+      @s.validate_install.must_equal true
+    end
+
+    it "should bootstrap a changed config file" do
+      changed_config = File.expand_path("../data/ml#{@version}-config-changed.xml", __FILE__)
+
+      if File.exists?(changed_config)
+        @s = ServerConfig.new({
+            :config_file => changed_config,
+            :properties => @properties,
+            :logger => @logger
+          })
+
+        @s.bootstrap.must_equal true
+        @s.validate_install.must_equal true
+      end
+    end
+
+    after do
+      @logger.info "Wiping self-test deployment.."
+      @s.wipe
+
+      sleep(10)
+    end
   end
 
-  def test_build_config
+  # issue #228
+  describe "load properties from command" do
+
+    before do
+      ARGV << "--ml.yoda-age=900"
+      ARGV << "--ml.missing-key=val1"
+
+      @logger = MiniTest::Mock.new
+      @logger.expect :warn, nil, ["Property ml.missing-key does not exist. It will be skipped."]
+
+      ServerConfig.logger = @logger
+      @properties = ServerConfig.properties(File.expand_path("../data/ml7-properties/", __FILE__))
+    end
+
+    it "should warn the user when missing keys are provided" do
+      @logger.verify.must_equal true
+    end
+
+    it "should load valid properites from a command" do
+      @properties['ml.yoda-age'].must_equal '900'
+    end
+
+    it "should not set missing keys" do
+      @properties.has_key?('missing-key').wont_equal true
+    end
+
+    after do
+      ARGV.shift
+      ARGV.shift
+    end
   end
 
-  def bootstrap_version(version)
-    # cheat the local environment into the command line
-    ARGV << "local"
+  describe "test_credentials" do
 
-    properties = ServerConfig.properties(File.expand_path("../data/ml#{version}-properties/", __FILE__))
-    @s = ServerConfig.new({
-        :config_file => File.expand_path("../data/ml#{version}-config.xml", __FILE__),
+    before do
+      ARGV << "local"
+
+      test_env = "blah"
+      properties = ServerConfig.properties
+
+      properties["environment"] = test_env
+      properties["ml.environment"] = test_env
+
+      @s = ServerConfig.new({
+        :config_file => File.expand_path(properties["ml.config.file"], __FILE__),
         :properties => properties,
         :logger => Logger.new(STDOUT)
       })
 
-    assert(@s.bootstrap, "Boostrap should succeeded")
-    assert(@s.validate_install, "Bootstrap passes validation")
-
-    assert(@s.bootstrap, "Boostrap should succeeded")
-    assert(@s.validate_install, "Bootstrap passes validation")
-
-    if File.exist? File.expand_path("../data/ml#{version}-config-changed.xml", __FILE__)
-      @s = ServerConfig.new({
-          :config_file => File.expand_path("../data/ml#{version}-config-changed.xml", __FILE__),
-          :properties => properties,
-          :logger => Logger.new(STDOUT)
-        })
-
-      assert(@s.bootstrap, "Boostrap should succeeded")
-      assert(@s.validate_install, "Bootstrap passes validation")
+      filename = "#{test_env}.properties"
+      path = ServerConfig.path
+      @properties_file = ServerConfig.expand_path("#{path}/#{filename}")
     end
-    
-    # TODO: temporary fix to wipe self-test until teardown is fixed
-    Logger.new(STDOUT).info "Wiping self-test deployment.."
-    @s.wipe
+
+    it "should prompt the user for credentials" do
+      File.exists?(@properties_file).must_equal false
+
+      with_stdin do |user|
+        user.puts "bob"
+        user.puts "smith"
+        @s.credentials
+      end
+
+      File.exists?(@properties_file).must_equal true
+
+      props_data = File.read(@properties_file)
+
+      user = $1 if props_data =~ /user=(\w+)/
+      password = $1 if props_data =~ /password=(\w+)/
+
+      user.must_equal 'bob'
+      password.must_equal 'smith'
+    end
+
+    after do
+      File.delete(@properties_file)
+      @s = nil
+    end
+
   end
 
-  def test_bootstrap
-    version = ENV['ROXY_TEST_SERVER_VERSION'] || 7
-    Logger.new(STDOUT).info "Testing against MarkLogic version #{version}.."
-    bootstrap_version version
-  end
 
-  # issue #228
-  def test_load_properties_from_command
-    ARGV << "--ml.yoda-age=900"
-    ARGV << "--ml.missing-key=val1"
-    Logger.new(STDOUT).info "A warning about a non-existing property named 'ml.missing-key' will follow, that is supposed to happen.."
-    properties = ServerConfig.properties(File.expand_path("../data/ml7-properties/", __FILE__))
-    assert_equal('900', properties['ml.yoda-age'])
-    assert(!properties.has_key?('missing-key'))
-    ARGV.shift
-    ARGV.shift
+  def with_stdin
+    stdin = $stdin             # remember $stdin
+    $stdin, write = IO.pipe    # create pipe assigning its "read end" to $stdin
+    yield write                # pass pipe's "write end" to block
+  ensure
+    write.close                # close pipe
+    $stdin = stdin             # restore $stdin
   end
-
 end
