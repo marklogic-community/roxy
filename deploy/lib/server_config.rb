@@ -51,6 +51,10 @@ class ServerConfig < MLClient
   @@path = @@is_jar ? "./deploy" : "../.."
   @@context = @@is_jar ? Dir.pwd : __FILE__
 
+  def self.path
+    @@path
+  end
+
   def initialize(options)
     @options = options
 
@@ -436,6 +440,26 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def wipe
+    if @environment != "local"
+      expected_response = %Q{I WANT TO WIPE #{@environment.upcase}}
+      print %Q{
+*******************************************************************************
+WARNING!!! You are attempting to wipe your #{@environment.upcase} environment!
+
+This will remove everything that Roxy has bootstrapped. It's quite dangerous.
+*******************************************************************************
+
+Are you sure you want to do this?
+
+In order to proceed please type: #{expected_response}
+:> }
+      response = $stdin.gets.chomp
+      if response != expected_response
+        logger.info "\nAborting wipe on #{@environment}"
+        return
+      end
+    end
+
     appbuilder = find_arg(['--app-builder'])
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
 
@@ -868,12 +892,11 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     end
     properties["user"] = user
     properties["password"] = password
-    open(properties_file, 'w') {
-      |f|
+    File.open(properties_file, 'w') do |f|
       properties.each do |k,v|
         f.write "#{k}=#{v}\n"
       end
-    }
+    end
     logger.info "wrote #{properties_file}"
   end
 
