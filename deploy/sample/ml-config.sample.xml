@@ -1,7 +1,7 @@
 <configuration>
 <!--
   Only enable the task server section if you need to.
-  <task-server xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+  <task-server group="Default" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <threads>16</threads>
     <debug-threads>16</debug-threads>
     <max-time-limit>3600</max-time-limit>
@@ -84,7 +84,7 @@
 -->
   <http-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <!--Default Application Server-->
-    <http-server>
+    <http-server group="Default">
       <http-server-name>@ml.app-name</http-server-name>
       <port>@ml.app-port</port>
       <database name="@ml.content-db"/>
@@ -131,7 +131,7 @@
     <!--Application Database Configuration-->
     @ml.test-content-db-xml
     @ml.rest-modules-db-xml
-    <database>
+    <database group="Default">
       <database-name>@ml.content-db</database-name>
       <forests-per-host>@ml.content-forests-per-host</forests-per-host>
       @ml.schemas-mapping
@@ -358,7 +358,7 @@
       </element-attribute-word-lexicons>
     </database>
     <!--Create Application Modules Database-->
-    <database>
+    <database group="Default">
       <database-name>@ml.modules-db</database-name>
       <forests>
         <forest-id name="@ml.modules-db"/>
