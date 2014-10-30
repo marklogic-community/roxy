@@ -17,9 +17,14 @@ require 'Help'
 require 'server_config'
 require 'framework'
 require 'util'
-require 'app_specific'
 require 'upgrader'
 require 'scaffold'
+
+if is_jar?
+  require ServerConfig.expand_path("./deploy/app_specific")
+else
+  require 'app_specific'
+end
 
 def need_help?
   find_arg(['-h', '--help']) != nil

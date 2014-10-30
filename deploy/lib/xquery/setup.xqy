@@ -32,7 +32,6 @@ declare namespace mt="http://marklogic.com/xdmp/mimetypes";
 
 declare option xdmp:mapping "false";
 
-declare variable $default-group := xdmp:group();
 declare variable $default-host := xdmp:host();
 declare variable $default-database := xdmp:database();
 declare variable $default-modules := xdmp:database("Modules");
@@ -255,13 +254,8 @@ declare function setup:get-rollback-config()
 {
   element configuration
   {
-    element gr:task-server
-    {
-      element gr:scheduled-tasks
-      {
-        map:get($roll-back, "scheduled-tasks")
-      }
-    },
+    map:get($roll-back, "task-server"),
+
     element gr:http-servers
     {
       map:get($roll-back, "http-servers")
@@ -314,6 +308,7 @@ declare function setup:do-setup($import-config as element(configuration)) as ite
     setup:create-roles($import-config),
     setup:create-users($import-config),
     setup:create-mimetypes($import-config),
+    setup:create-groups($import-config),
     setup:create-forests($import-config),
     setup:create-databases($import-config),
     setup:attach-forests($import-config),
@@ -340,17 +335,15 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   (: remove scheduled tasks :)
   let $admin-config := admin:get-configuration()
   let $remove-tasks :=
-    let $tasks :=
-      for $task in $import-config/gr:task-server/gr:scheduled-tasks/gr:scheduled-task
-      let $existing := setup:get-scheduled-task($task)
-      return
-        $existing
+    for $task-server in $import-config/gr:task-server
+    let $group := setup:get-group($task-server)
+    for $task in $task-server/gr:scheduled-tasks/gr:scheduled-task
+    let $existing := setup:get-scheduled-task($task, $group)
+    where $existing
     return
-      if ($tasks) then
-        xdmp:set(
-          $admin-config,
-          admin:group-delete-scheduled-task($admin-config, $default-group, $tasks))
-      else ()
+      xdmp:set(
+        $admin-config,
+        admin:group-delete-scheduled-task($admin-config, $group, $existing))
   return
     if (admin:save-configuration-without-restart($admin-config)) then
       xdmp:set($restart-needed, fn:true())
@@ -358,18 +351,42 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
 
   (: remove appservers :)
   let $admin-config := admin:get-configuration()
-  let $groupid := xdmp:group()
   let $remove-appservers :=
-    for $as-name in ($import-config/gr:http-servers/gr:http-server/gr:http-server-name,
-                     $import-config/gr:xdbc-servers/gr:xdbc-server/gr:xdbc-server-name,
-                     $import-config/gr:odbc-servers/gr:odbc-server/gr:odbc-server-name)
+    for $app-server in ($import-config/gr:http-servers/gr:http-server,
+      $import-config/gr:xdbc-servers/gr:xdbc-server,
+      $import-config/gr:odbc-servers/gr:odbc-server)
+    let $group := setup:get-group($app-server)
+    for $as-name in ($app-server/(gr:http-server-name|gr:xdbc-server-name|gr:odbc-server-name))
     return
-      if (admin:appserver-exists($admin-config, $groupid, $as-name)) then
+      if (admin:appserver-exists($admin-config, $group, $as-name)) then
         xdmp:set(
           $admin-config,
           admin:appserver-delete(
             $admin-config,
-            admin:appserver-get-id($admin-config, $groupid, $as-name)))
+            admin:appserver-get-id($admin-config, $group, $as-name)))
+      else ()
+  return
+    if (admin:save-configuration-without-restart($admin-config)) then
+      xdmp:set($restart-needed, fn:true())
+    else (),
+
+  (: remove groups :)
+  let $admin-config := admin:get-configuration()
+  let $remove-groups :=
+    let $groups := (
+      setup:get-http-appservers-from-config($import-config),
+      $import-config/gr:xdbc-servers/gr:xdbc-server,
+      $import-config/gr:odbc-servers/gr:odbc-server
+    )/@group[fn:not(. = "Default")]
+    for $group in $groups
+    let $group-id := xdmp:group($group)
+    return
+      if (admin:group-exists($admin-config, $group)) then
+        xdmp:set(
+          $admin-config,
+          admin:group-delete(
+            $admin-config,
+            $group-id))
       else ()
   return
     if (admin:save-configuration-without-restart($admin-config)) then
@@ -396,6 +413,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
       </options>
     ),
 
+  (: remove amps :)
   let $admin-config := admin:get-configuration()
   for $amp in $import-config/sec:amps/sec:amp
   where admin:database-exists($admin-config, $amp/sec:db-name)
@@ -424,6 +442,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
         xdmp:rethrow()
     },
 
+  (: remove databases :)
   let $databases :=
     (
       $import-config/db:databases/db:database[db:security-database or db:schema-database or db:triggers-database],
@@ -433,17 +452,19 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   return
     setup:delete-databases($db-config),
 
+  (: remove forests :)
   let $admin-config := admin:get-configuration()
   let $remove-forests :=
     let $all-replica-names as xs:string* := $import-config/as:assignments/as:assignment/as:replica-names/as:replica-name
     for $assignment in $import-config/as:assignments/as:assignment[fn:not(as:forest-name = $all-replica-names)]
     let $forest-name := $assignment/as:forest-name
     let $db-config := $import-config/db:databases/db:database[db:forests/db:forest-id/@name = $forest-name]
+    let $group := setup:get-group($db-config)
     let $forests-per-host := $db-config/db:forests-per-host
     let $forest-names :=
       if (fn:exists($forests-per-host)) then
         let $database-name := setup:get-database-name-from-database-config($db-config)
-        for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+        for $host at $position in admin:group-get-host-ids($admin-config, $group)
         for $j in (1 to $forests-per-host)
         return
           fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
@@ -467,10 +488,10 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
             ),
 
           try {
-        xdmp:set(
-          $admin-config,
-          admin:forest-delete(
-            $admin-config,
+            xdmp:set(
+              $admin-config,
+              admin:forest-delete(
+                $admin-config,
                 $forest-id, fn:true()))
           }
           catch($ex) {
@@ -487,6 +508,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
       xdmp:set($restart-needed, fn:true())
     else (),
 
+  (: remove mimetypes :)
   let $admin-config := admin:get-configuration()
   let $remove-mimetypes :=
     for $x in $import-config/mt:mimetypes/mt:mimetype
@@ -508,6 +530,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
   return
     admin:save-configuration($admin-config),
 
+  (: remove users :)
   for $user in $import-config/sec:users/sec:user/sec:user-name[fn:not(. = $system-users)]
   return
     try
@@ -528,6 +551,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
         xdmp:rethrow()
     },
 
+  (: remove roles :)
   for $role in $import-config/sec:roles/sec:role/sec:role-name[fn:not(. = $system-roles)]
   return
     try
@@ -548,6 +572,7 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
         xdmp:rethrow()
     },
 
+  (: remove privileges :)
   for $priv in $import-config/sec:privileges/sec:privilege
   return
     try
@@ -612,9 +637,9 @@ declare function setup:do-restart($group-name as xs:string?) as item()*
       fn:concat($group-name, "Group restarted")
     )
   }
-  catch ($e)
+  catch ($ex)
   {
-    if ($e/error:code = "XDMP-NOSUCHGROUP") then
+    if ($ex/error:code = "XDMP-NOSUCHGROUP") then
       fn:concat("Cannot restart group ", $group-name, ", no such group")
     else
       xdmp:rethrow()
@@ -624,8 +649,9 @@ declare function setup:do-restart($group-name as xs:string?) as item()*
 declare function setup:find-forest-ids(
   $db-config as element(db:database)) as xs:unsignedLong*
 {
+  let $group := setup:get-group($db-config)
   let $admin-config := admin:get-configuration()
-  for $host at $position in admin:group-get-host-ids($admin-config, xdmp:group())
+  for $host at $position in admin:group-get-host-ids($admin-config, $group)
   for $j in (1 to $db-config/db:forests-per-host)
   let $name :=
     fn:string-join((
@@ -747,8 +773,9 @@ declare function setup:create-forests-from-count(
   $database-name as xs:string,
   $forests-per-host as xs:int) as item()*
 {
+  let $group := setup:get-group($db-config)
   let $data-directory := $db-config/db:forests/db:data-directory
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), $group)
   for $j in (1 to $forests-per-host)
   let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
   let $replica-names as xs:string* := ()
@@ -765,8 +792,9 @@ declare function setup:validate-forests-from-count(
   $database-name as xs:string,
   $forests-per-host as xs:int)
 {
+  let $group := setup:get-group($db-config)
   let $data-directory := $db-config/db:forests/db:data-directory
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), $group)
   for $j in (1 to $forests-per-host)
   let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
   let $replicas as xs:string* := ()
@@ -961,8 +989,9 @@ declare function setup:validate-attached-forests-by-config(
 
 declare function setup:attach-forests-by-count($db-config as element(db:database)) as item()*
 {
+  let $group := setup:get-group($db-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), $group)
   let $hostname := xdmp:host-name($host)
   for $j in (1 to setup:get-forests-per-host-from-database-config($db-config))
   let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
@@ -972,8 +1001,9 @@ declare function setup:attach-forests-by-count($db-config as element(db:database
 
 declare function setup:validate-attached-forests-by-count($db-config as element(db:database))
 {
+  let $group := setup:get-group($db-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), $group)
   let $hostname := xdmp:host-name($host)
   for $j in (1 to setup:get-forests-per-host-from-database-config($db-config))
   let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
@@ -2814,6 +2844,63 @@ declare function setup:validate-security-database(
       setup:validation-fail(fn:concat("Security database mismatch! ", $expected, " != ", $actual))
 };
 
+declare function setup:create-groups(
+  $import-config as element(configuration)) as item()*
+{
+  let $groups := (
+    setup:get-http-appservers-from-config($import-config),
+    $import-config/gr:xdbc-servers/gr:xdbc-server,
+    $import-config/gr:odbc-servers/gr:odbc-server
+  )/@group[fn:not(. = "Default")]
+  for $group in $groups
+  return
+    setup:create-group($group)
+};
+
+declare function setup:create-group(
+  $group as xs:string) as item()*
+{
+  let $admin-config := admin:get-configuration()
+  let $_ :=
+    if (admin:group-exists($admin-config, $group)) then ()
+    else
+      xdmp:set($admin-config, admin:group-create($admin-config, $group))
+  return
+  (
+    if (admin:save-configuration-without-restart($admin-config)) then
+      xdmp:set($restart-needed, fn:true())
+    else (),
+    setup:add-rollback("groups", $group),
+    fn:concat("Group ", $group, " succesfully created.")
+  )
+};
+
+declare function setup:validate-groups(
+  $import-config as element(configuration)) as item()*
+{
+  let $groups := (
+    setup:get-http-appservers-from-config($import-config),
+    $import-config/gr:xdbc-servers/gr:xdbc-server,
+    $import-config/gr:odbc-servers/gr:odbc-server
+  )/@group[fn:not(. = "Default")]
+  for $group in $groups
+  return
+    setup:validate-group($group)
+};
+
+declare function setup:validate-group(
+  $group as xs:string) as item()*
+{
+  let $existing-groups as xs:string* :=
+    for $g in xdmp:groups()
+    return
+      xdmp:group-name($g)
+  return
+    if ($existing-groups[. = $group]) then ()
+    else
+      setup:validation-fail(fn:concat("Missing Group: ", $group))
+};
+
 declare function setup:create-appservers(
   $import-config as element(configuration)) as item()*
 {
@@ -2837,13 +2924,17 @@ declare function setup:get-http-appservers-from-config(
   for $server in $import-config/gr:http-servers/gr:http-server
   return
     if (fn:exists($server/@import)) then
-      element gr:http-server
-      {
-        $server/*,
-        let $ignore := $server/*/fn:node-name(.)
-        return
-          $import-config/gr:http-servers/gr:http-server[gr:http-server-name eq $server/@import]/*[fn:not(fn:node-name(.) = $ignore)]
-      }
+      let $imported-http := $import-config/gr:http-servers/gr:http-server[gr:http-server-name eq $server/@import]
+      return
+        element gr:http-server
+        {
+          $server/@*[fn:not(fn:local-name(.) = "import")],
+          $imported-http/@*[fn:not(fn:local-name(.) = $server/@*/fn:local-name(.))],
+          $server/*,
+          let $ignore := $server/*/fn:node-name(.)
+          return
+            $imported-http/*[fn:not(fn:node-name(.) = $ignore)]
+        }
     else
       $server
 };
@@ -2876,13 +2967,14 @@ declare function setup:create-appserver(
       let $port := xs:unsignedLong($server-config/gr:port)
       let $database := setup:get-appserver-content-database($server-config)
       let $modules := setup:get-appserver-modules-database($server-config)
+      let $group := setup:get-group($server-config)
       let $admin-config := admin:get-configuration()
       let $admin-config :=
         if (xs:boolean($server-config/gr:webDAV)) then
           (: Note: database id is stored as modules for webdav servers, allowing both in ml-config :)
           admin:webdav-server-create(
             $admin-config,
-            $default-group,
+            $group,
             $server-name,
             $root,
             $port,
@@ -2890,7 +2982,7 @@ declare function setup:create-appserver(
         else
           admin:http-server-create(
             $admin-config,
-            $default-group,
+            $group,
             $server-name,
             $root,
             $port,
@@ -2924,6 +3016,7 @@ declare function setup:create-odbcserver(
     if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then
       fn:concat("ODBC Server ", $server-name, " already exists, not recreated..")
     else
+      let $group := setup:get-group($server-config)
       (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
       let $admin-config := admin:get-configuration()
       let $admin-config :=
@@ -2935,12 +3028,12 @@ declare function setup:create-odbcserver(
             declare variable $root external;
             declare variable $port external;
             declare variable $content-db external;
-            declare variable $default-group external;
+            declare variable $group external;
             declare variable $server-name external;
             declare variable $modules-db external;
             admin:odbc-server-create(
               admin:get-configuration(),
-              $default-group,
+              $group,
               $server-name,
               $root,
               $port,
@@ -2950,7 +3043,7 @@ declare function setup:create-odbcserver(
              xs:QName("root"), ($server-config/gr:root[fn:string-length(fn:string(.)) > 0], "/")[1],
              xs:QName("port"), xs:unsignedLong($server-config/gr:port),
              xs:QName("content-db"), setup:get-appserver-content-database($server-config),
-             xs:QName("default-group"), $default-group,
+             xs:QName("group"), $group,
              xs:QName("server-name"), $server-name,
              xs:QName("modules-db"), setup:get-appserver-modules-database($server-config)))
         }
@@ -2989,10 +3082,11 @@ declare function setup:create-xdbcserver(
     if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then
       fn:concat("XDBC Server ", $server-name, " already exists, not recreated..")
     else
+      let $group := setup:get-group($server-config)
       let $admin-config :=
         admin:xdbc-server-create(
           admin:get-configuration(),
-          $default-group,
+          $group,
           $server-name,
           ($server-config/gr:root[fn:string-length(fn:string(.)) > 0], "/")[1],
           xs:unsignedLong($server-config/gr:port),
@@ -3134,12 +3228,16 @@ declare function setup:configure-task-server(
   $server-config as element(gr:task-server)) as item()*
 {
   let $admin-config := admin:get-configuration()
+  let $group := setup:get-group($server-config)
   let $apply-settings :=
     for $setting in $task-server-settings/*:setting
     let $value := fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting)))
     where fn:exists($value)
     return
-      xdmp:set($admin-config, xdmp:value(fn:concat("admin:taskserver-set-", $setting, "($admin-config, $default-group, $value)")))
+      xdmp:set(
+        $admin-config,
+        xdmp:value(
+          fn:concat("admin:taskserver-set-", $setting, "($admin-config, $group, $value)")))
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
@@ -3153,9 +3251,10 @@ declare function setup:validate-task-server(
   $server-config as element(gr:task-server)) as item()*
 {
   let $admin-config := admin:get-configuration()
+  let $group := setup:get-group($server-config)
   for $setting in $task-server-settings/*:setting
   let $expected := fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting)))
-  let $actual := xdmp:value(fn:concat("admin:taskserver-get-", $setting, "($admin-config, $default-group)"))
+  let $actual := xdmp:value(fn:concat("admin:taskserver-get-", $setting, "($admin-config, $group)"))
   where fn:exists($expected)
   return
     if ($expected = $actual) then ()
@@ -3428,24 +3527,30 @@ declare function setup:validate-server(
 declare function setup:create-scheduled-tasks(
   $import-config as element(configuration))
 {
+  for $task-server in $import-config/gr:task-server
+  let $group := setup:get-group($task-server)
   let $tasks :=
-    for $task in $import-config/gr:task-server/gr:scheduled-tasks/gr:scheduled-task
-    let $existing := setup:get-scheduled-task($task)
+    for $task in $task-server/gr:scheduled-tasks/gr:scheduled-task
+    let $existing := setup:get-scheduled-task($task, $group)
     where fn:not(fn:exists($existing))
     return
       setup:create-scheduled-task($task)
+  let $admin-config := admin:get-configuration()
   let $admin-config :=
-    admin:group-add-scheduled-task(
-      admin:get-configuration(),
-      $default-group,
-      $tasks)
+    if ($tasks) then
+      admin:group-add-scheduled-task(
+        $admin-config,
+        $group,
+        $tasks)
+    else
+      $admin-config
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
       xdmp:set($restart-needed, fn:true())
     else (),
     if ($tasks) then
-      setup:add-rollback("scheduled-tasks", $tasks)
+      setup:add-rollback("task-server", $task-server)
     else (),
     fn:concat("Scheduled tasks created succesfully.")
   )
@@ -3528,27 +3633,31 @@ declare function setup:create-scheduled-task(
 declare function setup:validate-scheduled-tasks(
   $import-config as element(configuration))
 {
-  for $task in $import-config/gr:task-server/gr:scheduled-tasks/gr:scheduled-task
+  for $task-server in $import-config/gr:task-server
+  let $group := setup:get-group($task-server)
+  for $task in $task-server/gr:scheduled-tasks/gr:scheduled-task
   return
-    setup:validate-scheduled-task($task)
+    setup:validate-scheduled-task($task, $group)
 };
 
 declare function setup:validate-scheduled-task(
-  $task as element(gr:scheduled-task))
+  $task as element(gr:scheduled-task),
+  $group as xs:unsignedLong)
 {
-  if (fn:not(fn:empty(setup:get-scheduled-task($task)))) then ()
+  if (fn:not(fn:empty(setup:get-scheduled-task($task, $group)))) then ()
   else
     setup:validation-fail(fn:concat("Validation fail for ", xdmp:describe($task)))
 };
 
 declare function setup:get-scheduled-task(
-  $task as element(gr:scheduled-task)) as element(gr:scheduled-task)?
+  $task as element(gr:scheduled-task),
+  $group as xs:unsignedLong) as element(gr:scheduled-task)?
 {
   let $admin-config := admin:get-configuration()
   let $tasks :=
     admin:group-get-scheduled-tasks(
       $admin-config,
-      $default-group)
+      $group)
   return
     $tasks[gr:task-path = $task/gr:task-path and
            gr:task-root = $task/gr:task-root and
@@ -3986,9 +4095,11 @@ declare function setup:get-configuration(
 
 declare function setup:get-app-servers($names as xs:string*) as element()*
 {
-  let $groups := setup:read-config-file("groups.xml")/gr:groups/gr:group
+  for $group in setup:read-config-file("groups.xml")/gr:groups/gr:group
+  let $group-id as xs:unsignedLong := $group/gr:group-id
+  let $group-name as xs:string := $group/gr:group-name
   return (
-    let $http-servers := $groups/gr:http-servers/gr:http-server[empty($names) or gr:http-server-name = $names]
+    let $http-servers := $group/gr:http-servers/gr:http-server[empty($names) or gr:http-server-name = $names]
     where $http-servers
     return
       <http-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
@@ -3997,15 +4108,19 @@ declare function setup:get-app-servers($names as xs:string*) as element()*
         {
           for $http-server in $http-servers
           return
-            setup:resolve-ids-to-names(
-              setup:strip-default-properties-from-http-server(
-                $http-server
+            <http-server group="{$group-name}">
+            {
+              setup:resolve-ids-to-names(
+                setup:strip-default-properties-from-http-server(
+                  $http-server, $group-id
+                )
               )
-            )
+            }/(@*, node())
+            </http-server>
         }
       </http-servers>,
 
-    let $xdbc-servers := $groups/gr:xdbc-servers/gr:xdbc-server[empty($names) or gr:xdbc-server-name = $names]
+    let $xdbc-servers := $group/gr:xdbc-servers/gr:xdbc-server[empty($names) or gr:xdbc-server-name = $names]
     where $xdbc-servers
     return
       <xdbc-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
@@ -4014,15 +4129,19 @@ declare function setup:get-app-servers($names as xs:string*) as element()*
         {
           for $xdbc-server in $xdbc-servers
           return
-            setup:resolve-ids-to-names(
-              setup:strip-default-properties-from-xdbc-server(
-                $xdbc-server
-              )
-            )
+            <xdbc-server group="{$group-name}">
+            {
+              setup:resolve-ids-to-names(
+                setup:strip-default-properties-from-xdbc-server(
+                  $xdbc-server, $group-id
+                )
+              )/(@*, node())
+            }
+            </xdbc-server>
         }
       </xdbc-servers>,
 
-    let $odbc-servers := $groups/gr:odbc-servers/gr:odbc-server[empty($names) or gr:odbc-server-name = $names]
+    let $odbc-servers := $group/gr:odbc-servers/gr:odbc-server[empty($names) or gr:odbc-server-name = $names]
     where $odbc-servers
     return
       <odbc-servers xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd"
@@ -4031,14 +4150,17 @@ declare function setup:get-app-servers($names as xs:string*) as element()*
         {
           for $odbc-server in $odbc-servers
           return
-            setup:resolve-ids-to-names(
-              setup:strip-default-properties-from-odbc-server(
-                $odbc-server
-              )
-            )
+            <odb-server group="{$group-name}">
+            {
+              setup:resolve-ids-to-names(
+                setup:strip-default-properties-from-odbc-server(
+                  $odbc-server, $group-id
+                )
+              )/(@*, node())
+            }
+            </odb-server>
         }
       </odbc-servers>
-
   )
 };
 
@@ -4472,7 +4594,8 @@ declare function setup:resolve-ids-to-names($nodes as item()*) as item()*
 };
 
 declare function setup:strip-default-properties-from-http-server(
-  $node as element(gr:http-server)) as element(gr:http-server)
+  $node as element(gr:http-server),
+  $group as xs:unsignedLong) as element(gr:http-server)
 {
   element { fn:node-name($node) }
   {
@@ -4481,7 +4604,7 @@ declare function setup:strip-default-properties-from-http-server(
     let $default-properties :=
       admin:http-server-create(
         admin:get-configuration(),
-        $default-group,
+        $group,
         "default",
         "/",
         19999,
@@ -4497,7 +4620,8 @@ declare function setup:strip-default-properties-from-http-server(
 };
 
 declare function setup:strip-default-properties-from-xdbc-server(
-  $node as element(gr:xdbc-server)) as element(gr:xdbc-server)
+  $node as element(gr:xdbc-server),
+  $group as xs:unsignedLong) as element(gr:xdbc-server)
 {
   element { fn:node-name($node) }
   {
@@ -4506,7 +4630,7 @@ declare function setup:strip-default-properties-from-xdbc-server(
     let $default-properties :=
       admin:xdbc-server-create(
         admin:get-configuration(),
-        $default-group,
+        $group,
         "default",
         "/",
         19999,
@@ -4521,7 +4645,8 @@ declare function setup:strip-default-properties-from-xdbc-server(
 };
 
 declare function setup:strip-default-properties-from-odbc-server(
-  $node as element(gr:odbc-server)) as element(gr:odbc-server)
+  $node as element(gr:odbc-server),
+  $group as xs:unsignedLong) as element(gr:odbc-server)
 {
   element { fn:node-name($node) }
   {
@@ -4535,19 +4660,19 @@ declare function setup:strip-default-properties-from-odbc-server(
           xquery version "1.0-ml";
           import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
           declare namespace gr="http://marklogic.com/xdmp/group";
-          declare variable $default-group external;
+          declare variable $group external;
           declare variable $default-modules external;
           declare variable $default-database external;
           admin:odbc-server-create(
             admin:get-configuration(),
-            $default-group,
+            $group,
             "default",
             "/",
             19999,
             $default-modules,
             $default-database)//gr:odbc-servers/gr:odbc-server[gr:odbc-server-name eq "default"]/*
           ',
-          (xs:QName("default-group"), $default-group,
+          (xs:QName("group"), $group,
            xs:QName("default-modules"), $default-modules,
            xs:QName("default-database"), $default-database))
       }
@@ -4615,13 +4740,17 @@ declare function setup:get-databases-from-config(
   for $db in $import-config/db:databases/db:database
   return
     if (fn:exists($db/@import)) then
-      element db:database
-      {
-        $db/*,
-        let $ignore := $db/*/fn:node-name(.)
-        return
-          $import-config/db:databases/db:database[db:database-name eq $db/@import]/*[fn:not(fn:node-name(.) = $ignore)]
-      }
+      let $imported-db := $import-config/db:databases/db:database[db:database-name eq $db/@import]
+      return
+        element db:database
+        {
+          $db/@*[fn:not(fn:local-name(.) = "import")],
+          $imported-db/@*[fn:not(fn:local-name(.) = $db/@*/fn:local-name(.))],
+          $db/*,
+          let $ignore := $db/*/fn:node-name(.)
+          return
+            $imported-db/*[fn:not(fn:node-name(.) = $ignore)]
+        }
     else
       $db
 };
@@ -4712,6 +4841,7 @@ declare function setup:validate-install($import-config as element(configuration)
     setup:validate-amps($import-config),
     setup:validate-database-settings($import-config),
     setup:validate-databases-indexes($import-config),
+    setup:validate-groups($import-config),
     setup:validate-appservers($import-config),
     setup:validate-appservers-settings($import-config),
     setup:validate-scheduled-tasks($import-config)
@@ -4726,7 +4856,6 @@ declare function setup:validate-install($import-config as element(configuration)
 
 declare function setup:create-ssl-certificate-templates($import-config as element(configuration))
 {
-  xdmp:log(fn:concat("timestamp: ", xdmp:request-timestamp(  ))),
   for $cert in $import-config/pki:certificates/pki:certificate[fn:exists(pki:name/text())]
   return
     if (fn:empty(pki:get-template-by-name($cert/pki:name))) then
@@ -4767,6 +4896,14 @@ declare function setup:create-ssl-certificate-templates($import-config as elemen
       )
     else ()
 
+};
+
+declare function setup:get-group($server-config)
+{
+  if ($server-config/@group) then
+    xdmp:group($server-config/@group)
+  else
+    xdmp:group()
 };
 
 (:

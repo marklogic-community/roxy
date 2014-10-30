@@ -47,9 +47,13 @@ end
 class ServerConfig < MLClient
 
   # needed to determine if Roxy is running inside a jar
-  @@is_jar = __FILE__.match(/jar:file:.*/) != nil
+  @@is_jar = is_jar?
   @@path = @@is_jar ? "./deploy" : "../.."
   @@context = @@is_jar ? Dir.pwd : __FILE__
+
+  def self.path
+    @@path
+  end
 
   def initialize(options)
     @options = options
@@ -103,6 +107,8 @@ class ServerConfig < MLClient
     end
   end
 
+  # This method exists to return a path relative to roxy
+  # when running as regular old Roxy or as a jar
   def ServerConfig.expand_path(path)
 #    logger.info("path: #{path}")
 #    logger.info("context: #{@@context}")
@@ -123,13 +129,16 @@ class ServerConfig < MLClient
       Dir.mktmpdir do |tmp_dir|
         logger.debug(tmp_dir)
 
-        FileUtils.mkdir_p tmp_dir + "/bin"
-        FileUtils.cp(ServerConfig.expand_path("#{@@path}/lib/ml.rb"), tmp_dir + "/bin/roxy.rb")
+        temp_roxy_dir = tmp_dir + "/roxy"
+        Dir.mkdir temp_roxy_dir
 
-        FileUtils.cp_r(ServerConfig.expand_path("#{@@path}/lib"), tmp_dir)
-        FileUtils.cp(ServerConfig.expand_path("#{@@path}/app_specific.rb"), tmp_dir + "/lib/app_specific.rb")
+        FileUtils.mkdir_p temp_roxy_dir + "/bin"
+        FileUtils.cp(ServerConfig.expand_path("#{@@path}/lib/ml.rb"), temp_roxy_dir + "/bin/roxy.rb")
 
-        Dir.chdir(tmp_dir) do
+        FileUtils.cp_r(ServerConfig.expand_path("#{@@path}/lib"), temp_roxy_dir)
+        FileUtils.cp_r(ServerConfig.expand_path("#{@@path}/sample"), temp_roxy_dir)
+
+        Dir.chdir(temp_roxy_dir) do
           Warbler::Application.new.run
           FileUtils.cp(Dir.glob("*.jar")[0], jar_file)
         end
@@ -140,15 +149,30 @@ class ServerConfig < MLClient
   end
 
   def self.init
+    # input files
+    if @@is_jar
+      sample_config = "roxy/sample/ml-config.sample.xml"
+      sample_properties = "roxy/sample/build.sample.properties"
+      sample_options = "roxy/sample/all.sample.xml"
+      sample_rest_properties = "roxy/sample/properties.sample.xml"
+    else
     sample_config = ServerConfig.expand_path("#{@@path}/sample/ml-config.sample.xml")
     sample_properties = ServerConfig.expand_path("#{@@path}/sample/build.sample.properties")
+      sample_options = ServerConfig.expand_path("#{@@path}/sample/all.sample.xml")
+      sample_rest_properties = ServerConfig.expand_path("#{@@path}/sample/properties.sample.xml")
+    end
+
+    # output files
     build_properties = ServerConfig.expand_path("#{@@path}/build.properties")
-    options_dir = ServerConfig.expand_path("#{@@path}/../rest-api/config/options")
+    options_file = ServerConfig.expand_path("#{@@path}/../rest-api/config/options/all.xml")
+    rest_properties = ServerConfig.expand_path("#{@@path}/../rest-api/config/properties.xml")
+
+    # dirs to create
     rest_ext_dir = ServerConfig.expand_path("#{@@path}/../rest-api/ext")
     rest_transforms_dir = ServerConfig.expand_path("#{@@path}/../rest-api/transforms")
-    options_file = ServerConfig.expand_path("#{@@path}/../rest-api/config/options/all.xml")
-    sample_options = ServerConfig.expand_path("#{@@path}/sample/all.sample.xml")
+    options_dir = ServerConfig.expand_path("#{@@path}/../rest-api/config/options")
 
+    # get supplied options
     force = find_arg(['--force']).present?
     force_props = find_arg(['--force-properties']).present?
     force_config = find_arg(['--force-config']).present?
@@ -165,7 +189,7 @@ class ServerConfig < MLClient
       error_msg << "build.properties has already been created."
     else
       #create clean properties file
-      FileUtils.cp sample_properties, build_properties
+      copy_file sample_properties, build_properties
 
       properties_file = File.read(build_properties)
 
@@ -206,10 +230,8 @@ class ServerConfig < MLClient
       FileUtils.mkdir_p rest_ext_dir
       FileUtils.mkdir_p rest_transforms_dir
       FileUtils.mkdir_p options_dir
-      FileUtils.cp sample_options, options_file
-      FileUtils.cp(
-        ServerConfig.expand_path("#{@@path}/sample/properties.sample.xml"),
-        ServerConfig.expand_path("#{@@path}/../rest-api/config/properties.xml"))
+      copy_file sample_options, options_file
+      copy_file sample_rest_properties, rest_properties
     end
 
     target_config = ServerConfig.expand_path(ServerConfig.properties["ml.config.file"])
@@ -218,21 +240,25 @@ class ServerConfig < MLClient
       error_msg << "ml-config.xml has already been created."
     else
       #create clean marklogic configuration file
-      FileUtils.cp sample_config, target_config
+      copy_file sample_config, target_config
     end
 
     raise HelpException.new("init", error_msg.join("\n")) if error_msg.length > 0
   end
 
   def self.initcpf
+    if @@is_jar
+      sample_config = "roxy/sample/pipeline-config.sample.xml"
+    else
     sample_config = ServerConfig.expand_path("#{@@path}/sample/pipeline-config.sample.xml")
+    end
     target_config = ServerConfig.expand_path("#{@@path}/pipeline-config.xml")
 
     force = find_arg(['--force']).present?
     if !force && File.exists?(target_config)
       raise HelpException.new("initcpf", "cpf configuration has already been created.")
     else
-      FileUtils.cp sample_config, target_config
+      copy_file sample_config, target_config
     end
   end
 
@@ -414,6 +440,26 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def wipe
+    if @environment != "local"
+      expected_response = %Q{I WANT TO WIPE #{@environment.upcase}}
+      print %Q{
+*******************************************************************************
+WARNING!!! You are attempting to wipe your #{@environment.upcase} environment!
+
+This will remove everything that Roxy has bootstrapped. It's quite dangerous.
+*******************************************************************************
+
+Are you sure you want to do this?
+
+In order to proceed please type: #{expected_response}
+:> }
+      response = $stdin.gets.chomp
+      if response != expected_response
+        logger.info "\nAborting wipe on #{@environment}"
+        return
+      end
+    end
+
     appbuilder = find_arg(['--app-builder'])
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
 
@@ -846,12 +892,11 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     end
     properties["user"] = user
     properties["password"] = password
-    open(properties_file, 'w') {
-      |f|
+    File.open(properties_file, 'w') do |f|
       properties.each do |k,v|
         f.write "#{k}=#{v}\n"
       end
-    }
+    end
     logger.info "wrote #{properties_file}"
   end
 
