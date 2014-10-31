@@ -164,7 +164,7 @@ from the main (upstream) repository:
     git push origin --delete my-feature-branch
     ```
 
-* Check out the master branch:
+* Check out the dev branch:
 
     ```shell
     git checkout dev -f
