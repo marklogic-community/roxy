@@ -18,11 +18,6 @@ those settings from the command line.
 ### Cross Platform
 Roxy runs on any platform that runs Ruby. We currently test on Mac, Linux, and Windows.
 
-### Zero Footprint Deployment
-Roxy leverages already available endpoints within MarkLogic to bootstrap and
-deploy your application. No need to install any support application to make
-Roxy work.
-
 ### Multiple Environments
 Roxy supports multiple deployment environments. You can define your own or
 use the default environments: local, dev, and prod. Each environment can have
@@ -110,7 +105,10 @@ Download the [ml](https://github.com/marklogic/roxy/raw/master/ml) file
 user=your-ml-admin-username
 
 # password for ML authentication
-password=your-ml-admin-password
+#
+# leave this blank to be prompted for your password
+#
+password=
 
 # the authentication type for the appserver (digest|basic|application-level)
 authentication-method=application-level
