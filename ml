@@ -35,11 +35,22 @@ PARAMS=("${@}")
 if [ "$1" == 'new' ]
 then
   shift
-  if [[ "$1" == '-h' ]]
+  if [ "$1" == '-h' ] || [ "$1" == '--help' ]
   then
     usage
   elif [ $1 ]
   then
+    # check if we are already in a valid Roxy project
+    if [ -e deploy/lib/ml.rb ]
+    then
+      read -r -n 1 -p "Running ml new from within a Roxy project is not recommended. Continue? [y/N] " response
+      printf "\n"
+      if ! [[ $response =~ ^(Y|y) ]]
+      then
+        exit 1
+      fi      
+    fi
+    
     app_name="$1"
     shift
 
@@ -49,6 +60,7 @@ then
     INIT_GIT=0
     FORCE_INSTALL=0
     APPTYPE="mvc"
+    FORK="marklogic"
     for (( i = 0; i < ${#PARAMS[@]}; i++ )); do
       if [[ ${PARAMS[${i}]} == --branch=* ]]
       then
@@ -60,10 +72,14 @@ then
       elif [[ ${PARAMS[${i}]} == --force* ]]
       then
         FORCE_INSTALL=1
-      elif [[ ${PARAMS[${i}]} == --app-type* ]]
+      elif [[ ${PARAMS[${i}]} == --app-type=* ]]
       then
         splits=(${PARAMS[${i}]//=/ })
         APPTYPE=${splits[1]}
+      elif [[ ${PARAMS[${i}]} == --fork=* ]]
+      then
+        splits=(${PARAMS[${i}]//=/ })
+        FORK=${splits[1]}
       fi
     done
 
@@ -79,28 +95,28 @@ then
       exit 1
     fi
 
-    printf "\nCreating new Application: ${app_name}..."
+    printf "\nCreating new Application: ${app_name}...\n"
     if [ -e $app_name ]
     then
-      git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}.tmp_1
-      mv ${app_name}.tmp_1/* ${app_name}/
-      rm -rf ${app_name}.tmp_1
+      git clone git://github.com/${FORK}/roxy.git -b ${BRANCH} ${app_name}.tmp_1 || exit 1
+      mv ${app_name}.tmp_1/* ${app_name}/ || exit 1
+      rm -rf ${app_name}.tmp_1 || exit 1
     else
-      git clone git://github.com/marklogic/roxy.git -b ${BRANCH} ${app_name}
+      git clone git://github.com/${FORK}/roxy.git -b ${BRANCH} ${app_name} || exit 1
     fi
 
-    pushd ${app_name} > /dev/null
-    rm -rf .git*
+    pushd ${app_name} > /dev/null  || exit 1
+    rm -rf .git* || exit 1
     if [ "$APPTYPE" = "rest" ]
     then
       # For a REST application, we won't be using the MVC code. Remove it.
       # mvc and hybrid apps will use it.
-      rm -rf src/*
+      rm -rf src/* || exit 1
       printf "\nNo initial source code is provided for REST apps. You can copy code from Application Builder under the source directory.\n"
     fi
 
-    ./ml init ${app_name} ${@}
-    popd > /dev/null
+    ./ml init ${app_name} ${@} || exit 1
+    popd > /dev/null || exit 1
     printf " done\n"
     if [ -e $app_name ]
     then
@@ -108,28 +124,40 @@ then
       then
         printf "Creating a git repository:\n"
         cd ${app_name}
-        git init
-        git add .
-        git commit -q -m "Initial Commit"
+        git init || exit 1
+        git add . || exit 1
+        git commit -q -m "Initial Commit" || exit 1
         printf "...done\n"
       fi
     fi
   else
+    printf "\nNOTE: Please provide an app name..\n\n"
     usage
   fi
 elif [ "$1" == 'self-test' ]
 then
   if [ -e deploy/test/test_main.rb ]
   then
-    ruby -I deploy -I deploy/lib -I deploy/test deploy/test/test_main.rb
+    # Look for --server-version param, and export that as env variable. Unit testing doesn't allow cmd params..
+    for (( i = 0; i < ${#PARAMS[@]}; i++ )); do
+      if [[ ${PARAMS[${i}]} == --server-version=* ]]
+      then
+        splits=(${PARAMS[1]//=/ })
+        # This exports the version only to sub-processes, e.g. the ruby call below..
+        export ROXY_TEST_SERVER_VERSION=${splits[1]}
+      fi
+    done
+    ruby -I deploy -I deploy/lib -I deploy/test deploy/test/test_main.rb || exit 1
   else
-    printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
+    printf "\nERROR: You must run this command inside a valid Roxy Project. Use 'ml new' to create a project.\n\n"
+    usage
   fi
 else
   if [ -e deploy/lib/ml.rb ]
   then
-    ruby -I deploy -I deploy/lib deploy/lib/ml.rb $*
+    ruby -I deploy -I deploy/lib deploy/lib/ml.rb $* || exit 1
   else
-    printf "\nERROR: You must run this command inside a valid Roxy Project\n\n"
+    printf "\nERROR: You must run this command inside a valid Roxy Project. Use 'ml new' to create a project.\n\n"
+    usage
   fi
 fi

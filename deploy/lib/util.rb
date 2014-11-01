@@ -36,6 +36,22 @@ def find_arg(args = [])
   nil
 end
 
+def load_prop_from_args(props)
+  ARGV.each do |a|
+    if a.match(/(^--)(ml\..*)(=)(.*)/)
+      matches = a.match(/(^--)(ml\..*)(=)(.*)/).to_a
+      ml_key = matches[2]
+      ml_val = matches[4]
+      if props.has_key?("#{ml_key}")
+        props["#{ml_key}"] = ml_val
+      else
+        logger.warn "Property #{ml_key} does not exist. It will be skipped."
+      end
+    end
+  end
+  props
+end
+
 def pluralize(count, singular, plural = nil)
   count == 1 || count =~ /^1(\.0+)?$/ ? singular : plural
 end
@@ -46,6 +62,44 @@ end
 
 def path_separator
 	is_windows? ? ";" : ":"
+end
+
+def is_jar?
+  __FILE__.match(/.*\.jar.*/) != nil
+end
+
+def copy_file(src, target)
+  if is_jar?
+    contents = read_file(src)
+    File.open(target, "w") { |file| file.write(contents) }
+  else
+    FileUtils.cp(src, target)
+  end
+end
+
+def read_file(filename)
+  if is_jar?
+    require 'java'
+    stream = self.to_java.get_class.get_class_loader.get_resource_as_stream(filename)
+    br = java.io.BufferedReader.new(java.io.InputStreamReader.new(stream))
+    contents = ""
+    while (line = br.read_line())
+      contents = contents + line + "\n"
+    end
+    br.close()
+    return contents
+  else
+    File.read(filename)
+  end
+end
+
+def file_exists?(filename)
+  if is_jar?
+    require 'java'
+    self.to_java.get_class.get_class_loader.get_resource_as_stream(filename) != nil
+  else
+    return File.exists?(filename)
+  end
 end
 
 class String
@@ -63,6 +117,11 @@ class String
   def xquery_safe
     REXML::Text::normalize(self).gsub(/\{/, '{{').gsub(/\}/, '}}')
   end
+
+  def xquery_unsafe
+    REXML::Text::unnormalize(self).gsub(/\{\{/, '{').gsub(/\}\}/, '}')
+  end
+
 end
 
 class Object
@@ -76,5 +135,17 @@ class Object
 
   def to_b
     present? && ['true', 'TRUE', 'yes', 'YES', 'y', 'Y', 't', 'T'].include?(self)
+  end
+end
+
+def parse_json(body)
+  if (body.match('^\[\{"qid":'))
+    items = []
+    JSON.parse(body).each do |item|
+      items.push item['result']
+    end
+    return items.join("\n")
+  else
+    return body
   end
 end

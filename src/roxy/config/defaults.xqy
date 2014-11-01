@@ -62,6 +62,7 @@ declare variable $ROXY-ROUTES :=
   return
     <routes xmlns="http://marklogic.com/appservices/rest">
       <request uri="^/test/(js|img|css)/(.*)" />
+      <request uri="^/test/default.xqy" />
       <request uri="^/test/(.*)" endpoint="/test/default.xqy">
         <uri-param name="func" default="{$default-function}">$1</uri-param>
       </request>

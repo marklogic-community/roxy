@@ -89,7 +89,7 @@ module Roxy
     # Throw a Timeout::Error if a connection isn't established within this number of seconds
     HTTP_CONNECTION_OPEN_TIMEOUT            = 5
     # Throw a Timeout::Error if no data have been read on this connnection within this number of seconds
-    HTTP_CONNECTION_READ_TIMEOUT            = 120
+    HTTP_CONNECTION_READ_TIMEOUT            = 300
     # Length of the post-error probationary period during which all requests will fail
     HTTP_CONNECTION_RETRY_DELAY             = 15
 

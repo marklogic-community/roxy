@@ -2,37 +2,41 @@ class Help
   def self.usage
     <<-DOC.strip_heredoc
 
-      Usage: ml ENVIRONMENT COMMAND [ARGS]
+      Usage:
+        ml [ENVIRONMENT] COMMAND [ARGS]
 
-      Deployment Commands:
-       init           Creates configuration files for you to customize
-       initcpf        Creates cpf configuration files for you to customize
-       info           Return settings for a given environment
-       credentials    Configures user and password for a given environment
-       bootstrap      Configures your application on the MarkLogic server
-       wipe           Remove your configuration from the MarkLogic server
-       restart        Restart your MarkLogic server
-       deploy         Loads modules, data, cpf configuration into the server
-       load           Loads a file or folder into the server
-       clean          Removes all files from the cpf, modules, or content databases
-       info           Prints the environment-specific configuration information
-       test           Runs xquery unit tests
-       recordloader   Runs RecordLoader
-       xqsync         Runs XQSync
-       corb           Runs Corb
+      General commands (no environment):
+        init          Creates configuration files for you to customize
+        initcpf       Creates cpf configuration files for you to customize
+        jar           Creates a Roxy jar
+        new           Creates a new project directory structure
+        upgrade       Upgrades the Roxy files
 
-      Roxy Scaffolding commands:
-       create       Creates a controller or view or model
-       index        Adds an index to the configuration
-       extend       Create a REST API service extension
-       transform    Create a REST API transformation
+      Scaffolding commands (no environment):
+        create        Creates a controller, model, test or layout
+        index         Adds an index to the configuration
+        extend        Creates a REST API service extension
+        transform     Creates a REST API transformation
 
-      Other commands:
-       upgrade      Upgrades the Roxy files
-       capture      Capture the source code of an existing App Builder application
+      Bootstrapping commands (with environment):
+        bootstrap     Configures your application on the given environment
+        capture       Captures the source code of an existing App Builder application
+        clean         Removes all files from the cpf, modules, or content databases on the given environment
+        credentials   Configures user and password for the given environment
+        info          Returns settings for the given environment
+        restart       Restarts the given environment
+        wipe          Removes your application from the given environment
 
-      All commands can be run with -h for more information.
+      Deployment/Data commands (with environment):
+        corb          Runs Corb against the given environment
+        deploy        Loads modules, data, cpf configuration into the given environment
+        load          Loads a file or folder into the given environment
+        mlcp          Runs MLCP against the given environment
+        recordloader  Runs RecordLoader against the given environment
+        test          Runs xquery unit tests against the given environment
+        xqsync        Runs XQSync against the given environment
 
+      All commands can be run with -h or --help for more information.
     DOC
   end
 
@@ -234,11 +238,16 @@ class Help
 
       Please choose a WHAT below.
 
-        modules # deploys code to your modules db in the given environment
-        content # deploys content to your content db in the given environment
-        schemas # deploys schemas to your schemas db in the given environment
-        cpf     # deploys your cpf config to the server in the given environment
-        rest    # deploys your rest extensions to the server in the given environment
+        modules     # deploys all code to your modules db in the given environment
+        content     # deploys content to your content db in the given environment
+        schemas     # deploys schemas to your schemas db in the given environment
+        cpf         # deploys your cpf config to the server in the given environment
+        src         # deploys the src code to your modules db in the given environment
+        rest        # deploys properties, extensions, and transforms to our modules db in the given environment
+        ext         # deploys your rest extensions to the server in the given environment
+                    if a name is specified, then only that extension will be deployed
+        transform   # deploys your rest extensions to the server in the given environment
+                    if a name is specified, then only that transform will be deployed
     DOC
   end
 
@@ -344,6 +353,26 @@ class Help
     DOC
   end
 
+  def self.mlcp
+    <<-DOC.strip_heredoc
+      Usage: ml {env} mlcp [options]
+
+      Runs MLCP with given command-line options agains selected environment.
+      MLCP supports options files natively using the -option_file parameter.
+      The path must a relative or absolute path to a MLCP options file.
+      See http://docs.marklogic.com/guide/ingestion/content-pump#chapter
+
+      General options:
+        -v, [--verbose]  # Verbose output
+        -h, [--help]     # Shows this help
+
+      Roxy applies variable substitution within option files. You may use variables like:
+
+      -input_file_path
+      ${ml.data.dir}/
+    DOC
+  end
+
   def self.plugin
     <<-DOC.strip_heredoc
       Usage: ml {env} plugin [command] [package] [version] [options]
@@ -400,12 +429,12 @@ class Help
 
       Example:
         $ ml transform ex:sample
-        will create a sample.xsl file in your rest-transform directory,
+        will create a sample.xslt file in your rest-transform directory,
         using the "ex" namespace prefix.
 
       Example:
         $ ml transform sample
-        will create a sample.xsl file in your rest-transform directory.
+        will create a sample.xslt file in your rest-transform directory.
 
       Example:
         $ ml transform sample xqy
@@ -453,7 +482,8 @@ class Help
   end
 
   def self.doHelp(logger, command, error_message = nil)
-    logger.error "#{error_message}\n" if error_message
+    logger.info "" if error_message
+    logger.error "#{error_message}" if error_message
 	  logger.info Help.send(command)
   end
 end

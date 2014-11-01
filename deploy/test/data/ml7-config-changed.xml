@@ -136,16 +136,16 @@
       <schemas>
         <schema>
           <namespace-uri>http://www.ns.com/ns0</namespace-uri>
-          <schema-location>/test.xsd</schema-location>
+          <schema-location>/other/test.xsd</schema-location>
         </schema>
       </schemas>
       <namespaces>
         <namespace>
-          <prefix>ns1</prefix>
+          <prefix>ns3</prefix>
           <namespace-uri>http://www.ns.com/ns1</namespace-uri>
         </namespace>
         <namespace>
-          <prefix>ns2</prefix>
+          <prefix>ns4</prefix>
           <namespace-uri>http://www.ns.com/ns2</namespace-uri>
         </namespace>
         <using-namespace>
@@ -155,11 +155,11 @@
       <module-locations>
         <module-location>
           <namespace-uri>http://www.ns.com/ns4</namespace-uri>
-          <location>/test-lib.xqy</location>
+          <location>/other/test-lib.xqy</location>
         </module-location>
         <module-location>
           <namespace-uri>http://www.ns.com/ns5</namespace-uri>
-          <location>/test-lib2.xqy</location>
+          <location>/other/test-lib2.xqy</location>
         </module-location>
       </module-locations>
       <request-blackouts>
@@ -677,7 +677,12 @@
               <attribute-value/>
             </excluded-element>
           </excluded-elements>
-          <tokenizer-overrides/>
+          <tokenizer-overrides>
+            <tokenizer-override>
+              <character>_</character>
+              <tokenizer-class>word</tokenizer-class>
+            </tokenizer-override>
+          </tokenizer-overrides>
         </field>
         <field>
           <field-name>test2</field-name>
@@ -717,7 +722,12 @@
               <attribute-value/>
             </excluded-element>
           </excluded-elements>
-          <tokenizer-overrides/>
+          <tokenizer-overrides>
+            <tokenizer-override>
+              <character>_</character>
+              <tokenizer-class>word</tokenizer-class>
+            </tokenizer-override>
+          </tokenizer-overrides>
         </field>
         <field>
           <field-name>test3</field-name>
@@ -732,7 +742,12 @@
           <word-lexicons/>
           <included-elements/>
           <excluded-elements/>
-          <tokenizer-overrides/>
+          <tokenizer-overrides>
+            <tokenizer-override>
+              <character>_</character>
+              <tokenizer-class>word</tokenizer-class>
+            </tokenizer-override>
+          </tokenizer-overrides>
         </field>
       </fields>
       <range-element-indexes>
