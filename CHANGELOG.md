@@ -1,7 +1,7 @@
 # Roxy Changes
 This file describes changes made to Roxy per release
 
-## 1.6
+## 1.7
 
 ### New Features
 * [\#277](https://github.com/marklogic/roxy/issues/277) Allow using modules ref instead of database ref for webdav app servers
@@ -45,6 +45,9 @@ This file describes changes made to Roxy per release
 * [#204](https://github.com/marklogic/roxy/issues/204) Deploy modules while using filesystem will give an error
 * [#177](https://github.com/marklogic/roxy/issues/177) Password should be encoded for 'ml corb'
 * [#164](https://github.com/marklogic/roxy/issues/164) Some special characters in passwords don't work on Windows
+
+## 1.6
+We skipped 1.6. There was a snafu with versioning. Oopsie.
 
 ## 1.5
 
