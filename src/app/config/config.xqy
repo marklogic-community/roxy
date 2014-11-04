@@ -74,14 +74,20 @@ declare variable $c:SEARCH-OPTIONS :=
     <term>
       <term-option>case-insensitive</term-option>
     </term>
-    <constraint name="country" facet="true">
-      <range type="xs:string" collation="http://marklogic.com/collation/codepoint">
-        <element ns="urn:us:gov:ic:rmt" name="COUNTRY"/>
-        <facet-option>limit=10</facet-option>
-      </range>
-    </constraint>
+    <!--*****
+    Add your facets here. They will look like this
+      <constraint name="my_facet" facet="true">
+        <range type="xs:string" collation="http://marklogic.com/collation/codepoint">
+          <element ns="my_namespace" name="my_facet_element"/>
+          <facet-option>limit=10</facet-option>
+        </range>
+      </constraint>
+    -->
+	  <!--
+      Supply an additional query to only search on a subset of the data
+      <additional-query>{cts:collection-query("Documents")}</additional-query>
+    -->
     <return-results>true</return-results>
-    <return-query>true</return-query>
   </options>;
 
 (:
@@ -89,32 +95,29 @@ declare variable $c:SEARCH-OPTIONS :=
  :)
 declare variable $c:LABELS :=
   <labels xmlns="http://marklogic.com/xqutils/labels">
-    <label key="country">
-      <value xml:lang="en">Country</value>
-    </label>
+    <!--
+      This is a sample label. You will need one per facet, defined above.
+      <label key="my_facet">
+        <value xml:lang="en">My Facet</value>
+      </label>
+    -->
   </labels>;
 
-declare variable $c:FACET-GROUPS :=
-  <c:facet-groups>
-    <c:group name="general">
-      <c:facet-name>country</c:facet-name>
-    </c:group>
-  </c:facet-groups>;
-
 (: The path to the "title" field of a document. Used to show result links. :)
-declare variable $c:TITLE-PATH := "//*:SUBJECT";
+declare variable $c:TITLE-PATH := "/fn:base-uri()";
 
 (: Enable searching documents by date range. Requires a range index on an element. :)
-declare variable $c:DATE-RANGE-ENABLED := fn:true();
-declare variable $c:DATE-RANGE-ELEMENT-NAMES := (fn:QName("http://marklogic.com/edl", "dtr"));
+declare variable $c:DATE-RANGE-ENABLED := fn:false();
+declare variable $c:DATE-RANGE-ELEMENT-NAMES := ((:fn:QName("http://marklogic.com/roxy", "time"):));
 
 (: Enables the time-series display on the application. **Requires DATE-RANGE-ENABLED to be true.** :)
-declare variable $c:TIMESERIES-ENABLED := fn:true();
+declare variable $c:TIMESERIES-ENABLED := fn:false();
 declare variable $c:TIMESERIES-DISPLAY-YEARS := 5; (: Number of years to display in timeseries graph. :)
 
-(: GEOSPATIAL CONFIGURATION :)
-declare variable $c:GEO-ENABLED := fn:true();
-declare variable $c:GOOGLEMAPS-API-KEY := "AIzaSyDxtKbYPjJ8BrXTTNDgTlsT0mj4GAs5Na8";
+(: ***GEOSPATIAL CONFIGURATION*** :)
+(: Enables the map on the interface :)
+declare variable $c:GEO-ENABLED := fn:false();
+declare variable $c:GOOGLEMAPS-API-KEY := "***PASTE YOUR GOOGLE MAPS API KEY HERE***";
 declare variable $c:GEO-VALUES-LIMIT := 5000;
 (: Geospatial Element Index :)
 declare variable $c:GEO-ELEMENT-INDEX-NAMES := ((:fn:QName("http://marklogic.com/roxy", "GEO"):));
@@ -126,8 +129,8 @@ declare variable $c:GEO-ELEMENT-PAIR-INDEX-PARENT-NAMES := ((:fn:QName("http://m
 declare variable $c:GEO-ELEMENT-PAIR-INDEX-LAT-NAMES := ((:fn:QName("", "Latitude"):));
 declare variable $c:GEO-ELEMENT-PAIR-INDEX-LON-NAMES := ((:fn:QName("", "Longitude"):));
 (: Geospatial Attribute Pair Index :)
-declare variable $c:GEO-ATTRIBUTE-PAIR-INDEX-PARENT-NAMES := (fn:QName("urn:us:gov:ic:rmt:geo", "GEO"));
-declare variable $c:GEO-ATTRIBUTE-PAIR-INDEX-LAT-NAMES := (fn:QName("", "Latitude"));
-declare variable $c:GEO-ATTRIBUTE-PAIR-INDEX-LON-NAMES := (fn:QName("", "Longitude"));
+declare variable $c:GEO-ATTRIBUTE-PAIR-INDEX-PARENT-NAMES := ((:fn:QName("http://marklogic.com/roxy", "GEO"):));
+declare variable $c:GEO-ATTRIBUTE-PAIR-INDEX-LAT-NAMES := ((:fn:QName("", "Latitude"):));
+declare variable $c:GEO-ATTRIBUTE-PAIR-INDEX-LON-NAMES := ((:fn:QName("", "Longitude"):));
 (: Geospatial Path Index :)
 declare variable $c:GEO-PATH-INDEX-PATHS := ((: "/path/to/geo/node1", "/path/to/geo/node2" :));

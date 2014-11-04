@@ -153,23 +153,27 @@ xdmp:set-response-content-type("text/html"),
     </div>
     
     <input type="hidden" id="geoData" value=""/>
-    <script id="results_tmpl" type="text/x-jquery-tmpl">
+    <script id="results_tmpl" type="text/x-handlebars-template">
+      {{{{#each this}}}}
       <div class="result">
-          <h4 class="media-heading"><a class="document_link search_result" data-uri="{{{{:uri}}}}" href="../content?uri={{{{:uri}}}}" target="_blank">{{{{:title}}}}</a></h4>
-          {{{{:snippets}}}}
+          <h4 class="media-heading"><a class="document_link search_result" data-uri="{{{{uri}}}}" href="../content?uri={{{{uri}}}}" target="_blank">{{{{title}}}}</a></h4>
+          {{{{{{snippets}}}}}}
       </div>
       <br/>
+      {{{{/each}}}}
     </script>
 
-    <script id="facets_tmpl" type="text/x-jquery-tmpl">
+    <script id="facets_tmpl" type="text/x-handlebars-template">
+      {{{{#each this}}}}
       <div class="facet panel panel-default small">
-        <div class="panel-heading"><h3 class="panel-title">{{{{:key}}}}</h3></div>
+        <div class="panel-heading"><h3 class="panel-title">{{{{key}}}}</h3></div>
           <div class="list-group">
-            {{{{for value ~facet=key}}}}
-              <a href="#" class="list-group-item facet_link" data-value="{{{{:~facet}}}}:{{{{:name}}}}"><span class="glyphicon glyphicon-minus-sign hidden">&nbsp;</span><span class="badge">{{{{:count}}}}</span>{{{{:name}}}}</a>
-            {{{{/for}}}}
+            {{{{#each value}}}}
+              <a href="#" class="list-group-item facet_link" data-value="{{{{../key}}}}:{{{{name}}}}"><span class="glyphicon glyphicon-minus-sign hidden">&nbsp;</span><span class="badge">{{{{count}}}}</span>{{{{name}}}}</a>
+            {{{{/each}}}}
           </div>
       </div>
+      {{{{/each}}}}
     </script>
     <input type="hidden" id="PAGELENGTH" value="{$PAGELENGTH}"/>
     <input type="hidden" id="DATE-RANGE-ENABLED" value="{$DATE-RANGE-ENABLED}"/>
@@ -179,8 +183,7 @@ xdmp:set-response-content-type("text/html"),
     <script src="../js/lib/less-1.3.0.min.js" type="text/javascript"></script>
     <script src="../js/lib/bootstrap.min.js" type="text/javascript"></script>
     <script src="../js/lib/bootstrap-datepicker.js" type="text/javascript"></script>
-    <script src="../js/lib/jsl.format.js" type="text/javascript"></script>
-    <script src="../js/lib/jsrender.js" type="text/javascript"></script>
+    <script src="../js/lib/handlebars-v2.0.0.js" type="text/javascript"></script>
     {
       if ($GEO-ENABLED) then
         (

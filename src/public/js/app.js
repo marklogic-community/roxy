@@ -181,7 +181,8 @@ $(function() {
 		}).done(function(data) {
 				var results = data['results'];
 				results = (results instanceof Array) ? results : [results];
-				$('#results_div').html($('#results_tmpl').render(results));
+				var resTemplate = Handlebars.compile($('#results_tmpl').html());
+				$('#results_div').html(resTemplate(results));
 				$('span.snippet-term-highlight').replaceWith(function(){
 					return $("<strong />").append($(this).contents());
 				});
@@ -223,7 +224,8 @@ $(function() {
 					}
 				}
 
-				$('#facet_div').html($('#facets_tmpl').render(facets));
+				var facetTemplate = Handlebars.compile($('#facets_tmpl').html());
+				$('#facet_div').html(facetTemplate(facets));
 
 				for (var i=0; i < search_object['facets'].length; i++) {
 					if (search_object['facets'][i].substring(0, NOT_OPERATOR.length) == NOT_OPERATOR) {
