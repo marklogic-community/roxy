@@ -32,7 +32,7 @@ declare variable $ROXY-OPTIONS :=
   <options>
     <!-- the default controller that the URL http://server:port/ maps to
          use appbuilder for an appbuilder clone -->
-    <default-controller>appbuilder</default-controller>
+    <default-controller>main</default-controller>
 
     <!-- the default funciton that gets called when none is specified -->
     <default-function>main</default-function>
