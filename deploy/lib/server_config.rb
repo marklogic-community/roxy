@@ -1136,6 +1136,19 @@ private
       ignore_us << "^#{app_config_file}$"
       ignore_us << "^#{test_config_file}$"
 
+      src_permissions = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER)
+
+      if ['rest', 'hybrid'].include? @properties["ml.app-type"]
+        # This app uses the REST API, so grant permissions to the rest roles. This allows REST extensions to call
+        # modules not deployed through the REST API.
+        # These roles are present in MarkLogic 6+.
+        src_permissions.push permissions('rest-admin', Roxy::ContentCapability::RU)
+        src_permissions.push permissions('rest-extension-user', Roxy::ContentCapability::EXECUTE)
+        src_permissions.flatten!
+      end
+
+      @logger.debug("source permissions: #{src_permissions}")
+
       total_count = load_data xquery_dir,
                               :add_prefix => "/",
                               :remove_prefix => xquery_dir,
@@ -1143,7 +1156,8 @@ private
                               :ignore_list => ignore_us,
                               :load_html_as_xml => load_html_as_xml,
                               :load_js_as_binary => load_js_as_binary,
-                              :load_css_as_binary => load_css_as_binary
+                              :load_css_as_binary => load_css_as_binary,
+                              :permissions => src_permissions
 
       if File.exist? app_config_file
         buffer = File.read app_config_file
@@ -1155,7 +1169,7 @@ private
                                        buffer,
                                        :db => dest_db,
                                        :add_prefix => File.join(@properties["ml.modules-root"], "app/config"),
-                                       :permissions => permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER)
+                                       :permissions => src_permissions
       end
 
       if deploy_tests?(dest_db) && File.exist?(test_config_file)
@@ -1168,7 +1182,7 @@ private
                                        buffer,
                                        :db => dest_db,
                                        :add_prefix => File.join(@properties["ml.modules-root"], "test"),
-                                       :permissions => permissions(@properties['ml.app-role'], Roxy::ContentCapability::EXECUTE)
+                                       :permissions => src_permissions
       end
 
       # REST API applications need some files put into a collection.
