@@ -460,17 +460,31 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
     let $forest-name := $assignment/as:forest-name
     let $db-config := $import-config/db:databases/db:database[db:forests/db:forest-id/@name = $forest-name]
     let $group := setup:get-group($db-config)
-    let $forests-per-host := $db-config/db:forests-per-host
-    let $forest-names :=
+    let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
+    let $forest-names := (
+      $forest-name,
       if (fn:exists($forests-per-host)) then
         let $database-name := setup:get-database-name-from-database-config($db-config)
-        for $host at $position in admin:group-get-host-ids($admin-config, $group)
-        for $j in (1 to $forests-per-host)
+        for $host at $hostnr in admin:group-get-host-ids($admin-config, $group)
+        for $forestnr in (1 to $forests-per-host)
         return
-          fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
-      else
-        $forest-name
+          fn:string-join(($database-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
+      else ()
+    )
     let $replica-names := $assignment/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+    let $replica-names := (
+      $replica-names,
+      if (fn:exists($forests-per-host)) then
+        (: generates too many names actually, filtered later :)
+        let $hosts := admin:group-get-host-ids(admin:get-configuration(), xdmp:group())
+        for $host at $hostnr in $hosts
+        for $forestnr in (1 to $forests-per-host)
+        for $replica in $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+        let $replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
+        return
+          fn:string-join(($replica-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
+      else ()
+    )
     for $forest-name in $forest-names
     return
       if (admin:forest-exists($admin-config, $forest-name)) then
@@ -481,6 +495,8 @@ declare function setup:do-wipe($import-config as element(configuration)) as item
           where admin:forest-exists($admin-config, $replica-name)
           return
             let $replica-id := admin:forest-get-id($admin-config, $replica-name)
+            (: double check it is really a replica of current forest :)
+            where admin:forest-get-replicas($admin-config, $forest-id) = $replica-id
             return
             (
               xdmp:set($admin-config, admin:forest-remove-replica($admin-config, $forest-id, $replica-id)),
@@ -710,10 +726,10 @@ declare function setup:create-forests($import-config as element(configuration)) 
 {
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  let $forests-per-host := $db-config/db:forests-per-host
+  let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
   return
-    if (fn:exists($forests-per-host)) then
-      setup:create-forests-from-count($db-config, $database-name, $forests-per-host)
+    if (fn:exists($forests-per-host) and $forests-per-host gt 1) then
+      setup:create-forests-from-count($import-config, $db-config, $database-name, $forests-per-host)
     else
       setup:create-forests-from-config($import-config, $db-config, $database-name)
 };
@@ -722,10 +738,10 @@ declare function setup:validate-forests($import-config as element(configuration)
 {
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  let $forests-per-host := $db-config/db:forests-per-host
+  let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
   return
-    if (fn:exists($forests-per-host)) then
-      setup:validate-forests-from-count($db-config, $database-name, $forests-per-host)
+    if (fn:exists($forests-per-host) and $forests-per-host gt 1) then
+      setup:validate-forests-from-count($import-config, $db-config, $database-name, $forests-per-host)
     else
       setup:validate-forests-from-config($import-config, $db-config, $database-name)
 };
@@ -769,41 +785,79 @@ declare function setup:validate-forests-from-config(
 };
 
 declare function setup:create-forests-from-count(
+  $import-config as element(configuration),
   $db-config as element(db:database),
   $database-name as xs:string,
   $forests-per-host as xs:int) as item()*
 {
   let $group := setup:get-group($db-config)
-  let $data-directory := $db-config/db:forests/db:data-directory
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), $group)
-  for $j in (1 to $forests-per-host)
-  let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
-  let $replica-names as xs:string* := ()
+  for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
+  for $forest-name as xs:string in $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
+  let $data-directory as xs:string? := ($forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0], $db-config/db:forests/db:data-directory)[1]
+  let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group)
+  for $host at $hostnr in $hosts
+  for $forestnr in (1 to $forests-per-host)
+  let $new-forest-name := fn:string-join(($forest-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
+  let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+  let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
   return
     setup:create-forest(
-      $forest-name,
+      $new-forest-name,
       $data-directory,
       $host,
-      $replica-names)
+      setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr))
+};
+
+declare function setup:reassign-replicas(
+  $replicas as element(as:assignment)*,
+  $hosts as xs:unsignedLong+,
+  $hostnr as xs:integer,
+  $forest-name as xs:string,
+  $forestnr as xs:int) as element(as:assignment)*
+{
+  let $default-replica-host := xdmp:host-name($hosts[$hostnr mod count($hosts) + 1])
+  for $replica in $replicas
+  let $replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
+  let $replica-host-name := $replica/as:host-name[fn:string-length(fn:string(.)) > 0]
+  let $replica-host-name :=
+    if ($replica-host-name) then
+      $replica-host-name
+    else
+      $default-replica-host
+  return element { fn:node-name($replica) } {
+      $replica/@*,
+      <as:forest-name>{fn:string-join(($replica-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")}</as:forest-name>,
+      <as:host-name>{$replica-host-name}</as:host-name>,
+      $replica/node() except ($replica/as:forest-name, $replica/as:host-name)
+  }
 };
 
 declare function setup:validate-forests-from-count(
+  $import-config as element(configuration),
   $db-config as element(db:database),
   $database-name as xs:string,
   $forests-per-host as xs:int)
 {
   let $group := setup:get-group($db-config)
-  let $data-directory := $db-config/db:forests/db:data-directory
-  for $host at $position in admin:group-get-host-ids(admin:get-configuration(), $group)
-  for $j in (1 to $forests-per-host)
-  let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($position), "000"), xs:string($j)), "-")
-  let $replicas as xs:string* := ()
+  for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
+  for $forest-name as xs:string in $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
+  let $data-directory as xs:string? := ($forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0], $db-config/db:forests/db:data-directory)[1]
+  for $host at $hostnr in admin:group-get-host-ids(admin:get-configuration(), $group)
+  for $forestnr in (1 to $forests-per-host)
+  let $forest-name := fn:string-join(($database-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
+  let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+  let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+  let $replica-names as xs:string* :=
+    for $replica in $replicas
+    let $replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
+    return
+      fn:string-join(($replica-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
   return
     setup:validate-forest(
       $forest-name,
       $data-directory,
       $host,
-      $replicas)
+      $replica-names)
 };
 
 declare function setup:get-database-forest-configs(
