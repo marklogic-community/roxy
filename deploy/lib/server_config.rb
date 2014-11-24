@@ -68,6 +68,7 @@ class ServerConfig < MLClient
     @bootstrap_port_four = @properties["ml.bootstrap-port-four"]
     @bootstrap_port_five = @properties["ml.bootstrap-port-five"]
     @use_https = @properties["ml.use-https"] == "true"
+    @protocol = "http#{@use_https ? 's' : ''}"
 
     super(
       :user_name => @properties["ml.user"],
@@ -668,14 +669,14 @@ In order to proceed please type: #{expected_response}
       else
         testTearDown = "&runteardown=true"
       end
-      r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/list}, "get"
+      r = go(%Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/list}, "get")
       suites = []
       r.body.split(">").each do |line|
         suites << line.gsub(/.*suite path="([^"]+)".*/, '\1').strip if line.match("suite path")
       end
 
       suites.each do |suite|
-        r = go %Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/run?suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get"
+        r = go(%Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/run?suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get")
         logger.info r.body
       end
     end
@@ -954,7 +955,7 @@ In order to proceed please type: #{expected_response}
 
       # Make sure REST properties are in accurate format, so you can directly deploy them again..
       if (port != nil)
-        r = go "http://#{@hostname}:#{port}/v1/config/properties", "get"
+        r = go("http://#{@hostname}:#{port}/v1/config/properties", "get")
         r.body = parse_json(r.body)
         File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
       end
@@ -1020,7 +1021,7 @@ private
           # create the directory so that it will exist when we try to save files
           Dir.mkdir("#{target_dir}" + uri)
         else
-          r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get"
+          r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get")
           File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(r.body) }
         end
       end
@@ -1380,8 +1381,7 @@ private
         :server => @hostname,
         :app_port => @properties["ml.app-port"],
         :rest_port => @properties["ml.rest-port"],
-        :logger => @logger,
-        :auth_method => @properties["ml.authentication-method"]
+        :logger => @logger
       })
     else
       @mlRest
@@ -1393,19 +1393,23 @@ private
   end
 
   def execute_query_4(query, properties)
-    r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/use-cases/eval2.xqy", "post", {}, {
+    url = "#{@protocol}://#{@hostname}:#{@bootstrap_port}/use-cases/eval2.xqy"
+    params = {
       :queryInput => query
     }
+    r = go(url, "post", {}, params)
   end
 
   def get_any_db_id
-    r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/databases?format=xml", "get"
+    url = "#{@protocol}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/databases?format=xml"
+    r = go(url, "get")
     return nil unless r.code.to_i == 200
     dbid = $1 if r.body =~ /.*<idref>([^<]+)<\/idref>.*/
   end
 
   def get_db_id(db_name)
-    r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/databases?format=xml", "get"
+    url = "#{@protocol}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/databases?format=xml"
+    r = go(url, "get")
     return nil unless r.code.to_i == 200
 
     use_next_line = false
@@ -1422,7 +1426,8 @@ private
   end
 
   def get_sid(app_name)
-    r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/servers?format=xml", "get"
+    url = "#{@protocol}://#{@hostname}:#{@bootstrap_port}/manage/LATEST/servers?format=xml"
+    r = go(url, "get")
     return nil unless r.code.to_i == 200
 
     previous_line = ""
@@ -1442,7 +1447,7 @@ private
     ws_id = nil
     q_id = nil
 
-    url = "http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/workspaces.xqy"
+    url = "#{@protocol}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/workspaces.xqy"
 
     # weird stuff on windows is fixed by {} for params
     r = go(url, "post", {}, {})
@@ -1457,7 +1462,8 @@ private
   end
 
   def delete_workspace(ws_id)
-    r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/workspaces.xqy?wsid=#{ws_id}", "delete")
+    url = "#{@protocol}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/workspaces.xqy?wsid=#{ws_id}"
+    r = go(url, "delete")
     return ws_id unless r.code.to_i == 200
   end
 
@@ -1477,21 +1483,24 @@ private
 
     db_id = get_any_db_id if db_id.nil? && sid.nil?
 
+    url = "#{@protocol}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy"
     if db_id.present?
       logger.debug "using dbid: #{db_id}"
-      r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy", "post", {}, {
+      params = {
         :dbid => db_id,
         :resulttype => "text",
         :q => query
       }
+      r = go(url, "post", {}, params)
       logger.debug r.body
     else
       logger.debug "using sid: #{sid}"
-      r = go "http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/eval.xqy", "post", {}, {
+      params = {
         :sid => sid,
         :resulttype => "text",
         :q => query
       }
+      r = go(url, "post", {}, params)
       logger.debug r.body
     end
 
@@ -1523,18 +1532,14 @@ private
     headers = {
       'content-type' => 'text/plain'
     }
+
+    url = "#{@protocol}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?wsid=#{ws_id}&qid=#{q_id}&action=eval&querytype=xquery&dirty=true"
     if db_id.present?
-      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?wsid=#{ws_id}&qid=#{q_id}&dbid=#{db_id}&action=eval&querytype=xquery&dirty=true",
-             "post",
-             headers,
-             nil,
-             query)
+      url = url + "&dbid=#{db_id}"
+      r = go(url, "post", headers, nil, query)
     else
-      r = go("http#{@use_https ? 's' : ''}://#{@hostname}:#{@qconsole_port}/qconsole/endpoints/evaler.xqy?wsid=#{ws_id}&qid=#{q_id}&sid=#{sid}&action=eval&querytype=xquery&dirty=true",
-             "post",
-             headers,
-             nil,
-             query)
+      url = url + "&sid=#{sid}"
+      r = go(url, "post", headers, nil, query)
     end
 
     delete_workspace(ws_id) if ws_id
