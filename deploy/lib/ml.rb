@@ -60,8 +60,16 @@ if RUBY_VERSION < "1.8.7"
 
     WARNING!!!
     You are using a very old version of Ruby: #{RUBY_VERSION}
-    Roxy works best with Ruby 1.8.7 or greater.
+    Roxy works best with Ruby 1.9.3 or greater.
     Proceed with caution.
+  MSG
+elsif RUBY_VERSION < "1.9.3"
+  @logger.warn <<-MSG
+
+    WARNING!!!
+    Ruby version 1.9.3 is the oldest supported version. You are running
+    Ruby #{RUBY_VERSION}. Some features may not work. You are encouraged to
+    upgrade to Ruby 1.9.3+.
   MSG
 end
 
