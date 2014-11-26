@@ -728,7 +728,7 @@ declare function setup:create-forests($import-config as element(configuration)) 
   let $database-name := setup:get-database-name-from-database-config($db-config)
   let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
   return
-    if (fn:exists($forests-per-host) and $forests-per-host gt 1) then
+    if (fn:exists($forests-per-host)) then
       setup:create-forests-from-count($import-config, $db-config, $database-name, $forests-per-host)
     else
       setup:create-forests-from-config($import-config, $db-config, $database-name)
@@ -740,7 +740,7 @@ declare function setup:validate-forests($import-config as element(configuration)
   let $database-name := setup:get-database-name-from-database-config($db-config)
   let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
   return
-    if (fn:exists($forests-per-host) and $forests-per-host gt 1) then
+    if (fn:exists($forests-per-host)) then
       setup:validate-forests-from-count($import-config, $db-config, $database-name, $forests-per-host)
     else
       setup:validate-forests-from-config($import-config, $db-config, $database-name)
