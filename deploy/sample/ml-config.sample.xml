@@ -95,6 +95,13 @@
       <url-rewriter>@ml.url-rewriter</url-rewriter>
       <error-handler>@ml.error-handler</error-handler>
       <rewrite-resolves-globally>@ml.rewrite-resolves-globally</rewrite-resolves-globally>
+      <!-- for external security use:
+
+      <internal-security>false</internal-security>
+      <external-security name="name-of-your-external-security-config"/>
+
+      -->
+
       <!-- <ssl-certificate-template>@ml.ssl-certificate-template</ssl-certificate-template> -->
     </http-server>
     @ml.test-appserver
