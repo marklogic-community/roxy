@@ -1,10 +1,20 @@
 # Roxy Changes
 This file describes changes made to Roxy per release
 
+## 1.7.1
+
+### New Features
+* [#311](https://github.com/marklogic/roxy/issues/311) Add support for configuring external security in appservers
+
+### Resolved Issues
+* [#308](https://github.com/marklogic/roxy/issues/308) bootstrap doesn't work when the server is using basic auth
+* [#305](https://github.com/marklogic/roxy/issues/305) Check Ruby Version in ml.sh bat
+* [#300](https://github.com/marklogic/roxy/issues/300) Running REST extensions with least privs when using modules from src
+
 ## 1.7
 
 ### New Features
-* [\#277](https://github.com/marklogic/roxy/issues/277) Allow using modules ref instead of database ref for webdav app servers
+* [#277](https://github.com/marklogic/roxy/issues/277) Allow using modules ref instead of database ref for webdav app servers
 * [#273](https://github.com/marklogic/roxy/issues/273) Wiping individual parts
 * [#228](https://github.com/marklogic/roxy/issues/228) Ability to provide properties (user / password) from command line
 * [#225](https://github.com/marklogic/roxy/issues/225) Added MLCP functionality
