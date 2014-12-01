@@ -3328,20 +3328,21 @@ declare function setup:configure-server(
         ""
       else
         "[fn:string-length(fn:string(.)) > 0]"
-    let $value :=
-      if ($setting/@value) then
-        xdmp:value($setting/@value)
-      else
-        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, $setting-test)))
     let $min-version as xs:string? := $setting/@min-version
+    let $version-ok := fn:empty($min-version) or setup:at-least-version($min-version)
     let $if :=
       if ($setting/@if) then
         xdmp:value($setting/@if)
       else
         fn:true()
+    let $value :=
+      if ($setting/@value and $if and $version-ok) then
+        xdmp:value($setting/@value)
+      else
+        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, $setting-test)))
     where ($if and fn:exists($value))
     return
-      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+      if ($version-ok) then
         xdmp:set($admin-config,
           xdmp:value(fn:concat("admin:appserver-set-", $setting, "($admin-config, $server-id, $value)")))
       else
@@ -3409,6 +3410,10 @@ declare function setup:configure-server(
       if ($external-security) then
         try {
           xdmp:eval('
+            import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+
+            declare namespace gr="http://marklogic.com/xdmp/group";
+
             declare variable $admin-config external;
             declare variable $server-id external;
             declare variable $external-security external;
