@@ -3435,8 +3435,9 @@ declare function setup:configure-server(
         }
         catch($ex) {
           if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("7.0-0"))) then
-            (: If we're not using a recent enough version of ML, then the properties are irrelevant. :)
-            ()
+            fn:error(
+              xs:QName("VERSION_NOT_SUPPORTED"),
+              fn:concat("MarkLogic ", xdmp:version(), " does not support external security. Use 7.0-0 or higher."))
           else
             xdmp:rethrow()
         }
@@ -3828,7 +3829,7 @@ declare function setup:create-external-security(
   for $es in $import-config/sec:external-securities/sec:external-security
   return
     (: if it exists, don't recreate it :)
-    if (setup:get-external-securities($es/sec:external-security-name)) then ()
+    if (setup:get-external-securities($es/sec:external-security-name)/sec:external-security) then ()
     else
     (
       (: Wrapping this in xdmp:eval because it didn't exist until ML7 :)
@@ -3853,8 +3854,9 @@ declare function setup:create-external-security(
       }
       catch($ex) {
         if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("7.0-0"))) then
-          (: If we're not using a recent enough version of ML, then the properties are irrelevant. :)
-          ()
+          fn:error(
+              xs:QName("VERSION_NOT_SUPPORTED"),
+              fn:concat("MarkLogic ", xdmp:version(), " does not support external security. Use 7.0-0 or higher."))
         else
           xdmp:rethrow()
       },
