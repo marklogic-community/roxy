@@ -95,6 +95,13 @@
       <url-rewriter>@ml.url-rewriter</url-rewriter>
       <error-handler>@ml.error-handler</error-handler>
       <rewrite-resolves-globally>@ml.rewrite-resolves-globally</rewrite-resolves-globally>
+      <!-- for external security use:
+
+      <internal-security>false</internal-security>
+      <external-security name="name-of-your-external-security-config"/>
+
+      -->
+
       <!-- <ssl-certificate-template>@ml.ssl-certificate-template</ssl-certificate-template> -->
     </http-server>
     @ml.test-appserver
@@ -500,4 +507,20 @@
     </mimetype>
 -->
   </mimetypes>
+<!--
+  <external-securities xmlns="http://marklogic.com/xdmp/security">
+    <external-security>
+      <external-security-name>test</external-security-name>
+      <description>a big test</description>
+      <authentication>ldap</authentication>
+      <cache-timeout>300</cache-timeout>
+      <authorization>ldap</authorization>
+      <ldap-server-uri>ldap://dc1.mltest1.local:389</ldap-server-uri>
+      <ldap-base>CN=Users,DC=MLTEST1,DC=LOCAL</ldap-base>
+      <ldap-attribute>sAMAccountName</ldap-attribute>
+      <ldap-default-user/>
+      <ldap-password/>
+    </external-security>
+  </external-securities>
+-->
 </configuration>
