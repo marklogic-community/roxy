@@ -799,4 +799,17 @@
       <format>text</format>
     </mimetype>
   </mimetypes>
+  <!-- doesn't work with 6.x -->
+  <external-security xmlns="http://marklogic.com/xdmp/security">
+    <external-security-name>test-external</external-security-name>
+    <description>a big test</description>
+    <authentication>ldap</authentication>
+    <cache-timeout>300</cache-timeout>
+    <authorization>ldap</authorization>
+    <ldap-server-uri>ldap://dc1.mltest1.local:389</ldap-server-uri>
+    <ldap-base>CN=Users,DC=MLTEST1,DC=LOCAL</ldap-base>
+    <ldap-attribute>sAMAccountName</ldap-attribute>
+    <ldap-default-user/>
+    <ldap-password/>
+  </external-security>
 </configuration>
