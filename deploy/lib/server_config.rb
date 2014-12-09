@@ -416,7 +416,12 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   end
 
   def config
-    logger.info get_config
+    setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
+    r = execute_query %Q{#{setup} setup:rewrite-config(#{get_config})}
+    logger.debug "code: #{r.code.to_i}"
+
+    r.body = parse_json(r.body)
+    logger.info r.body
   end
 
   def bootstrap
@@ -538,7 +543,13 @@ In order to proceed please type: #{expected_response}
     r.body = parse_json(r.body)
     logger.debug r.body
 
-    if r.body.match("<error:error")
+    if r.body.match("RESTART_NOW")
+      logger.warn "************************************"
+      logger.warn "*** RESTART OF MARKLOGIC IS REQUIRED"
+      logger.warn "************************************"
+      logger.info "... Wipe NOT Complete, rerun wipe after restart to complete!"
+      return false
+    elsif r.body.match("<error:error") || r.body.match("error log")
       logger.error r.body
       logger.error "... Wipe FAILED"
       return false
@@ -563,7 +574,7 @@ In order to proceed please type: #{expected_response}
       r.body = parse_json(r.body)
       logger.debug r.body
 
-      if r.body.match("<error:error")
+      if r.body.match("<error:error") || r.body.match("error log")
         logger.error r.body
         logger.info "... Validation ERROR"
         result = false
