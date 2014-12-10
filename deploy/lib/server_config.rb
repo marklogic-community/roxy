@@ -413,11 +413,23 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
     logger.debug "this: #{self}"
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
     r = execute_query %Q{#{setup} setup:do-restart("#{group}")}
+    logger.debug "code: #{r.code.to_i}"
+
+    r.body = parse_json(r.body)
+    logger.info r.body
   end
 
   def config
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
-    r = execute_query %Q{#{setup} setup:rewrite-config(#{get_config})}
+    r = execute_query %Q{
+      #{setup}
+      try {
+        setup:rewrite-config(#{get_config})
+      } catch($ex) {
+        xdmp:log($ex),
+        fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
+      }
+    }
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_json(r.body)
@@ -544,10 +556,10 @@ In order to proceed please type: #{expected_response}
     logger.debug r.body
 
     if r.body.match("RESTART_NOW")
-      logger.warn "************************************"
-      logger.warn "*** RESTART OF MARKLOGIC IS REQUIRED"
-      logger.warn "************************************"
-      logger.info "... Wipe NOT Complete, rerun wipe after restart to complete!"
+      logger.warn "***************************************"
+      logger.warn "*** WIPE NOT COMPLETE, RESTART REQUIRED"
+      logger.warn "***************************************"
+      logger.info "... NOTE: RERUN WIPE AFTER RESTART TO COMPLETE!"
       return false
     elsif r.body.match("<error:error") || r.body.match("error log")
       logger.error r.body

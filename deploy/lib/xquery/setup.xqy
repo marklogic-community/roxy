@@ -367,75 +367,89 @@ declare function setup:get-rollback-config()
 (: for backwards-compatibility :)
 declare function setup:rewrite-config($import-configs as element(configuration)+) as element(configuration)
 {
-  element { fn:node-name($import-configs[1]) } {
-    $import-configs/@*,
+  let $config :=
+    element { fn:node-name($import-configs[1]) } {
+      $import-configs/@*,
     
-    if ($import-configs/(gr:http-servers | gr:xdbc-servers | gr:odbc-servers | gr:task-server)) then
-      if ($import-configs/gr:groups) then
-        fn:error(
-          xs:QName("BAD_CONFIG"),
-          fn:concat("Task, http, xdbc, odbc servers not allowed together in root of config. Move the latter into a group."))
-      else
-        <groups xmlns="http://marklogic.com/xdmp/group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">{
-          for $group in fn:distinct-values(
-            ($import-configs/(gr:http-servers/gr:http-server | gr:xdbc-servers/gr:xdbc-server |
-              gr:odbc-servers/gr:odbc-server | gr:task-server)/@group, "Default"))
-          let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = "Default" and empty(@group))]
-          let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = "Default" and empty(@group))]
-          let $odbc-servers := $import-configs/gr:odbc-servers/gr:odbc-server[@group = $group or ($group = "Default" and empty(@group))]
-          let $task-server := $import-configs/gr:task-server[@group = $group or ($group = "Default" and empty(@group))]
-          return
-            <group>
-              <group-name>{$group}</group-name>
-              {
-                if ($http-servers) then
-                  <http-servers>{$http-servers}</http-servers>
-                else (),
-                if ($xdbc-servers) then
-                  <xdbc-servers>{$xdbc-servers}</xdbc-servers>
-                else (),
-                if ($odbc-servers) then
-                  <odbc-servers>{$odbc-servers}</odbc-servers>
-                else (),
-                if ($task-server) then
-                  $task-server
-                else ()
-              }
-            </group>
-        }</groups>
-    else (),
+      <groups xmlns="http://marklogic.com/xdmp/group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">{
+        for $group in fn:distinct-values(
+          ($import-configs/(gr:http-servers/gr:http-server | gr:xdbc-servers/gr:xdbc-server |
+            gr:odbc-servers/gr:odbc-server | gr:task-server | db:databases/db:database)/@group, "Default"))
+        let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = "Default" and fn:empty(@group))]
+        let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = "Default" and fn:empty(@group))]
+        let $odbc-servers := $import-configs/gr:odbc-servers/gr:odbc-server[@group = $group or ($group = "Default" and fn:empty(@group))]
+        let $task-server := $import-configs/gr:task-server[@group = $group or ($group = "Default" and fn:empty(@group))]
+        let $servers := ($http-servers, $xdbc-servers, $odbc-servers, $task-server)
+        let $databases := $import-configs/db:databases/db:database[@group = $group or ($group = "Default" and fn:empty(@group))]
+        let $group-config := $import-configs/gr:groups/gr:group[gr:group-name = $group]
+        where fn:exists($servers | $databases | $group-config)
+        return
+          <group>
+            <group-name>{$group}</group-name>
+            {
+              if ($http-servers) then
+                <http-servers>{$http-servers}</http-servers>
+              else (),
+              if ($xdbc-servers) then
+                <xdbc-servers>{$xdbc-servers}</xdbc-servers>
+              else (),
+              if ($odbc-servers) then
+                <odbc-servers>{$odbc-servers}</odbc-servers>
+              else (),
+              if ($task-server) then
+                $task-server
+              else (),
+              $group-config/(node() except gr:group-name)
+            }
+          </group>
+      }</groups>,
     
-    $import-configs/(node() except (gr:http-servers | gr:xdbc-servers | gr:odbc-servers | gr:task-server))
-  }
+      $import-configs/(node() except (gr:groups | gr:http-servers | gr:xdbc-servers | gr:odbc-servers | gr:task-server))
+    }
+  
+  (: Check config on group consistency! :)
+  let $groups := ($config/gr:groups/gr:group/gr:group-name, for $g in xdmp:groups() return xdmp:group-name($g))
+  let $_ :=
+    for $group in $config/gr:groups/gr:group/gr:group-name
+    let $hosts := $config/ho:hosts/ho:host[ho:group/@name = $group]
+    where fn:empty($hosts)
+    return
+      fn:error(
+        xs:QName("NO_HOSTS_IN_GROUP"),
+        fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!"))
+
+  (: all good :)
+  return $config
 };
 
 declare function setup:do-setup($import-config as element(configuration)+) as item()*
 {
-  let $import-config := setup:rewrite-config($import-config)
-  return
   try
   {
-    setup:create-ssl-certificate-templates($import-config),
-    setup:create-privileges($import-config),
-    setup:create-roles($import-config),
-    setup:create-users($import-config),
-    setup:create-external-security($import-config),
-    setup:create-mimetypes($import-config),
-    setup:create-groups($import-config),
-    setup:configure-groups($import-config),
-    setup:configure-hosts($import-config),
-    setup:create-forests($import-config),
-    setup:create-databases($import-config),
-    setup:attach-forests($import-config),
-    setup:create-amps($import-config),
-    setup:apply-database-settings($import-config),
-    setup:configure-databases($import-config),
-    setup:create-appservers($import-config),
-    setup:apply-appservers-settings($import-config),
-    setup:create-scheduled-tasks($import-config),
-    if ($restart-needed) then
-      "note: restart required"
-    else ()
+    let $import-config := setup:rewrite-config($import-config)
+    return (
+      setup:create-ssl-certificate-templates($import-config),
+      setup:create-privileges($import-config),
+      setup:create-roles($import-config),
+      setup:create-users($import-config),
+      setup:create-external-security($import-config),
+      setup:create-mimetypes($import-config),
+      setup:create-groups($import-config),
+      setup:configure-groups($import-config),
+      setup:configure-hosts($import-config),
+      setup:create-forests($import-config),
+      setup:create-databases($import-config),
+      setup:attach-forests($import-config),
+      setup:create-amps($import-config),
+      setup:apply-database-settings($import-config),
+      setup:configure-databases($import-config),
+      setup:create-appservers($import-config),
+      setup:apply-appservers-settings($import-config),
+      setup:create-scheduled-tasks($import-config),
+      if ($restart-needed) then
+        "note: restart required"
+      else ()
+    )
   }
   catch($ex)
   {
@@ -455,338 +469,337 @@ declare function setup:do-setup($import-config as element(configuration)+) as it
 
 declare function setup:do-wipe($import-config as element(configuration)+) as item()*
 {
-  let $import-config := setup:rewrite-config($import-config)
-  return
   try
   {
+    let $import-config := setup:rewrite-config($import-config)
+    return (
   
-  (: remove scheduled tasks :)
-  let $admin-config := admin:get-configuration()
-  let $remove-tasks :=
-    for $task-server in $import-config/gr:groups/gr:group/gr:task-server
-    let $group-id := setup:get-group($task-server)
-    for $task in $task-server/gr:scheduled-tasks/gr:scheduled-task
-    let $existing := setup:get-scheduled-task($task, $group-id)
-    where $existing
-    return
-      xdmp:set(
-        $admin-config,
-        admin:group-delete-scheduled-task($admin-config, $group-id, $existing))
-  return
-    if (admin:save-configuration-without-restart($admin-config)) then
-      xdmp:set($restart-needed, fn:true())
-    else (),
-
-  (: remove appservers :)
-  let $admin-config := admin:get-configuration()
-  let $remove-appservers :=
-    for $app-server in $import-config/gr:groups/gr:group/(gr:http-servers/gr:http-server,
-      gr:xdbc-servers/gr:xdbc-server, gr:odbc-servers/gr:odbc-server)
-    let $group-id := try { setup:get-group($app-server) } catch ($ignore) {}
-    for $as-name in ($app-server/(gr:http-server-name|gr:xdbc-server-name|gr:odbc-server-name))
-    where $group-id
-    return
-      if (admin:appserver-exists($admin-config, $group-id, $as-name)) then
-        xdmp:set(
-          $admin-config,
-          admin:appserver-delete(
+      (: remove scheduled tasks :)
+      let $admin-config := admin:get-configuration()
+      let $remove-tasks :=
+        for $task-server in $import-config/gr:groups/gr:group/gr:task-server
+        let $group-id := setup:get-group($task-server)
+        for $task in $task-server/gr:scheduled-tasks/gr:scheduled-task
+        let $existing := setup:get-scheduled-task($task, $group-id)
+        where $existing
+        return
+          xdmp:set(
             $admin-config,
-            admin:appserver-get-id($admin-config, $group-id, $as-name)))
-      else ()
-  return
-    if (admin:save-configuration-without-restart($admin-config)) then
-      xdmp:set($restart-needed, fn:true())
-    else (),
+            admin:group-delete-scheduled-task($admin-config, $group-id, $existing))
+      return
+        if (admin:save-configuration-without-restart($admin-config)) then
+          xdmp:set($restart-needed, fn:true())
+        else (),
 
-  (: remove certificates :)
-  let $certificates := $import-config/pki:certificates
-  where $certificates
-  return
-    xdmp:eval('
-      import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
-
-      declare variable $certificates external;
-
-      for $cert-name in $certificates/pki:certificate/pki:name/fn:string()
-      let $cert := pki:get-template-by-name($cert-name)
-      where $cert
-      return pki:delete-template(pki:template-get-id($cert))
-      ',
-      (xs:QName("certificates"), $certificates),
-      <options xmlns="xdmp:eval">
-        <database>{xdmp:security-database()}</database>
-      </options>
-    ),
-
-  (: remove amps :)
-  let $admin-config := admin:get-configuration()
-  for $amp in $import-config/sec:amps/sec:amp
-  where admin:database-exists($admin-config, $amp/sec:db-name)
-  return
-    try
-    {
-      xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $amp external;
-         if (sec:amp-exists($amp/sec:namespace, $amp/sec:local-name, $amp/sec:doc-uri, xdmp:database($amp/sec:db-name))) then
-           sec:remove-amp(
-             $amp/sec:namespace,
-             $amp/sec:local-name,
-             $amp/sec:doc-uri,
-             xdmp:database($amp/sec:db-name))
-         else ()',
-        (xs:QName("amp"), $amp),
-        <options xmlns="xdmp:eval">
-          <database>{$default-security}</database>
-        </options>)
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "SEC-AMPDNE") then ()
-      else
-        xdmp:rethrow()
-    },
-
-  (: remove databases :)
-  let $databases :=
-    (
-      $import-config/db:databases/db:database[db:security-database or db:schema-database or db:triggers-database],
-      $import-config/db:databases/db:database[fn:not(db:security-database or db:schema-database or db:triggers-database)]
-    )
-  for $db-config in $databases
-  return
-    setup:delete-databases($db-config),
-
-  (: remove forests :)
-  let $admin-config := admin:get-configuration()
-  let $remove-forests :=
-    let $all-replica-names as xs:string* := $import-config/as:assignments/as:assignment/as:replica-names/as:replica-name
-    for $assignment in $import-config/as:assignments/as:assignment[fn:not(as:forest-name = $all-replica-names)]
-    let $forest-name := $assignment/as:forest-name
-    let $db-config := $import-config/db:databases/db:database[db:forests/db:forest-id/@name = $forest-name]
-    let $group-id := try { setup:get-group($db-config) } catch ($ignore) {}
-    where $group-id
-    return
-    let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
-    let $forest-names := (
-      $forest-name,
-      if (fn:exists($forests-per-host)) then
-        let $database-name := setup:get-database-name-from-database-config($db-config)
-        for $host at $hostnr in admin:group-get-host-ids($admin-config, $group-id)
-        for $forestnr in (1 to $forests-per-host)
+      (: remove appservers :)
+      let $admin-config := admin:get-configuration()
+      let $remove-appservers :=
+        for $app-server in $import-config/gr:groups/gr:group/(gr:http-servers/gr:http-server,
+          gr:xdbc-servers/gr:xdbc-server, gr:odbc-servers/gr:odbc-server)
+        let $group-id := try { setup:get-group($app-server) } catch ($ignore) {}
+        for $as-name in ($app-server/(gr:http-server-name|gr:xdbc-server-name|gr:odbc-server-name))
+        where $group-id
         return
-          fn:string-join(($database-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
-      else ()
-    )
-    let $replica-names := $assignment/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
-    let $replica-names := (
-      $replica-names,
-      if (fn:exists($forests-per-host)) then
-        (: generates too many names actually, filtered later :)
-        let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group-id)
-        for $host at $hostnr in $hosts
-        for $forestnr in (1 to $forests-per-host)
-        for $replica in $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
-        let $replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
-        return
-          fn:string-join(($replica-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
-      else ()
-    )
-    for $forest-name in $forest-names
-    return
-      if (admin:forest-exists($admin-config, $forest-name)) then
-        let $forest-id := admin:forest-get-id($admin-config, $forest-name)
-        return
+          if (admin:appserver-exists($admin-config, $group-id, $as-name)) then
+            xdmp:set(
+              $admin-config,
+              admin:appserver-delete(
+                $admin-config,
+                admin:appserver-get-id($admin-config, $group-id, $as-name)))
+          else ()
+      return
+        if (admin:save-configuration-without-restart($admin-config)) then
+          xdmp:set($restart-needed, fn:true())
+        else (),
+
+      (: remove certificates :)
+      let $certificates := $import-config/pki:certificates
+      where $certificates
+      return
+        xdmp:eval('
+          import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
+
+          declare variable $certificates external;
+
+          for $cert-name in $certificates/pki:certificate/pki:name/fn:string()
+          let $cert := pki:get-template-by-name($cert-name)
+          where $cert
+          return pki:delete-template(pki:template-get-id($cert))
+          ',
+          (xs:QName("certificates"), $certificates),
+          <options xmlns="xdmp:eval">
+            <database>{xdmp:security-database()}</database>
+          </options>
+        ),
+
+      (: remove amps :)
+      let $admin-config := admin:get-configuration()
+      for $amp in $import-config/sec:amps/sec:amp
+      where admin:database-exists($admin-config, $amp/sec:db-name)
+      return
+        try
+        {
+          xdmp:eval(
+            'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+             declare variable $amp external;
+             if (sec:amp-exists($amp/sec:namespace, $amp/sec:local-name, $amp/sec:doc-uri, xdmp:database($amp/sec:db-name))) then
+               sec:remove-amp(
+                 $amp/sec:namespace,
+                 $amp/sec:local-name,
+                 $amp/sec:doc-uri,
+                 xdmp:database($amp/sec:db-name))
+             else ()',
+            (xs:QName("amp"), $amp),
+            <options xmlns="xdmp:eval">
+              <database>{$default-security}</database>
+            </options>)
+        }
+        catch($ex)
+        {
+          if ($ex/error:code = "SEC-AMPDNE") then ()
+          else
+            xdmp:rethrow()
+        },
+
+      (: remove databases :)
+      let $databases :=
         (
-          for $replica-name in $replica-names
-          where admin:forest-exists($admin-config, $replica-name)
-          return
-            let $replica-id := admin:forest-get-id($admin-config, $replica-name)
-            (: double check it is really a replica of current forest :)
-            where admin:forest-get-replicas($admin-config, $forest-id) = $replica-id
+          $import-config/db:databases/db:database[db:security-database or db:schema-database or db:triggers-database],
+          $import-config/db:databases/db:database[fn:not(db:security-database or db:schema-database or db:triggers-database)]
+        )
+      for $db-config in $databases
+      return
+        setup:delete-databases($db-config),
+
+      (: remove forests :)
+      let $admin-config := admin:get-configuration()
+      let $remove-forests :=
+        let $all-replica-names as xs:string* := $import-config/as:assignments/as:assignment/as:replica-names/as:replica-name
+        for $assignment in $import-config/as:assignments/as:assignment[fn:not(as:forest-name = $all-replica-names)]
+        let $forest-name := $assignment/as:forest-name
+        let $db-config := $import-config/db:databases/db:database[db:forests/db:forest-id/@name = $forest-name]
+        let $group-id := try { setup:get-group($db-config) } catch ($ignore) {}
+        where $group-id
+        return
+        let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
+        let $forest-names := (
+          $forest-name,
+          if (fn:exists($forests-per-host)) then
+            let $database-name := setup:get-database-name-from-database-config($db-config)
+            for $host at $hostnr in admin:group-get-host-ids($admin-config, $group-id)
+            for $forestnr in (1 to $forests-per-host)
+            return
+              fn:string-join(($database-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
+          else ()
+        )
+        let $replica-names := $assignment/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+        let $replica-names := (
+          $replica-names,
+          if (fn:exists($forests-per-host)) then
+            (: generates too many names actually, filtered later :)
+            let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group-id)
+            for $host at $hostnr in $hosts
+            for $forestnr in (1 to $forests-per-host)
+            for $replica in $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+            let $replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
+            return
+              fn:string-join(($replica-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
+          else ()
+        )
+        for $forest-name in $forest-names
+        return
+          if (admin:forest-exists($admin-config, $forest-name)) then
+            let $forest-id := admin:forest-get-id($admin-config, $forest-name)
             return
             (
-              xdmp:set($admin-config, admin:forest-remove-replica($admin-config, $forest-id, $replica-id)),
-              xdmp:set($admin-config, admin:forest-delete($admin-config, $replica-id, fn:true()))
-            ),
+              for $replica-name in $replica-names
+              where admin:forest-exists($admin-config, $replica-name)
+              return
+                let $replica-id := admin:forest-get-id($admin-config, $replica-name)
+                (: double check it is really a replica of current forest :)
+                where admin:forest-get-replicas($admin-config, $forest-id) = $replica-id
+                return
+                (
+                  xdmp:set($admin-config, admin:forest-remove-replica($admin-config, $forest-id, $replica-id)),
+                  xdmp:set($admin-config, admin:forest-delete($admin-config, $replica-id, fn:true()))
+                ),
 
-          try {
+              try {
+                xdmp:set(
+                  $admin-config,
+                  admin:forest-delete(
+                    $admin-config,
+                    $forest-id, fn:true()))
+              }
+              catch($ex) {
+                xdmp:set(
+                  $admin-config,
+                  admin:forest-delete(
+                    $admin-config,
+                    $forest-id, fn:false()))
+              }
+          )
+          else ()
+      return
+        if (admin:save-configuration-without-restart($admin-config)) then
+          xdmp:set($restart-needed, fn:true())
+        else (),
+
+      (: detach hosts :)
+      let $admin-config := admin:get-configuration()
+      let $detach-hosts :=
+        for $group in $import-config/gr:groups/gr:group/gr:group-name[fn:not(. = "Default")]
+        return
+          if (admin:group-exists($admin-config, $group)) then
+            let $group-id := xdmp:group($group)
+            let $default-group-id := xdmp:group("Default")
+            for $host-id in admin:group-get-host-ids($admin-config, $group-id)
+            return
+              xdmp:set(
+                $admin-config,
+                admin:host-set-group(
+                  $admin-config,
+                  $host-id,
+                  $default-group-id))
+          else ()
+      return
+        if (admin:save-configuration-without-restart($admin-config)) then
+          (:xdmp:set($restart-needed, fn:true()):)
+          fn:error(xs:QName("RESTART_NOW"),"")
+        else (),
+
+      (: remove groups :)
+      let $admin-config := admin:get-configuration()
+      let $remove-groups :=
+        for $group in $import-config/gr:groups/gr:group/gr:group-name[fn:not(. = "Default")]
+        return
+          if (admin:group-exists($admin-config, $group)) then
+            let $group-id := xdmp:group($group)
+            return
+              xdmp:set(
+                $admin-config,
+                admin:group-delete(
+                  $admin-config,
+                  $group-id))
+          else ()
+      return
+        if (admin:save-configuration-without-restart($admin-config)) then
+          xdmp:set($restart-needed, fn:true())
+        else (),
+
+      (: remove mimetypes :)
+      let $admin-config := admin:get-configuration()
+      let $remove-mimetypes :=
+        for $x in $import-config/mt:mimetypes/mt:mimetype
+        return
+          try
+          {
             xdmp:set(
               $admin-config,
-              admin:forest-delete(
+              admin:mimetypes-delete(
                 $admin-config,
-                $forest-id, fn:true()))
+                admin:mimetype($x/mt:name, $x/mt:extension, $x/mt:format)))
           }
-          catch($ex) {
-            xdmp:set(
-              $admin-config,
-              admin:forest-delete(
-                $admin-config,
-                $forest-id, fn:false()))
+          catch($ex)
+          {
+            if ($ex/error:code = "ADMIN-NOSUCHITEM") then ()
+            else
+              xdmp:rethrow()
           }
-      )
+      return
+        admin:save-configuration($admin-config),
+
+      (: remove users :)
+      for $user in $import-config/sec:users/sec:user/sec:user-name[fn:not(. = $system-users)]
+      return
+        try
+        {
+          xdmp:eval(
+            'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+             declare variable $user as xs:string external;
+             sec:remove-user($user)',
+            (xs:QName("user"), $user),
+            <options xmlns="xdmp:eval">
+              <database>{$default-security}</database>
+            </options>)
+        }
+        catch($ex)
+        {
+          if ($ex/error:code = "SEC-USERDNE") then ()
+          else
+            xdmp:rethrow()
+        },
+
+      (: remove roles :)
+      for $role in $import-config/sec:roles/sec:role/sec:role-name[fn:not(. = $system-roles)]
+      return
+        try
+        {
+          xdmp:eval(
+            'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+             declare variable $role as xs:string external;
+             sec:remove-role($role)',
+            (xs:QName("role"), $role),
+            <options xmlns="xdmp:eval">
+              <database>{$default-security}</database>
+            </options>)
+        }
+        catch($ex)
+        {
+          if ($ex/error:code = "SEC-ROLEDNE") then ()
+          else
+            xdmp:rethrow()
+        },
+
+      (: remove privileges :)
+      for $priv in $import-config/sec:privileges/sec:privilege
+      return
+        try
+        {
+          xdmp:eval(
+            'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+             declare variable $action as xs:string external;
+             declare variable $kind as xs:string external;
+             sec:remove-privilege($action, $kind)',
+            (xs:QName("action"), $priv/sec:action,
+             xs:QName("kind"), $priv/sec:kind),
+            <options xmlns="xdmp:eval">
+              <database>{$default-security}</database>
+            </options>)
+        }
+        catch($ex)
+        {
+          if ($ex/error:code = "SEC-PRIVDNE") then ()
+          else
+            xdmp:rethrow()
+        },
+
+      (: remove external security :)
+      for $es in $import-config/sec:external-securities/sec:external-security
+      return
+        try
+        {
+          xdmp:eval(
+            'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+             declare variable $name as xs:string external;
+
+             sec:remove-external-security($name)',
+            (xs:QName("name"), $es/sec:external-security-name),
+            <options xmlns="xdmp:eval">
+              <database>{$default-security}</database>
+            </options>)
+        }
+        catch($ex)
+        {
+          if ($ex/error:code = "SEC-EXTERNALSECURITYDNE") then ()
+          else
+            xdmp:rethrow()
+        },
+
+      if ($restart-needed) then
+        "note: restart required"
       else ()
-  return
-    if (admin:save-configuration-without-restart($admin-config)) then
-      xdmp:set($restart-needed, fn:true())
-    else (),
-
-  (: detach hosts :)
-  let $admin-config := admin:get-configuration()
-  let $detach-hosts :=
-    for $group in $import-config/gr:groups/gr:group/gr:group-name[fn:not(. = "Default")]
-    return
-      if (admin:group-exists($admin-config, $group)) then
-        let $group-id := xdmp:group($group)
-        let $default-group-id := xdmp:group("Default")
-        for $host-id in admin:group-get-host-ids($admin-config, $group-id)
-        return
-          xdmp:set(
-            $admin-config,
-            admin:host-set-group(
-              $admin-config,
-              $host-id,
-              $default-group-id))
-      else ()
-  return
-    if (admin:save-configuration-without-restart($admin-config)) then
-      (:xdmp:set($restart-needed, fn:true()):)
-      fn:error(xs:QName("RESTART_NOW"),"")
-    else (),
-
-    try { xdmp:log(xdmp:group-hosts(xdmp:group("Test"))) } catch ($ignore) {},
-
-  (: remove groups :)
-  let $admin-config := admin:get-configuration()
-  let $remove-groups :=
-    for $group in $import-config/gr:groups/gr:group/gr:group-name[fn:not(. = "Default")]
-    return
-      if (admin:group-exists($admin-config, $group)) then
-        let $group-id := xdmp:group($group)
-        return
-          xdmp:set(
-            $admin-config,
-            admin:group-delete(
-              $admin-config,
-              $group-id))
-      else ()
-  return
-    if (admin:save-configuration-without-restart($admin-config)) then
-      xdmp:set($restart-needed, fn:true())
-    else (),
-
-  (: remove mimetypes :)
-  let $admin-config := admin:get-configuration()
-  let $remove-mimetypes :=
-    for $x in $import-config/mt:mimetypes/mt:mimetype
-    return
-      try
-      {
-        xdmp:set(
-          $admin-config,
-          admin:mimetypes-delete(
-            $admin-config,
-            admin:mimetype($x/mt:name, $x/mt:extension, $x/mt:format)))
-      }
-      catch($ex)
-      {
-        if ($ex/error:code = "ADMIN-NOSUCHITEM") then ()
-        else
-          xdmp:rethrow()
-      }
-  return
-    admin:save-configuration($admin-config),
-
-  (: remove users :)
-  for $user in $import-config/sec:users/sec:user/sec:user-name[fn:not(. = $system-users)]
-  return
-    try
-    {
-      xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $user as xs:string external;
-         sec:remove-user($user)',
-        (xs:QName("user"), $user),
-        <options xmlns="xdmp:eval">
-          <database>{$default-security}</database>
-        </options>)
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "SEC-USERDNE") then ()
-      else
-        xdmp:rethrow()
-    },
-
-  (: remove roles :)
-  for $role in $import-config/sec:roles/sec:role/sec:role-name[fn:not(. = $system-roles)]
-  return
-    try
-    {
-      xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $role as xs:string external;
-         sec:remove-role($role)',
-        (xs:QName("role"), $role),
-        <options xmlns="xdmp:eval">
-          <database>{$default-security}</database>
-        </options>)
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "SEC-ROLEDNE") then ()
-      else
-        xdmp:rethrow()
-    },
-
-  (: remove privileges :)
-  for $priv in $import-config/sec:privileges/sec:privilege
-  return
-    try
-    {
-      xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $action as xs:string external;
-         declare variable $kind as xs:string external;
-         sec:remove-privilege($action, $kind)',
-        (xs:QName("action"), $priv/sec:action,
-         xs:QName("kind"), $priv/sec:kind),
-        <options xmlns="xdmp:eval">
-          <database>{$default-security}</database>
-        </options>)
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "SEC-PRIVDNE") then ()
-      else
-        xdmp:rethrow()
-    },
-
-  (: remove external security :)
-  for $es in $import-config/sec:external-securities/sec:external-security
-  return
-    try
-    {
-      xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $name as xs:string external;
-
-         sec:remove-external-security($name)',
-        (xs:QName("name"), $es/sec:external-security-name),
-        <options xmlns="xdmp:eval">
-          <database>{$default-security}</database>
-        </options>)
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "SEC-EXTERNALSECURITYDNE") then ()
-      else
-        xdmp:rethrow()
-    },
-
-  if ($restart-needed) then
-    "note: restart required"
-  else ()
+    )
   
   }
   catch($ex)
@@ -813,7 +826,7 @@ declare function setup:delete-databases($db-config as element(db:database))
         if (admin:save-configuration-without-restart($admin-config)) then
           xdmp:set($restart-needed, fn:true())
         else ()
-        else ()
+    else ()
 };
 
 declare function setup:do-restart($group-name as xs:string?) as item()*
@@ -824,13 +837,24 @@ declare function setup:do-restart($group-name as xs:string?) as item()*
       if ($group-name = "") then
         xdmp:group()
       else
-        xdmp:group($group-name)
+        try { xdmp:group($group-name) } catch($ignore) {}
+    let $host-ids :=
+      if ($group-id) then
+        xdmp:group-hosts($group-id)
+      else if ($group-name = "cluster") then
+        xdmp:hosts()
+      else
+        fn:error((), "XDMP-NOSUCHGROUP")
     return
     (
       xdmp:restart(
-        xdmp:group-hosts($group-id),
+        $host-ids,
         "Restarting hosts to make configuration changes take effect"),
-      fn:concat($group-name, "Group restarted")
+        
+      if ($group-id) then
+        fn:concat("Group ", $group-name, " restarted")
+      else
+        fn:concat("Cluster restarted")
     )
   }
   catch ($ex)
@@ -5299,25 +5323,26 @@ declare function setup:validation-fail($message)
 
 declare function setup:validate-install($import-config as element(configuration))
 {
-  let $import-config := setup:rewrite-config($import-config)
-  return
   try
   {
-    setup:validate-external-security($import-config),
-    setup:validate-privileges($import-config),
-    setup:validate-roles($import-config),
-    setup:validate-users($import-config),
-    setup:validate-mimetypes($import-config),
-    setup:validate-forests($import-config),
-    setup:validate-databases($import-config),
-    setup:validate-attached-forests($import-config),
-    setup:validate-amps($import-config),
-    setup:validate-database-settings($import-config),
-    setup:validate-databases-indexes($import-config),
-    setup:validate-groups($import-config),
-    setup:validate-appservers($import-config),
-    setup:validate-appservers-settings($import-config),
-    setup:validate-scheduled-tasks($import-config)
+    let $import-config := setup:rewrite-config($import-config)
+    return (
+      setup:validate-external-security($import-config),
+      setup:validate-privileges($import-config),
+      setup:validate-roles($import-config),
+      setup:validate-users($import-config),
+      setup:validate-mimetypes($import-config),
+      setup:validate-forests($import-config),
+      setup:validate-databases($import-config),
+      setup:validate-attached-forests($import-config),
+      setup:validate-amps($import-config),
+      setup:validate-database-settings($import-config),
+      setup:validate-databases-indexes($import-config),
+      setup:validate-groups($import-config),
+      setup:validate-appservers($import-config),
+      setup:validate-appservers-settings($import-config),
+      setup:validate-scheduled-tasks($import-config)
+    )
   }
   catch($ex)
   {
