@@ -400,11 +400,6 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
 
   def restart
     group = ARGV.shift
-    # Exclude any argument passed from command line.
-    if group.index("-") == 0
-      group = nil
-    end
-
     if group
       logger.info "Restarting MarkLogic Server group #{group} on #{@hostname}"
     else
