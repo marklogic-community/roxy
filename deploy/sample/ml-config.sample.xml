@@ -1,7 +1,81 @@
-<configuration>
+<configuration default-group="@ml.group">
+<!--
+  You only need to uncomment this if you intend creating dedicated groups for your deployment, AND want to apply settings.
+  You can also use @default-group and @group to dedicate servers and database forests to particular hosts.
+  <groups>
+    <group>
+      <group-name>roxy-self-test</group-name>
+
+      <list-cache-size>2048</list-cache-size>
+      <list-cache-partitions>1</list-cache-partitions>
+      <compressed-tree-cache-size>1024</compressed-tree-cache-size>
+      <compressed-tree-cache-partitions>2</compressed-tree-cache-partitions>
+      <compressed-tree-read-size>32</compressed-tree-read-size>
+      <expanded-tree-cache-size>2048</expanded-tree-cache-size>
+      <expanded-tree-cache-partitions>2</expanded-tree-cache-partitions>
+      <triple-cache-size>2048</triple-cache-size>
+      <triple-cache-partitions>1</triple-cache-partitions>
+      <triple-cache-timeout>300</triple-cache-timeout>
+      <triple-value-cache-size>1024</triple-value-cache-size>
+      <triple-value-cache-partitions>2</triple-value-cache-partitions>
+      <triple-value-cache-timeout>300</triple-value-cache-timeout>
+
+      <smtp-relay>localhost</smtp-relay>
+      <smtp-timeout>60</smtp-timeout>
+      <http-user-agent>MarkLogic Server</http-user-agent>
+      <http-timeout>60</http-timeout>
+      <xdqp-timeout>10</xdqp-timeout>
+      <host-timeout>30</host-timeout>
+      <host-initial-timeout>240</host-initial-timeout>
+      <retry-timeout>180</retry-timeout>
+      <module-cache-timeout>300</module-cache-timeout>
+
+      <system-log-level>notice</system-log-level>
+      <file-log-level>info</file-log-level>
+      <rotate-log-files>daily</rotate-log-files>
+      <keep-log-files>7</keep-log-files>
+
+      <failover-enable>true</failover-enable>
+      <xdqp-ssl-enabled>false</xdqp-ssl-enabled>
+      <xdqp-ssl-allow-sslv3>true</xdqp-ssl-allow-sslv3>
+      <xdqp-ssl-allow-tls>true</xdqp-ssl-allow-tls>
+      <xdqp-ssl-ciphers>ALL:!LOW:@STRENGTH</xdqp-ssl-ciphers>
+
+      <background-io-limit>0</background-io-limit>
+      <metering-enabled>true</metering-enabled>
+      <performance-metering-enabled>true</performance-metering-enabled>
+      <performance-metering-period>1</performance-metering-period>
+      <performance-metering-retain-raw>7</performance-metering-retain-raw>
+      <performance-metering-retain-hourly>30</performance-metering-retain-hourly>
+      <performance-metering-retain-daily>90</performance-metering-retain-daily>
+
+      <s3-domain>s3.amazonaws.com</s3-domain>
+      <s3-protocol>http</s3-protocol>
+      <s3-server-side-encryption>none</s3-server-side-encryption>
+      
+      <!- - Diagnostics - ->
+      <trace-events-activated>true</trace-events-activated>
+      
+      <!- - Auditing - ->
+      <audit-enabled>true</audit-enabled>
+      <rotate-audit-files>daily</rotate-audit-files>
+      <keep-audit-files>7</keep-audit-files>
+      <audit-outcome-restriction>both</audit-outcome-restriction>
+    </group>
+  </groups>
+-->
+<!--
+  If you intend using dedicated groups, make sure at least one host is assigned to each group that is used!
+  <hosts xsi:schemaLocation="http://marklogic.com/xdmp/hosts hosts.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/hosts">
+    <host>
+      <host-name>@ml.bootstrap-host</host-name>
+      <group name="@ml.group"/>
+    </host>
+  </hosts>
+-->
 <!--
   Only enable the task server section if you need to.
-  <task-server group="Default" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+  <task-server group="@ml.group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <threads>16</threads>
     <debug-threads>16</debug-threads>
     <max-time-limit>3600</max-time-limit>
@@ -84,7 +158,7 @@
 -->
   <http-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <!--Default Application Server-->
-    <http-server group="Default">
+    <http-server group="@ml.group">
       <http-server-name>@ml.app-name</http-server-name>
       <port>@ml.app-port</port>
       <database name="@ml.content-db"/>
@@ -113,6 +187,7 @@
   <odbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     @ml.odbc-server
   </odbc-servers>
+
   <!--Assignments-->
   <assignments xmlns="http://marklogic.com/xdmp/assignments" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/assignments assignments.xsd">
     <assignment>
@@ -138,7 +213,7 @@
     <!--Application Database Configuration-->
     @ml.test-content-db-xml
     @ml.rest-modules-db-xml
-    <database group="Default">
+    <database group="@ml.group">
       <database-name>@ml.content-db</database-name>
       <forests-per-host>@ml.content-forests-per-host</forests-per-host>
       @ml.schemas-mapping
@@ -365,7 +440,7 @@
       </element-attribute-word-lexicons>
     </database>
     <!--Create Application Modules Database-->
-    <database group="Default">
+    <database group="@ml.group">
       <database-name>@ml.modules-db</database-name>
       <forests>
         <forest-id name="@ml.modules-db"/>
