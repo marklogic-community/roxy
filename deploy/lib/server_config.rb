@@ -548,7 +548,7 @@ In order to proceed please type: #{expected_response}
       end
     end
 
-    logger.debug %Q{#{setup} setup:do-wipe(#{config})}
+    #logger.debug %Q{#{setup} setup:do-wipe(#{config})}
     r = execute_query %Q{#{setup} setup:do-wipe(#{config})}
     logger.debug "code: #{r.code.to_i}"
 
