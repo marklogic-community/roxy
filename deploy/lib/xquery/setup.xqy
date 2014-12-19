@@ -50,57 +50,66 @@ declare variable $system-roles as xs:string+ :=
 
 declare variable $group-settings :=
   <settings>
-    <setting>audit-enabled</setting>
-    <setting>audit-outcome-restriction</setting>
-    <!--setting>audit-role-restriction</setting>
-    <setting>audit-uri-restriction</setting>
-    <setting>audit-user-restriction</setting-->
-    <setting>background-io-limit</setting>
-    <setting>compressed-tree-cache-partitions</setting>
-    <setting>compressed-tree-cache-size</setting>
-    <setting>compressed-tree-read-size</setting>
-    <setting>expanded-tree-cache-partitions</setting>
-    <setting>expanded-tree-cache-size</setting>
-    <setting>failover-enable</setting>
-    <setting>file-log-level</setting>
-    <setting>host-initial-timeout</setting>
-    <setting>host-timeout</setting>
-    <setting>http-timeout</setting>
-    <setting>http-user-agent</setting>
-    <setting>keep-audit-files</setting>
-    <setting>keep-log-files</setting>
-    <setting>list-cache-partitions</setting>
     <setting>list-cache-size</setting>
-    <setting>metering-enabled</setting>
-    <!--setting>meters-database</setting-->
-    <setting>module-cache-timeout</setting>
-    <setting>performance-metering-enabled</setting>
-    <setting>performance-metering-period</setting>
-    <setting>performance-metering-retain-daily</setting>
-    <setting>performance-metering-retain-hourly</setting>
-    <setting>performance-metering-retain-raw</setting>
-    <setting>retry-timeout</setting>
-    <setting>rotate-audit-files</setting>
-    <setting>rotate-log-files</setting>
-    <setting>s3-domain</setting>
-    <setting>s3-protocol</setting>
-    <setting>s3-server-side-encryption</setting>
-    <!--setting>security-database</setting-->
+    <setting>list-cache-partitions</setting>
+    <setting>compressed-tree-cache-size</setting>
+    <setting>compressed-tree-cache-partitions</setting>
+    <setting>compressed-tree-read-size</setting>
+    <setting>expanded-tree-cache-size</setting>
+    <setting>expanded-tree-cache-partitions</setting>
+    <setting>triple-cache-size</setting>
+    <setting>triple-cache-partitions</setting>
+    <setting>triple-cache-timeout</setting>
+    <setting>triple-value-cache-size</setting>
+    <setting>triple-value-cache-partitions</setting>
+    <setting>triple-value-cache-timeout</setting>
+    
     <setting>smtp-relay</setting>
     <setting>smtp-timeout</setting>
+    <setting>http-user-agent</setting>
+    <setting>http-timeout</setting>
+    <setting>xdqp-timeout</setting>
+    <setting>host-timeout</setting>
+    <setting>host-initial-timeout</setting>
+    <setting>retry-timeout</setting>
+    <setting>module-cache-timeout</setting>
+    
     <setting>system-log-level</setting>
-    <setting>trace-events-activated</setting>
-    <setting>triple-cache-partitions</setting>
-    <setting>triple-cache-size</setting>
-    <setting>triple-cache-timeout</setting>
-    <setting>triple-value-cache-partitions</setting>
-    <setting>triple-value-cache-size</setting>
-    <setting>triple-value-cache-timeout</setting>
+    <setting>file-log-level</setting>
+    <setting>rotate-log-files</setting>
+    <setting>keep-log-files</setting>
+    
+    <setting>failover-enable</setting>
+    <setting>xdqp-ssl-enabled</setting>
     <setting>xdqp-ssl-allow-sslv3</setting>
     <setting>xdqp-ssl-allow-tls</setting>
     <setting>xdqp-ssl-ciphers</setting>
-    <setting>xdqp-ssl-enabled</setting>
-    <setting>xdqp-timeout</setting>
+    
+    <setting>background-io-limit</setting>
+    <setting>metering-enabled</setting>
+    <setting>performance-metering-enabled</setting>
+    <!--TODO: setting>meters-database</setting-->
+    <setting>performance-metering-period</setting>
+    <setting>performance-metering-retain-raw</setting>
+    <setting>performance-metering-retain-hourly</setting>
+    <setting>performance-metering-retain-daily</setting>
+    
+    <setting>s3-domain</setting>
+    <setting>s3-protocol</setting>
+    <setting>s3-server-side-encryption</setting>
+    <!--DANGEROUS: setting>security-database</setting-->
+    
+    <!-- Diagnostics -->
+    <setting>trace-events-activated</setting>
+    
+    <!-- Auditing -->
+    <setting>audit-enabled</setting>
+    <setting>rotate-audit-files</setting>
+    <setting>keep-audit-files</setting>
+    <setting>audit-outcome-restriction</setting>
+    <!--TODO: setting>audit-role-restriction</setting>
+    <setting>audit-uri-restriction</setting>
+    <setting>audit-user-restriction</setting-->
   </settings>;
 
 declare variable $host-settings :=
@@ -372,15 +381,16 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
       $import-configs/@*,
     
       <groups xmlns="http://marklogic.com/xdmp/group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">{
+        let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
           ($import-configs/(gr:http-servers/gr:http-server | gr:xdbc-servers/gr:xdbc-server |
-            gr:odbc-servers/gr:odbc-server | gr:task-server | db:databases/db:database)/@group, "Default"))
-        let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = "Default" and fn:empty(@group))]
-        let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = "Default" and fn:empty(@group))]
-        let $odbc-servers := $import-configs/gr:odbc-servers/gr:odbc-server[@group = $group or ($group = "Default" and fn:empty(@group))]
-        let $task-server := $import-configs/gr:task-server[@group = $group or ($group = "Default" and fn:empty(@group))]
+            gr:odbc-servers/gr:odbc-server | gr:task-server | db:databases/db:database)/@group, $default-group))
+        let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $odbc-servers := $import-configs/gr:odbc-servers/gr:odbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $task-server := $import-configs/gr:task-server[@group = $group or ($group = $default-group and fn:empty(@group))]
         let $servers := ($http-servers, $xdbc-servers, $odbc-servers, $task-server)
-        let $databases := $import-configs/db:databases/db:database[@group = $group or ($group = "Default" and fn:empty(@group))]
+        let $databases := $import-configs/db:databases/db:database[@group = $group or ($group = $default-group and fn:empty(@group))]
         let $group-config := $import-configs/gr:groups/gr:group[gr:group-name = $group]
         where fn:exists($servers | $databases | $group-config)
         return
@@ -408,10 +418,9 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
     }
   
   (: Check config on group consistency! :)
-  let $groups := ($config/gr:groups/gr:group/gr:group-name, for $g in xdmp:groups() return xdmp:group-name($g))
   let $_ :=
     for $group in $config/gr:groups/gr:group/gr:group-name
-    let $hosts := $config/ho:hosts/ho:host[ho:group/@name = $group]
+    let $hosts := ($config/ho:hosts/ho:host[ho:group/@name = $group], try { xdmp:group-hosts(xdmp:group($group)) } catch ($ignore) {})
     where fn:empty($hosts)
     return
       fn:error(
@@ -478,14 +487,16 @@ declare function setup:do-wipe($import-config as element(configuration)+) as ite
       let $admin-config := admin:get-configuration()
       let $remove-tasks :=
         for $task-server in $import-config/gr:groups/gr:group/gr:task-server
-        let $group-id := setup:get-group($task-server)
-        for $task in $task-server/gr:scheduled-tasks/gr:scheduled-task
-        let $existing := setup:get-scheduled-task($task, $group-id)
-        where $existing
+        let $group-id := try { setup:get-group($task-server) } catch ($ignore) {}
+        where $group-id
         return
-          xdmp:set(
-            $admin-config,
-            admin:group-delete-scheduled-task($admin-config, $group-id, $existing))
+          for $task in $task-server/gr:scheduled-tasks/gr:scheduled-task
+          let $existing := setup:get-scheduled-task($task, $group-id)
+          where $existing
+          return
+            xdmp:set(
+              $admin-config,
+              admin:group-delete-scheduled-task($admin-config, $group-id, $existing))
       return
         if (admin:save-configuration-without-restart($admin-config)) then
           xdmp:set($restart-needed, fn:true())
@@ -3190,7 +3201,7 @@ declare function setup:configure-groups($import-config as element(configuration)
     return
       if (fn:empty($min-version) or setup:at-least-version($min-version)) then
         xdmp:set($admin-config,
-          xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $host-id, $value)")))
+          xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $group-id, $value)")))
       else
         fn:error(
           xs:QName("VERSION_NOT_SUPPORTED"),
@@ -3203,6 +3214,40 @@ declare function setup:configure-groups($import-config as element(configuration)
 
     fn:concat("Group ", $group-name, " settings applied succesfully.")
   )
+};
+
+declare function setup:validate-groups-settings($import-config as element(configuration)) as item()*
+{
+  let $admin-config := admin:get-configuration()
+  let $settings := $group-settings
+  for $group-config in $import-config/gr:groups/gr:group
+  let $group-name := $group-config/gr:group-name
+  let $group-id := xdmp:group($group-name)
+
+  for $setting in $settings/*:setting
+  let $setting-test :=
+    if ($setting/@accept-blank = "true") then
+      ""
+    else
+      "[fn:string-length(fn:string(.)) > 0]"
+  let $expected :=
+    if ($setting/@value) then
+      xdmp:value($setting/@value)
+    else
+      fn:data(xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test)))
+  let $min-version as xs:string? := $setting/@min-version
+  where (fn:exists($expected))
+  return
+    if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+      let $actual := xdmp:value(fn:concat("admin:group-get-", $setting, "($admin-config, $group-id)"))
+      return
+        if ($expected = $actual) then ()
+        else
+          setup:validation-fail(fn:concat("Group ", $setting, " mismatch: ", $expected, " != ", $actual))
+    else
+      fn:error(
+        xs:QName("VERSION_NOT_SUPPORTED"),
+        fn:concat("MarkLogic ", xdmp:version(), " does not support ", $setting, ". Use ", $min-version, " or higher."))
 };
 
 declare function setup:configure-hosts($import-config as element(configuration)) as item()*
@@ -3241,6 +3286,40 @@ declare function setup:configure-hosts($import-config as element(configuration))
 
     fn:concat("Host ", $host-name, " settings applied succesfully.")
   )
+};
+
+declare function setup:validate-hosts-settings($import-config as element(configuration)) as item()*
+{
+  let $admin-config := admin:get-configuration()
+  let $settings := $host-settings
+  for $host-config in $import-config/ho:hosts/ho:host
+  let $host-name := $host-config/ho:host-name
+  let $host-id := xdmp:host($host-name)
+
+  for $setting in $settings/*:setting
+  let $setting-test :=
+    if ($setting/@accept-blank = "true") then
+      ""
+    else
+      "[fn:string-length(fn:string(.)) > 0]"
+  let $expected :=
+    if ($setting/@value) then
+      xdmp:value($setting/@value)
+    else
+      fn:data(xdmp:value(fn:concat("$host-config/ho:", $setting, $setting-test)))
+  let $min-version as xs:string? := $setting/@min-version
+  where (fn:exists($expected))
+  return
+    if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+      let $actual := xdmp:value(fn:concat("admin:host-get-", $setting, "($admin-config, $host-id)"))
+      return
+        if ($expected = $actual) then ()
+        else
+          setup:validation-fail(fn:concat("Host ", $setting, " mismatch: ", $expected, " != ", $actual))
+    else
+      fn:error(
+        xs:QName("VERSION_NOT_SUPPORTED"),
+        fn:concat("MarkLogic ", xdmp:version(), " does not support ", $setting, ". Use ", $min-version, " or higher."))
 };
 
 declare function setup:create-appservers(
@@ -5338,7 +5417,9 @@ declare function setup:validate-install($import-config as element(configuration)
       setup:validate-amps($import-config),
       setup:validate-database-settings($import-config),
       setup:validate-databases-indexes($import-config),
+      setup:validate-hosts-settings($import-config),
       setup:validate-groups($import-config),
+      setup:validate-groups-settings($import-config),
       setup:validate-appservers($import-config),
       setup:validate-appservers-settings($import-config),
       setup:validate-scheduled-tasks($import-config)
@@ -5408,6 +5489,9 @@ declare function setup:get-group($server-config as element()) as xs:unsignedLong
   (: databases :)
   else if ($server-config/@group) then
     xdmp:group($server-config/@group)
+  (: revert to defaults :)
+  else if ($server-config/ancestor::*:configuration/@default-group) then
+    xdmp:group($server-config/ancestor::*:configuration/@default-group)
   else
     xdmp:group("Default")
 };
@@ -5416,6 +5500,9 @@ declare function setup:get-host-group($host-config as element(ho:host)) as xs:un
 {
   if ($host-config/ho:group/@name) then
     xdmp:group($host-config/ho:group/@name)
+  (: revert to defaults :)
+  else if ($host-config/ancestor::*:configuration/@default-group) then
+    xdmp:group($host-config/ancestor::*:configuration/@default-group)
   else
     xdmp:group("Default")
 };
