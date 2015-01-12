@@ -1,4 +1,4 @@
-<configuration>
+<configuration default-group="roxy-self-test">
   <task-server xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <threads>16</threads>
     <debug-threads>16</debug-threads>
@@ -150,11 +150,330 @@
       <ssl-ciphers>ALL:!LOW:@STRENGTH</ssl-ciphers>
       <ssl-require-client-certificate>true</ssl-require-client-certificate>
     </http-server>
+    <http-server group="roxy-self-test">
+      <http-server-name>@ml.app-name2</http-server-name>
+      <enabled>false</enabled>
+      <root>/@ml.app-name/</root>
+      <port>1@ml.app-port</port>
+      <modules name="@ml.app-modules-db"/>
+      <database name="@ml.content-db"/>
+      <last-login>Last-Login</last-login>
+      <display-last-login>true</display-last-login>
+      <address>1.2.3.4</address>
+      <backlog>321</backlog>
+      <threads>123</threads>
+      <request-timeout>321</request-timeout>
+      <keep-alive-timeout>123</keep-alive-timeout>
+      <session-timeout>321</session-timeout>
+      <max-time-limit>123</max-time-limit>
+      <default-time-limit>321</default-time-limit>
+      <static-expires>123</static-expires>
+      <pre-commit-trigger-depth>321</pre-commit-trigger-depth>
+      <pre-commit-trigger-limit>123</pre-commit-trigger-limit>
+      <collation>http://marklogic.com/collation/codepoint</collation>
+      <authentication>basic</authentication>
+      <default-user>@ml.default-user</default-user>
+      <privilege>admin-ui</privilege>
+      <concurrent-request-limit>123</concurrent-request-limit>
+      <log-errors>false</log-errors>
+      <debug-allow>false</debug-allow>
+      <profile-allow>false</profile-allow>
+      <default-xquery-version>1.0</default-xquery-version>
+      <multi-version-concurrency-control>nonblocking</multi-version-concurrency-control>
+
+      <output-sgml-character-entities>normal</output-sgml-character-entities>
+      <output-encoding>ASCII</output-encoding>
+      <output-method>xml</output-method>
+      <output-byte-order-mark>yes</output-byte-order-mark>
+      <output-cdata-section-namespace-uri>a</output-cdata-section-namespace-uri>
+      <output-cdata-section-localname>b</output-cdata-section-localname>
+      <output-doctype-public>c</output-doctype-public>
+      <output-doctype-system>d</output-doctype-system>
+      <output-escape-uri-attributes>yes</output-escape-uri-attributes>
+      <output-include-content-type>yes</output-include-content-type>
+      <output-indent>yes</output-indent>
+      <output-indent-untyped>yes</output-indent-untyped>
+      <output-media-type>text/xml</output-media-type>
+      <output-normalization-form>NFC</output-normalization-form>
+      <output-omit-xml-declaration>yes</output-omit-xml-declaration>
+      <output-standalone>yes</output-standalone>
+      <output-undeclare-prefixes>yes</output-undeclare-prefixes>
+      <output-version>1.0</output-version>
+      <output-include-default-attributes>yes</output-include-default-attributes>
+
+      <error-handler>/roxy/error.xqy</error-handler>
+      <schemas>
+        <schema>
+          <namespace-uri>http://www.ns.com/ns0</namespace-uri>
+          <schema-location>/test.xsd</schema-location>
+        </schema>
+      </schemas>
+      <namespaces>
+        <namespace>
+          <prefix>ns1</prefix>
+          <namespace-uri>http://www.ns.com/ns1</namespace-uri>
+        </namespace>
+        <namespace>
+          <prefix>ns2</prefix>
+          <namespace-uri>http://www.ns.com/ns2</namespace-uri>
+        </namespace>
+        <using-namespace>
+          <namespace-uri>http://www.ns.com/ns3</namespace-uri>
+        </using-namespace>
+      </namespaces>
+      <request-blackouts>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period>
+            <start-time>12:34:00+02:00</start-time>
+            <end-time>23:45:00+02:00</end-time>
+          </period>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period>
+            <start-time>12:34:00+02:00</start-time>
+            <duration>PT1H23M</duration>
+          </period>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period/>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>once</blackout-type>
+          <days/>
+          <period>
+            <start-date>1234-11-22</start-date>
+            <start-time>12:34:00+02:00</start-time>
+            <end-date>1234-12-23</end-date>
+            <end-time>23:34:00+02:00</end-time>
+          </period>
+        </request-blackout>
+      </request-blackouts>
+      <url-rewriter>/roxy/rewrite.xqy</url-rewriter>
+      <rewrite-resolves-globally>true</rewrite-resolves-globally>
+      <ssl-allow-sslv3>false</ssl-allow-sslv3>
+      <ssl-allow-tls>false</ssl-allow-tls>
+      <ssl-hostname>sixer</ssl-hostname>
+      <ssl-ciphers>ALL:!LOW:@STRENGTH:ROXY</ssl-ciphers>
+      <ssl-require-client-certificate>false</ssl-require-client-certificate>
+      <ssl-client-certificate-authorities/>
+    </http-server>
     @ml.test-appserver
+    <http-server>
+      <http-server-name>@ml.app-name-dav</http-server-name>
+      <enabled>false</enabled>
+      <root>/@ml.app-name/</root>
+      <port>@ml.dav-port</port>
+      <webDAV>true</webDAV>
+      <compute-content-length>true</compute-content-length>
+      <database name="@ml.content-db"/>
+      <last-login>Last-Login</last-login>
+      <display-last-login>true</display-last-login>
+      <address>1.2.3.4</address>
+      <backlog>321</backlog>
+      <threads>123</threads>
+      <request-timeout>321</request-timeout>
+      <keep-alive-timeout>123</keep-alive-timeout>
+      <session-timeout>321</session-timeout>
+      <max-time-limit>123</max-time-limit>
+      <default-time-limit>321</default-time-limit>
+      <static-expires>123</static-expires>
+      <pre-commit-trigger-depth>321</pre-commit-trigger-depth>
+      <pre-commit-trigger-limit>123</pre-commit-trigger-limit>
+      <collation>http://marklogic.com/collation/codepoint</collation>
+      <authentication>basic</authentication>
+      <default-user>@ml.default-user</default-user>
+      <privilege>admin-ui</privilege>
+      <concurrent-request-limit>123</concurrent-request-limit>
+      <log-errors>false</log-errors>
+      <debug-allow>false</debug-allow>
+      <profile-allow>false</profile-allow>
+      <default-xquery-version>1.0</default-xquery-version>
+      <multi-version-concurrency-control>nonblocking</multi-version-concurrency-control>
+      
+      <output-sgml-character-entities>normal</output-sgml-character-entities>
+      <output-encoding>ASCII</output-encoding>
+      <output-method>xml</output-method>
+      <output-byte-order-mark>yes</output-byte-order-mark>
+      <output-cdata-section-namespace-uri>a</output-cdata-section-namespace-uri>
+      <output-cdata-section-localname>b</output-cdata-section-localname>
+      <output-doctype-public>c</output-doctype-public>
+      <output-doctype-system>d</output-doctype-system>
+      <output-escape-uri-attributes>yes</output-escape-uri-attributes>
+      <output-include-content-type>yes</output-include-content-type>
+      <output-indent>yes</output-indent>
+      <output-indent-untyped>yes</output-indent-untyped>
+      <output-media-type>text/xml</output-media-type>
+      <output-normalization-form>NFC</output-normalization-form>
+      <output-omit-xml-declaration>yes</output-omit-xml-declaration>
+      <output-standalone>yes</output-standalone>
+      <output-undeclare-prefixes>yes</output-undeclare-prefixes>
+      <output-version>1.0</output-version>
+      <output-include-default-attributes>yes</output-include-default-attributes>
+
+      <schemas>
+        <schema>
+          <namespace-uri>http://www.ns.com/ns0</namespace-uri>
+          <schema-location>/test.xsd</schema-location>
+        </schema>
+      </schemas>
+      <namespaces>
+        <namespace>
+          <prefix>ns1</prefix>
+          <namespace-uri>http://www.ns.com/ns1</namespace-uri>
+        </namespace>
+        <namespace>
+          <prefix>ns2</prefix>
+          <namespace-uri>http://www.ns.com/ns2</namespace-uri>
+        </namespace>
+        <using-namespace>
+          <namespace-uri>http://www.ns.com/ns3</namespace-uri>
+        </using-namespace>
+      </namespaces>
+      <request-blackouts>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period>
+            <start-time>12:34:00+02:00</start-time>
+            <end-time>23:45:00+02:00</end-time>
+          </period>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period>
+            <start-time>12:34:00+02:00</start-time>
+            <duration>PT1H23M</duration>
+          </period>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>recurring</blackout-type>
+          <days>
+            <day>monday</day>
+          </days>
+          <period/>
+        </request-blackout>
+        <request-blackout>
+          <users names="infostudio-admin nobody"/>
+          <roles names="app-user rest-reader"/>
+          <blackout-type>once</blackout-type>
+          <days/>
+          <period>
+            <start-date>1234-11-22</start-date>
+            <start-time>12:34:00+02:00</start-time>
+            <end-date>1234-12-23</end-date>
+            <end-time>23:34:00+02:00</end-time>
+          </period>
+        </request-blackout>
+      </request-blackouts>
+      <ssl-allow-sslv3>false</ssl-allow-sslv3>
+      <ssl-allow-tls>false</ssl-allow-tls>
+      <ssl-hostname>sixer</ssl-hostname>
+      <ssl-ciphers>ALL:!LOW:@STRENGTH:ROXY</ssl-ciphers>
+      <ssl-require-client-certificate>false</ssl-require-client-certificate>
+      <ssl-client-certificate-authorities/>
+    </http-server>
   </http-servers>
   <xdbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     @ml.xdbc-server
   </xdbc-servers>
+  <groups>
+    <group>
+      <group-name>roxy-self-test</group-name>
+
+      <list-cache-size>2048</list-cache-size>
+      <list-cache-partitions>1</list-cache-partitions>
+      <compressed-tree-cache-size>1024</compressed-tree-cache-size>
+      <compressed-tree-cache-partitions>2</compressed-tree-cache-partitions>
+      <compressed-tree-read-size>32</compressed-tree-read-size>
+      <expanded-tree-cache-size>2048</expanded-tree-cache-size>
+      <expanded-tree-cache-partitions>2</expanded-tree-cache-partitions>
+      <triple-cache-size>2048</triple-cache-size>
+      <triple-cache-partitions>1</triple-cache-partitions>
+      <triple-cache-timeout>300</triple-cache-timeout>
+      <triple-value-cache-size>1024</triple-value-cache-size>
+      <triple-value-cache-partitions>2</triple-value-cache-partitions>
+      <triple-value-cache-timeout>300</triple-value-cache-timeout>
+
+      <smtp-relay>localhost</smtp-relay>
+      <smtp-timeout>60</smtp-timeout>
+      <http-user-agent>MarkLogic Server</http-user-agent>
+      <http-timeout>60</http-timeout>
+      <xdqp-timeout>10</xdqp-timeout>
+      <host-timeout>30</host-timeout>
+      <host-initial-timeout>240</host-initial-timeout>
+      <retry-timeout>180</retry-timeout>
+      <module-cache-timeout>300</module-cache-timeout>
+
+      <system-log-level>notice</system-log-level>
+      <file-log-level>info</file-log-level>
+      <rotate-log-files>daily</rotate-log-files>
+      <keep-log-files>7</keep-log-files>
+
+      <failover-enable>true</failover-enable>
+      <xdqp-ssl-enabled>false</xdqp-ssl-enabled>
+      <xdqp-ssl-allow-sslv3>true</xdqp-ssl-allow-sslv3>
+      <xdqp-ssl-allow-tls>true</xdqp-ssl-allow-tls>
+      <xdqp-ssl-ciphers>ALL:!LOW:@STRENGTH</xdqp-ssl-ciphers>
+
+      <background-io-limit>0</background-io-limit>
+      <metering-enabled>true</metering-enabled>
+      <performance-metering-enabled>true</performance-metering-enabled>
+      <performance-metering-period>1</performance-metering-period>
+      <performance-metering-retain-raw>7</performance-metering-retain-raw>
+      <performance-metering-retain-hourly>30</performance-metering-retain-hourly>
+      <performance-metering-retain-daily>90</performance-metering-retain-daily>
+
+      <s3-domain>s3.amazonaws.com</s3-domain>
+      <s3-protocol>http</s3-protocol>
+      <s3-server-side-encryption>none</s3-server-side-encryption>
+      
+      <!-- Diagnostics -->
+      <trace-events-activated>true</trace-events-activated>
+      
+      <!-- Auditing -->
+      <audit-enabled>true</audit-enabled>
+      <rotate-audit-files>daily</rotate-audit-files>
+      <keep-audit-files>7</keep-audit-files>
+      <audit-outcome-restriction>both</audit-outcome-restriction>
+    </group>
+  </groups>
+  <hosts xsi:schemaLocation="http://marklogic.com/xdmp/hosts hosts.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/hosts">
+    <host>
+      <host-name>@ml.bootstrap-host</host-name>
+      <group name="roxy-self-test"/>
+    </host>
+  </hosts>
   <!--Assignments-->
   <assignments xmlns="http://marklogic.com/xdmp/assignments" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/assignments assignments.xsd">
     <assignment>

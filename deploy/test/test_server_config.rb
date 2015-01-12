@@ -71,6 +71,9 @@ describe ServerConfig do
           :properties => @properties,
           :logger => @logger
         })
+      r = @s.execute_query %Q{xdmp:host-name(xdmp:host())}
+      r.body = parse_json(r.body)
+      @properties['ml.bootstrap-host'] = r.body
 
       @s.bootstrap.must_equal true
       @s.validate_install.must_equal true
