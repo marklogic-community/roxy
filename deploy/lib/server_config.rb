@@ -1158,12 +1158,14 @@ private
     load_html_as_xml = @properties['ml.load-html-as-xml']
     load_js_as_binary = @properties['ml.load-js-as-binary']
     load_css_as_binary = @properties['ml.load-css-as-binary']
+    folders_to_ignore = @properties['ml.ignore-folders']
 
     modules_databases.each do |dest_db|
       ignore_us = []
       ignore_us << "^#{test_dir}.*$" unless test_dir.blank? || deploy_tests?(dest_db)
       ignore_us << "^#{app_config_file}$"
       ignore_us << "^#{test_config_file}$"
+      ignore_us << "^#{folders_to_ignore}$" unless folders_to_ignore.blank?
 
       src_permissions = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER)
 
