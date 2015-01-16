@@ -480,7 +480,6 @@ private
   def deploy_modules
     ignore_us = []
     ignore_us = ["^#{@properties['ml.xquery-test.dir']}.*$"] if @properties['ml.xquery-test.dir']
-    ignore_us << "^#{@properties['folders_to_ignore']}$" if @properties['folders_to_ignore']
     app_config_file = "#{@properties['ml.xquery.dir']}/app/config/config.xqy"
     ignore_us << "^#{app_config_file}$"
     load_data @properties["ml.xquery.dir"], {
