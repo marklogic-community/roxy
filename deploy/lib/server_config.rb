@@ -401,14 +401,16 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
   def restart
     group = ARGV.shift
     # Exclude any argument passed from command line.
-    if group.index("-") == 0
+    if group && group.index("-") == 0
       group = nil
     end
 
-    if group
-      logger.info "Restarting MarkLogic Server group #{group} on #{@hostname}"
+    if group && group == "cluster"
+      logger.info "Restarting MarkLogic Server cluster of #{@hostname}"
+    elsif group
+      logger.info "Restarting MarkLogic Server group #{group}"
     else
-      logger.info "Restarting MarkLogic Server on #{@hostname}"
+      logger.info "Restarting MarkLogic Server group of #{@hostname}"
     end
     logger.debug "this: #{self}"
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")

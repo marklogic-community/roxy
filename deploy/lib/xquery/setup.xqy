@@ -849,6 +849,11 @@ declare function setup:do-restart($group-name as xs:string?) as item()*
         xdmp:group()
       else
         try { xdmp:group($group-name) } catch($ignore) {}
+    let $group-name :=
+      if ($group-id) then
+        xdmp:group-name($group-id)
+      else
+        $group-name
     let $host-ids :=
       if ($group-id) then
         xdmp:group-hosts($group-id)
