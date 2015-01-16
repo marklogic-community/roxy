@@ -878,9 +878,9 @@ In order to proceed please type: #{expected_response}
 
       args = ARGV.join(" ")
 
-      runme = %Q{java -cp #{classpath} #{@properties['ml.mlcp-vmargs']} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
+      runme = %Q{java -cp "#{classpath}" #{@properties['ml.mlcp-vmargs']} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
     else
-      runme = %Q{java -cp #{classpath} com.marklogic.contentpump.ContentPump}
+      runme = %Q{java -cp "#{classpath}" com.marklogic.contentpump.ContentPump}
     end
 
     logger.debug runme
