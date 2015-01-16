@@ -1,11 +1,10 @@
-<!--
-  default-group applies to databases
-  -->
 <configuration default-group="@ml.group">
   <!--
+    default-group applies to databases
+    
     @ml.group defaults to "Default", you can override in build.properties or {env}.properties
     Note: if you change ml.group, make sure to assign hosts to it! See <hosts> below.
-    -->
+  -->
   <groups>
     <group>
       <group-name>@ml.group</group-name>

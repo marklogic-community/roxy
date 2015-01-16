@@ -3132,9 +3132,9 @@ declare function setup:create-group(
   
   (: Make sure App-Services and Manage are available in the new group in case the host we use Roxy against is assigned to it! :)
   let $group-id := admin:group-get-id($admin-config, $group)
-  let $appservices-id := xdmp:server("App-Services", xdmp:group("Default"))
+  let $appservices-id := xdmp:server("App-Services")[1]
   let $appservices-port := admin:appserver-get-port($admin-config, $appservices-id)
-  let $manage-id := xdmp:server("Manage", xdmp:group("Default"))
+  let $manage-id := xdmp:server("Manage")[1]
   let $manage-port := admin:appserver-get-port($admin-config, $manage-id)
   let $_ :=
     if (admin:appserver-exists($admin-config, $group-id, "App-Services")) then ()
