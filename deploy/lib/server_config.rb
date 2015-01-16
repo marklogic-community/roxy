@@ -181,7 +181,7 @@ class ServerConfig < MLClient
     server_version = find_arg(['--server-version'])
 
     # Check for required --server-version argument value
-    if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7).include? server_version))
+    if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7 8).include? server_version))
       server_version = prompt_server_version
     end
 
@@ -266,9 +266,9 @@ class ServerConfig < MLClient
   def self.prompt_server_version
     puts 'Required option --server-version=[version] not specified with valid value.
 
-What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
+What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
     server_version = $stdin.gets.chomp.to_i
-    server_version = 6 if server_version == 0
+    server_version = 7 if server_version == 0
     server_version
   end
 
@@ -389,7 +389,7 @@ What is the version number of the target MarkLogic server? [4, 5, 6, or 7]'
       r = execute_query_4 query, properties
     elsif @server_version == 5 || @server_version == 6
       r = execute_query_5 query, properties
-    else
+    else # 7 or 8
       r = execute_query_7 query, properties
     end
 
