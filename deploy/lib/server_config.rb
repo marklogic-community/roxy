@@ -1001,6 +1001,22 @@ In order to proceed please type: #{expected_response}
     end
   end
 
+  def settings
+    arg = ARGV.shift
+    if arg
+      setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
+      r = execute_query %Q{#{setup} setup:list-settings("#{arg}")}
+      r.body = parse_json(r.body)
+      logger.info r.body
+    else
+      logger.info %Q{
+Usage: ml [env] settings [group|host|database|task-server|http-server|odbc-server|xdbc-server|webdav-server]
+
+Provides listings of various kinds of settings supported within ml-config.xml.
+      }
+    end
+  end
+  
 private
 
   def save_files_to_fs(target_db, target_dir)

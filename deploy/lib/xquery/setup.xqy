@@ -5507,6 +5507,45 @@ declare function setup:get-host-group($host-config as element(ho:host)) as xs:un
     xdmp:group("Default")
 };
 
+declare function setup:list-settings($type as xs:string) as item()*
+{
+  let $settings :=
+    if ($type = "group") then
+      $group-settings
+    else if ($type = "host") then
+      $host-settings
+    else if ($type = "database") then
+      $database-settings
+    else if ($type = "http-server") then
+      $http-server-settings
+    else if ($type = "xdbc-server") then
+      $xdbc-server-settings
+    else if ($type = "odbc-server") then
+      $odbc-server-settings
+    else if ($type = "webdav-server") then
+      $webdav-server-settings
+    else if ($type = "task-server") then
+      $task-server-settings
+    else ()
+  return
+  if ($settings) then
+    for $setting in $settings/*
+    order by $setting
+    return
+      fn:concat(
+        "- ",
+        if ($setting/@min-version and fn:not(setup:at-least-version($setting/@min-version))) then
+          "NOT SUPPORTED: "
+        else (),
+        fn:string($setting),
+        if ($setting/@min-version) then
+          fn:concat(" (>= v", $setting/@min-version, ")")
+        else ()
+      )
+  else
+    fn:concat("Unknown type of settings: ", $type)
+};
+
 (:
  : Force update mode. This is so that we can create an SSL certificate template
  : and then tell an app server to use it.
