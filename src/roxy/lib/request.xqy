@@ -38,9 +38,13 @@ declare variable $req:request as map:map :=
       for $val in xdmp:get-request-field($name)
     return
         if ($val instance of xs:anySimpleType) then
-          xdmp:url-decode($val)
-        else
           $val
+        else (
+          if ($val instance of binary()) then
+            map:put($map, fn:concat($name, "-filename"), xdmp:get-request-field-filename($name))
+          else (),
+          $val
+        )
     return
       if (fn:exists($current)) then
         map:put($map, $name, ($current, $vals))
@@ -246,10 +250,10 @@ declare function req:required(
 {
   let $value := req:get($name, $options)
   return
-  	if (fn:exists($value)) then
-  		$value
-  	else
-  		fn:error(
+    if (fn:exists($value)) then
+      $value
+    else
+      fn:error(
         xs:QName("MISSING-CONTROLLER-PARAM"),
         fn:concat("Required parameter '", $name, "' is missing"),
         ($name, $r:__CALLER_FILE__))
@@ -379,7 +383,7 @@ declare function req:build-params($matching-request, $url, $path)
     "&amp;")
 };
 
-declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)) as xs:string
+declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)) as xs:string?
 {
   let $routes := req:expand-resources($routes)
   let $matching-request :=
@@ -406,7 +410,6 @@ declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)
       )
       else if ($matching-request/@endpoint) then
         let $params := req:build-params($matching-request, $url, $path)
-        let $log := xdmp:log(fn:concat("Rewriting params: ", $params))
         return
           fn:concat(
             fn:replace($path, $matching-request/@uri, $matching-request/@endpoint),
@@ -416,7 +419,7 @@ declare function req:rewrite($url, $path, $verb, $routes as element(rest:routes)
       else ()
     else ()
   return
-    ($final-uri, $url)[1]
+    $final-uri
 };
 
 declare function req:is-ajax-request() as xs:boolean

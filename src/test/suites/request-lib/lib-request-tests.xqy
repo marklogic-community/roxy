@@ -56,7 +56,6 @@ let $uri :=
     "&amp;x1=<test/>",
     "&amp;x2=<<busted-xml/>",
     "&amp;empty=")
-let $_ := xdmp:log(("URI:", $uri))
 let $response := test:http-get($uri, $options)
 return
   $response[2]/*:results/*,
@@ -65,7 +64,7 @@ let $url := "/test/js/blah.js"
 let $path := "/test/js/blah.js"
 let $verb := "GET"
 return
-  test:assert-equal("/test/js/blah.js", req:rewrite($url, $path, $verb, $route-options)),
+  test:assert-equal((), req:rewrite($url, $path, $verb, $route-options)),
 
 let $url := "/js/blah.js"
 let $path := "/js/blah.js"
@@ -102,7 +101,7 @@ let $path := "/do/some/stuff.xqy"
 let $verb := "PUT"
 return
   test:assert-equal(
-    "/do/some/stuff.xqy?param1=1&amp;param2=2",
+    (),
     req:rewrite($url, $path, $verb, $route-options)),
 
 (: TEST the Rails resource routes :)

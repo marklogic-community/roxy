@@ -26,20 +26,20 @@ declare option xdmp:mapping "false";
 
 declare private function local:clean-cpf()
 {
-	let $config := try { dom:configuration-get() } catch ($e) {}
-	return
-		if ($config) then
-		(
-			for $d in dom:domains()
-			let $name as xs:string := $d/dom:domain-name
-			return
-			  dom:remove($name),
+  let $config := try { dom:configuration-get() } catch ($e) {}
+  return
+    if ($config) then
+    (
+      for $d in dom:domains()
+      let $name as xs:string := $d/dom:domain-name
+      return
+        dom:remove($name),
 
-			for $x as xs:string in p:pipelines( )/p:pipeline-name
-			return
-			  p:remove($x)
-		)
-		else ()
+      for $x as xs:string in p:pipelines( )/p:pipeline-name
+      return
+        p:remove($x)
+    )
+    else ()
 };
 
 declare private function local:get-cpf-files($dir as xs:string, $extension as xs:string) as xs:string*
@@ -97,15 +97,15 @@ declare private function local:install-cpf-pipelines(
 {
   for $uri in $pipeline-uris
   let $doc :=
-  	let $map :=
-  	  let $map := map:map()
-  	  let $_ := (
-  	    map:put($map, "function", "get-doc"),
-  	    map:put($map, "uri", $uri))
-  	  return
-  	    $map
-  	return
-  		local:call-private-function($map, $modules-database)
+    let $map :=
+      let $map := map:map()
+      let $_ := (
+        map:put($map, "function", "get-doc"),
+        map:put($map, "uri", $uri))
+      return
+        $map
+    return
+      local:call-private-function($map, $modules-database)
   return
     p:insert($doc/*)
 };
@@ -118,81 +118,81 @@ declare private function local:create-cpf-domain(
   $pipeline-ids as xs:unsignedLong*,
   $permissions as element(sec:permission)*) as xs:unsignedLong
 {
-	let $domain-id := try { fn:data(dom:get($domain-name)/dom:domain-id) } catch ($e) { () }
-	return
-	  (: update the existing domain :)
-		if ($domain-id) then
-		  let $_ :=
-		  (
-		    dom:set-description($domain-name, $description),
-		    dom:set-domain-scope($domain-name, $domain-scope),
-		    dom:set-evaluation-context($domain-name, $context),
-		    dom:set-pipelines($domain-name, $pipeline-ids),
-		    dom:set-permissions($domain-name, $permissions)
-		  )
-			return
-				$domain-id
-		(: create a new domain :)
-		else
-			let $domain-id := dom:create($domain-name, $description, $domain-scope, $context, $pipeline-ids, $permissions)
-			return
-				$domain-id
+  let $domain-id := try { fn:data(dom:get($domain-name)/dom:domain-id) } catch ($e) { () }
+  return
+    (: update the existing domain :)
+    if ($domain-id) then
+      let $_ :=
+      (
+        dom:set-description($domain-name, $description),
+        dom:set-domain-scope($domain-name, $domain-scope),
+        dom:set-evaluation-context($domain-name, $context),
+        dom:set-pipelines($domain-name, $pipeline-ids),
+        dom:set-permissions($domain-name, $permissions)
+      )
+      return
+        $domain-id
+    (: create a new domain :)
+    else
+      let $domain-id := dom:create($domain-name, $description, $domain-scope, $context, $pipeline-ids, $permissions)
+      return
+        $domain-id
 };
 
 declare private function local:create-cpf-configuration(
   $restart-user as xs:string,
-	$evaluation-context as element(dom:evaluation-context),
-	$default-domain as xs:unsignedLong,
-	$permissions as element(sec:permission)*)
+  $evaluation-context as element(dom:evaluation-context),
+  $default-domain as xs:unsignedLong,
+  $permissions as element(sec:permission)*)
 {
-	let $config :=
-		let $map :=
-		  let $map := map:map()
-		  let $_ := map:put($map, "function", "configuration-get")
-		  return
-		    $map
-		return
-			local:call-private-function($map, ())
-	return
-		if ($config) then
-			let $config := dom:configuration-set-restart-user($restart-user)
-			let $config := dom:configuration-set-evaluation-context($evaluation-context)
-			let $config := dom:configuration-set-default-domain($default-domain)
-			let $config := dom:configuration-set-permissions($permissions)
-			let $config := dom:configuration-set-conversion-enabled(fn:false())
-			return
-			  "Updated configuration"
-		else
-			let $config :=
-  			let $map :=
-  			  let $map := map:map()
-  			  let $_ := (
-  			    map:put($map, "function", "configuration-create"),
-  			    map:put($map, "restart-user", $restart-user),
+  let $config :=
+    let $map :=
+      let $map := map:map()
+      let $_ := map:put($map, "function", "configuration-get")
+      return
+        $map
+    return
+      local:call-private-function($map, ())
+  return
+    if ($config) then
+      let $config := dom:configuration-set-restart-user($restart-user)
+      let $config := dom:configuration-set-evaluation-context($evaluation-context)
+      let $config := dom:configuration-set-default-domain($default-domain)
+      let $config := dom:configuration-set-permissions($permissions)
+      let $config := dom:configuration-set-conversion-enabled(fn:false())
+      return
+        "Updated configuration"
+    else
+      let $config :=
+        let $map :=
+          let $map := map:map()
+          let $_ := (
+            map:put($map, "function", "configuration-create"),
+            map:put($map, "restart-user", $restart-user),
             map:put($map, "evaluation-context", $evaluation-context),
             map:put($map, "default-domain", $default-domain),
             map:put($map, "permissions", $permissions))
-  			  return
-  			    $map
-  			return
-    			local:call-private-function($map, ())
-			let $option :=
-  			let $map :=
-  			  let $map := map:map()
-  			  let $_ := (
-  			    map:put($map, "function", "enable-conversion"),
-  			    map:put($map, "enable", fn:false()))
-  			  return
-  			    $map
-  			return
-    			local:call-private-function($map, ())
-			return
-			  "Created configuration"
+          return
+            $map
+        return
+          local:call-private-function($map, ())
+      let $option :=
+        let $map :=
+          let $map := map:map()
+          let $_ := (
+            map:put($map, "function", "enable-conversion"),
+            map:put($map, "enable", fn:false()))
+          return
+            $map
+        return
+          local:call-private-function($map, ())
+      return
+        "Created configuration"
 };
 
 declare private function local:evaluation-context(
   $database as xs:unsignedLong,
-	$root as xs:string) as element(dom:evaluation-context)
+  $root as xs:string) as element(dom:evaluation-context)
 {
   dom:evaluation-context($database, $root)
 };
@@ -208,9 +208,9 @@ declare private function local:configuration-get() as element(dom:configuration)
 
 declare private function local:configuration-create(
   $restart-user as xs:string,
-	$evaluation-context as element(dom:evaluation-context),
-	$default-domain as xs:unsignedLong,
-	$permissions as element(sec:permission)*) as xs:unsignedLong
+  $evaluation-context as element(dom:evaluation-context),
+  $default-domain as xs:unsignedLong,
+  $permissions as element(sec:permission)*) as xs:unsignedLong
 {
   dom:configuration-create($restart-user, $evaluation-context, $default-domain, $permissions)
 };
@@ -229,9 +229,9 @@ declare private function local:call-private-function(
     (xs:QName("map"), $map),
     if ($database-id) then
       <options xmlns="xdmp:eval">
-  		  <database>{$database-id}</database>
-  	  </options>
-  	else ())
+        <database>{$database-id}</database>
+      </options>
+    else ())
 };
 
 declare private function local:get-doc($uri as xs:string)

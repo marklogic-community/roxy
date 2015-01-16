@@ -30,86 +30,86 @@ declare variable $controller as xs:QName := req:get("controller", "type=xs:QName
 declare variable $controller-path as xs:string := fn:concat("/app/controllers/", $controller, ".xqy");
 declare variable $func as xs:string := req:get("func", "main", "type=xs:string");
 declare variable $default-format :=
-(
-	$config:ROXY-OPTIONS/*:default-format,
-	$def:ROXY-OPTIONS/*:default-format
-)[1];
+  (
+    $config:ROXY-OPTIONS/*:default-format,
+    $def:ROXY-OPTIONS/*:default-format
+  )[1];
 declare variable $format as xs:string := req:get("format", $default-format, "type=xs:string");
 declare variable $default-view as xs:string := fn:concat($controller, "/", $func);
 
 (: assume no default layout for xml, json, text :)
 declare variable $default-layout as xs:string? :=
-(
-	$config:ROXY-OPTIONS/*:layouts/*:layout[@format = $format],
-	$def:ROXY-OPTIONS/*:layouts/*:layout[@format = $format]
-)[1];
+  (
+    $config:ROXY-OPTIONS/*:layouts/*:layout[@format = $format],
+    $def:ROXY-OPTIONS/*:layouts/*:layout[@format = $format]
+  )[1];
 
 declare function router:route()
 {
-	(: run the controller. errors bubble up to the error module :)
-	let $data :=
-		xdmp:apply(
-			xdmp:function(
-				fn:QName(fn:concat("http://marklogic.com/roxy/controller/", $controller), $func),
-				$controller-path))
+  (: run the controller. errors bubble up to the error module :)
+  let $data :=
+    xdmp:apply(
+      xdmp:function(
+        fn:QName(fn:concat("http://marklogic.com/roxy/controller/", $controller), $func),
+        $controller-path))
 
-	(: Roxy options :)
-	let $options :=
-	  for $key in map:keys($ch:map)
-	  where fn:starts-with($key, "ch:config-")
-	  return
-	    map:get($ch:map, $key)
+  (: Roxy options :)
+  let $options :=
+    for $key in map:keys($ch:map)
+    where fn:starts-with($key, "ch:config-")
+    return
+      map:get($ch:map, $key)
 
-	(: remove options from the data :)
-	let $_ :=
-	  for $key in map:keys($ch:map)
-	    where fn:starts-with($key, "ch:config-")
-	    return
-	    map:delete($ch:map, $key)
+  (: remove options from the data :)
+  let $_ :=
+    for $key in map:keys($ch:map)
+    where fn:starts-with($key, "ch:config-")
+    return
+      map:delete($ch:map, $key)
 
-	let $format as xs:string := ($options[self::ch:config-format][ch:formats/ch:format = $format]/ch:format, $format)[1]
-	let $_ := rh:set-content-type($format)
+  let $format as xs:string := ($options[self::ch:config-format][ch:formats/ch:format = $format]/ch:format, $format)[1]
+  let $_ := rh:set-content-type($format)
 
-	(: controller override of the view :)
-	let $view := ($options[self::ch:config-view][ch:formats/ch:format = $format]/ch:view, $default-view)[1][. ne ""]
+  (: controller override of the view :)
+  let $view := ($options[self::ch:config-view][ch:formats/ch:format = $format]/ch:view, $default-view)[1][. ne ""]
 
-	(: controller override of the layout :)
-	let $layout :=
-	  if (fn:exists($options[self::ch:config-layout][ch:formats/ch:format = $format])) then
-	    $options[self::ch:config-layout][ch:formats/ch:format = $format]/ch:layout[. ne ""]
-	  else
-	    $default-layout
+  (: controller override of the layout :)
+  let $layout :=
+    if (fn:exists($options[self::ch:config-layout][ch:formats/ch:format = $format])) then
+      $options[self::ch:config-layout][ch:formats/ch:format = $format]/ch:layout[. ne ""]
+    else
+      $default-layout
 
-	(: if the view return something other than the map or () then bypass the view and layout :)
-	let $bypass as xs:boolean := fn:exists($data) and fn:not($data instance of map:map)
+  (: if the view return something other than the map or () then bypass the view and layout :)
+  let $bypass as xs:boolean := fn:exists($data) and fn:not($data instance of map:map)
 
-	return
-	  if (fn:not($bypass) and (fn:exists($view) or fn:exists($layout))) then
-	    let $view-result :=
-	      if (fn:exists($ch:map) and fn:exists($view)) then
-	        rh:render-view($view, $format, $ch:map)
-	      else
-	        ()
-	    return
-	      if (fn:not($bypass) and fn:exists($layout)) then
-	        let $_ :=
-	          if (fn:exists($view-result) and
-	          		fn:not($view-result instance of map:map) and
-	          		fn:not(fn:deep-equal(document {$ch:map}, document {$view-result}))) then
-	            map:put($ch:map, "view", $view-result)
-	          else
-	            map:put($ch:map, "view",
-	              for $key in map:keys($ch:map)
-	              return
-	                map:get($ch:map, $key))
-	        return
-	          rh:render-layout($layout, $format, $ch:map)
-	      else
-	        $view-result
-	  else if (fn:not($bypass)) then
-	    for $key in map:keys($ch:map)
-	    return
-	      map:get($ch:map, $key)
-	  else
-	    $data
+  return
+    if (fn:not($bypass) and (fn:exists($view) or fn:exists($layout))) then
+      let $view-result :=
+        if (fn:exists($ch:map) and fn:exists($view)) then
+          rh:render-view($view, $format, $ch:map)
+        else
+          ()
+      return
+        if (fn:not($bypass) and fn:exists($layout)) then
+          let $_ :=
+            if (fn:exists($view-result) and
+                fn:not($view-result instance of map:map) and
+                fn:not(fn:deep-equal(document {$ch:map}, document {$view-result}))) then
+              map:put($ch:map, "view", $view-result)
+            else
+              map:put($ch:map, "view",
+                for $key in map:keys($ch:map)
+                return
+                  map:get($ch:map, $key))
+          return
+            rh:render-layout($layout, $format, $ch:map)
+        else
+          $view-result
+    else if (fn:not($bypass)) then
+      for $key in map:keys($ch:map)
+      return
+        map:get($ch:map, $key)
+    else
+      $data
 };

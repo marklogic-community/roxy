@@ -42,7 +42,7 @@ declare function uv:welcome($username, $profile-link, $logout-link)
 declare function uv:build-login($login-link, $register-link)
 {
   <div class="user">
-    <form action="{$login-link}">
+    <form action="{$login-link}" method="POST">
       {
         form:text-input("Username:", "username", "username"),
         form:password-input("Password:", "password", "password")

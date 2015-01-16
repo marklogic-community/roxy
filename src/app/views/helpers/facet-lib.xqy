@@ -42,8 +42,7 @@ declare function facet:facets(
     for $facet at $index in $facets
     let $facet-name := fn:data($facet/@name)
     let $facet-count := fn:count($facet/search:facet-value)
-    let $match := fn:matches(fn:lower-case($qtext),fn:concat("^",fn:lower-case($facet-name)))
-      or fn:matches(fn:lower-case($qtext),fn:concat(" ",fn:lower-case($facet-name)))
+    let $match := fn:matches(fn:lower-case($qtext), fn:concat("(^|[ \(])",fn:lower-case($facet-name)))
     return
       <div class="category {fn:concat("category-",$index)} { if ($match) then "selected-category" else ()}">
         <h4 title="Collapse {trans:translate($facet-name, $labels, (), "en")} category">
@@ -54,10 +53,11 @@ declare function facet:facets(
           let $list-items :=
             for $result in $facet/search:facet-value
             let $facet-val :=
-              if (fn:matches($result/@name/fn:string(), "\W")) then
-                fn:concat('"', $result/@name/fn:string(), '"')
-              else if ($result/@name eq "") then """"
-              else $result/@name/fn:string()
+              (: This is not robust because the user can change the grammar. :)
+              if (fn:matches($result, "[^\w\d\.]")) then
+                fn:concat('"', $result, '"')
+              else if ($result eq "") then """"
+              else $result/fn:string()
             let $fq := fn:concat($facet-name, ":", $facet-val)
             let $newquery :=
               if ($qtext) then
@@ -66,7 +66,7 @@ declare function facet:facets(
                 else fn:concat("(", $qtext, ")", " AND ", $fq)
               else $fq
             let $href := fn:concat("/?q=",fn:encode-for-uri($newquery))
-            let $title := (trans:translate($result/fn:string(), $labels, (), "en"), $result/fn:string())[1]
+            let $title := (trans:translate($result/@name, $labels, (), "en"), $result/fn:string())[1]
             return
               <li>
                 <a href="{$href}">{if ($title eq "") then <em>(empty)</em> else $title}</a><i> ({$result/@count/fn:string()})</i>

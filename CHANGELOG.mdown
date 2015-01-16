@@ -1,0 +1,166 @@
+# Roxy Changes
+This file describes changes made to Roxy per release
+
+## 1.7.1
+
+### New Features
+* [#311](https://github.com/marklogic/roxy/issues/311) Add support for configuring external security in appservers
+
+### Resolved Issues
+* [#308](https://github.com/marklogic/roxy/issues/308) bootstrap doesn't work when the server is using basic auth
+* [#305](https://github.com/marklogic/roxy/issues/305) Check Ruby Version in ml.sh bat
+* [#300](https://github.com/marklogic/roxy/issues/300) Running REST extensions with least privs when using modules from src
+
+## 1.7
+
+### New Features
+* [#277](https://github.com/marklogic/roxy/issues/277) Allow using modules ref instead of database ref for webdav app servers
+* [#273](https://github.com/marklogic/roxy/issues/273) Wiping individual parts
+* [#228](https://github.com/marklogic/roxy/issues/228) Ability to provide properties (user / password) from command line
+* [#225](https://github.com/marklogic/roxy/issues/225) Added MLCP functionality
+* [#217](https://github.com/marklogic/roxy/issues/217) Allow --fork option on new
+* [#214](https://github.com/marklogic/roxy/issues/214) Allow --server-version param on self-test
+* [#212](https://github.com/marklogic/roxy/issues/212) Support schemas, and request-blackouts on appservers
+* [#209](https://github.com/marklogic/roxy/issues/209) Support for 'Module Location Configuration'
+* [#288](https://github.com/marklogic/roxy/issues/288) require confirmation for wiping against PROD
+* [#142](https://github.com/marklogic/roxy/issues/142) Confirm wipe command for non-local environments
+* [#83](https://github.com/marklogic/roxy/issues/83) ml new should refuse if it's in a current project directory
+
+### Resolved Issues
+* [#291](https://github.com/marklogic/roxy/issues/291) Provide better documentation in code for app_specific.rb
+* [#281](https://github.com/marklogic/roxy/issues/281) Update README
+* [#278](https://github.com/marklogic/roxy/issues/278) Bootstrap fails if localname is space-separated list of names
+* [#276](https://github.com/marklogic/roxy/issues/276) Allow missing field-name element in ml-config
+* [#275](https://github.com/marklogic/roxy/issues/275) Cannot deploy odbc server without modules db ref
+* [#274](https://github.com/marklogic/roxy/issues/274) Bootstrapping field with stemming lower to db fails on 7.0-2.3
+* [#272](https://github.com/marklogic/roxy/issues/272) Cannot create roles with cross-dependencies
+* [#271](https://github.com/marklogic/roxy/issues/271) Typo in sample ml-config
+* [#268](https://github.com/marklogic/roxy/issues/268) Capturing full config on env with odbc servers fails
+* [#267](https://github.com/marklogic/roxy/issues/267) Timeout on commands for remote servers
+* [#266](https://github.com/marklogic/roxy/issues/266) Make unit testing work for --app-type=rest
+* [#263](https://github.com/marklogic/roxy/issues/263) req:required() strips out '+' characters
+* [#259](https://github.com/marklogic/roxy/issues/259) amps s/b created before roles
+* [#258](https://github.com/marklogic/roxy/issues/258) database 'filesystem' not recognized for settting up amps
+* [#253](https://github.com/marklogic/roxy/issues/253) MarkLogic 8 EA
+* [#252](https://github.com/marklogic/roxy/issues/252) Credentials command is broken
+* [#251](https://github.com/marklogic/roxy/issues/251) Creating an element range index adds collation when it should not
+* [#241](https://github.com/marklogic/roxy/issues/241) Bootstrapping is broken in ML8 EA1
+* [#239](https://github.com/marklogic/roxy/issues/239) Deploy of REST properties doesn't recognize XML downloaded from REST api itself
+* [#236](https://github.com/marklogic/roxy/issues/236) Roxy self-test doesn't seem to wipe afterwards?
+* [#230](https://github.com/marklogic/roxy/issues/230) Deploying a freshly made transform will fail
+* [#222](https://github.com/marklogic/roxy/issues/222) tokenizer-overrides does not seem to work in ml-config
+* [#220](https://github.com/marklogic/roxy/issues/220) Excluded elements in fields sometimes won't bootsrap
+* [#211](https://github.com/marklogic/roxy/issues/211) Roxy self-test doesn't validate appserver settings
+* [#210](https://github.com/marklogic/roxy/issues/210) Running ml from Roxy dir returns error instead of usage
+* [#204](https://github.com/marklogic/roxy/issues/204) Deploy modules while using filesystem will give an error
+* [#177](https://github.com/marklogic/roxy/issues/177) Password should be encoded for 'ml corb'
+* [#164](https://github.com/marklogic/roxy/issues/164) Some special characters in passwords don't work on Windows
+
+## 1.6
+We skipped 1.6. There was a snafu with versioning. Oopsie.
+
+## 1.5
+
+### New Features
+* [#26](https://github.com/marklogic/roxy/issues/26)  Allow applications to share an XDBC port
+* [#51](https://github.com/marklogic/roxy/issues/51)  Added support for bootstrapping scheduled tasks
+* [#132](https://github.com/marklogic/roxy/issues/132) Better error message when a port is already in use
+* [#138](https://github.com/marklogic/roxy/issues/138) Allow loading CSS, JS as binary instead of text
+* [#149](https://github.com/marklogic/roxy/issues/149) Change forest names -- don't use host name
+* [#150](https://github.com/marklogic/roxy/issues/150) Allow compiling Roxy into a JAR
+* [#156](https://github.com/marklogic/roxy/issues/156) Allow configuration of which environments get unit tests deployed
+* [#159](https://github.com/marklogic/roxy/issues/159) Added support for https on port 8000/8002
+* [#193](https://github.com/marklogic/roxy/issues/193) Added support for path fields
+
+### Resolved Issues
+* [#130](https://github.com/marklogic/roxy/issues/130) Sample fields elements are now correctly formatted
+* [#136](https://github.com/marklogic/roxy/issues/136) Improved the property-substitution process to make subs more accurate
+* [#140](https://github.com/marklogic/roxy/issues/140) Can now bootstrap a webdav server
+* [#163](https://github.com/marklogic/roxy/issues/163) Capture binary documents correctly
+* [#165](https://github.com/marklogic/roxy/issues/165) Fixed problem with adding default collections to a role
+* [#180](https://github.com/marklogic/roxy/issues/180) Fixed the date parser
+* [#186](https://github.com/marklogic/roxy/issues/186) Roxy now removes extra roles during bootstrap
+* [#187](https://github.com/marklogic/roxy/issues/187) Roxy now removes extra permissions during bootstrap
+* [#188](https://github.com/marklogic/roxy/issues/188) Corrected deployment of properties files
+* [#199](https://github.com/marklogic/roxy/issues/199) Index interview now records the collation correctly
+* [#205](https://github.com/marklogic/roxy/issues/205) Fixed problem with removing forests
+* [#208](https://github.com/marklogic/roxy/issues/208) REST extensions can now be deployed to an app server with Basic authentication
+
+## 1.4
+
+### New Features
+* [#63](https://github.com/marklogic/roxy/issues/63) Use --app-type parameter with ml new to create mvc, rest, or hybrid apps
+* [#82](https://github.com/marklogic/roxy/issues/82) Use Corb with the deployer
+* [#88](https://github.com/marklogic/roxy/issues/88) Deploy REST API extensions
+* [#90](https://github.com/marklogic/roxy/issues/90) Allowed setting rewriter and error handler to blank
+* [#92](https://github.com/marklogic/roxy/issues/92) Scaffolding for REST API extensions
+* [#94](https://github.com/marklogic/roxy/issues/94) Create ODBC app servers
+* [#97](https://github.com/marklogic/roxy/issues/97) Added a test-authentication-method property, allowing for different methods between test and main
+* [#101](https://github.com/marklogic/roxy/issues/101) Deploy schemas command
+* [#102](https://github.com/marklogic/roxy/issues/102) Hide password characters as they are typed
+* [#103](https://github.com/marklogic/roxy/issues/103) Bootstrap an HTTP server with SSL
+* [#107](https://github.com/marklogic/roxy/issues/107) Deploy REST API transformations
+* [#108](https://github.com/marklogic/roxy/issues/108) Create skeleton REST API transformations
+* [#112](https://github.com/marklogic/roxy/issues/112) Added ml capture command
+* [#113](https://github.com/marklogic/roxy/issues/113) Override response types
+* [#117](https://github.com/marklogic/roxy/issues/117) Support new ML7 database settings
+* [#120](https://github.com/marklogic/roxy/issues/120) Require server-version parameter for ml new/init
+* [#121](https://github.com/marklogic/roxy/issues/121) Added "ml upgrade" command
+
+### Resolved Issues
+* [#93](https://github.com/marklogic/roxy/issues/93) Fixed the deployer so it works with ML7 EA1.
+* [#97](https://github.com/marklogic/roxy/issues/97) Test app server now gets same config as the main one, except where differentiated
+* [#104](https://github.com/marklogic/roxy/issues/104) Deployer was ignoring the forest-data-dir property
+* [#110](https://github.com/marklogic/roxy/issues/110) Updated bootstrap procedure to work with new ML7 endpoint
+* [#118](https://github.com/marklogic/roxy/issues/118) Apply field settings
+* [#119](https://github.com/marklogic/roxy/issues/119) Make Roxy more forgiving about import error
+* [#123](https://github.com/marklogic/roxy/issues/123) Accept a broader range of affirmative responses when upgrading
+* [#124](https://github.com/marklogic/roxy/issues/124) Fixed corb integration bug
+* [#126](https://github.com/marklogic/roxy/issues/126) Don't overwrite application/custom when running "ml capture"
+
+## 1.3
+
+### New Features
+* [#76](https://github.com/marklogic/roxy/issues/76) Deploy REST API options based on the group and appserver name
+* [#48](https://github.com/marklogic/roxy/issues/48) Made the license info more prominent
+* Added credentials action (mblakele)
+* Added ch:set-value() based on req:get() (mblakele)
+
+### Resolved Issues
+* [#52](https://github.com/marklogic/roxy/issues/52) Skip standard users, roles during wipe
+* [#53](https://github.com/marklogic/roxy/issues/53) sample password form should set method="POST"
+* [#55](https://github.com/marklogic/roxy/issues/55) Fixed Word Lexicon bootstrapping causes an error when run twice
+* [#56](https://github.com/marklogic/roxy/issues/56) Fixed Support setting in-memory-range-index-size
+* [#74](https://github.com/marklogic/roxy/issues/74) Fixed a problem with document permissions set by the deployer
+* [#73](https://github.com/marklogic/roxy/issues/73) Make "ml create" work when xquery.dir isn't the default
+* [#61](https://github.com/marklogic/roxy/issues/61) Make problems in suite-setup.xqy etc easier to detect
+* [#67](https://github.com/marklogic/roxy/issues/67) Reversed sense of facet-value @name and lexical
+
+## 1.2
+
+### New Features
+* Added new ML 6 indexes (path range index, etc)
+* Added ml load command to load 1 file or a directory
+* Added ml corb to run Corb jobs
+
+### Resolved Issues
+* [#38](https://github.com/marklogic/roxy/issues/38) Fixed --force with ml init and ml initcpf
+* [#36](https://github.com/marklogic/roxy/issues/36) Refactored the bootstrap process. Now complete with proper failure and rollback
+* Fixed backwards compatibility with ML 4
+
+## 1.1
+
+### New Features
+* Deployer is now compatible with Ruby 1.8.5
+* Extra detail when range index creation fails
+* [#39](https://github.com/marklogic/roxy/issues/39) Allow separate test-modules db
+* Adding support for in-forest eval in XCC deploy
+
+### Resolved Issues
+* [#30](https://github.com/marklogic/roxy/issues/30) Rewriter drops HTTP parameters for requests that don't have uri-param elements
+* [#31](https://github.com/marklogic/roxy/issues/31) Removed hidden form fields
+* [#32](https://github.com/marklogic/roxy/issues/32) Scaffolding for controllers causes errors
+* [#35](https://github.com/marklogic/roxy/issues/35) Missing namespace declaration in deployment code
+* Fixed a bug in assigning collections via xcc insert
+* Fixed a bug with adding fields via the Roxy Deployer
+* Removed unused facets-only function.

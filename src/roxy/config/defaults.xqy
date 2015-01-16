@@ -29,62 +29,64 @@ declare namespace rest = "http://marklogic.com/appservices/rest";
  : ***********************************************
  :)
 declare variable $ROXY-OPTIONS :=
-	<options>
-		<!-- the default controller that the URL http://server:port/ maps to
-				 use appbuilder for an appbuilder clone -->
-		<default-controller>appbuilder</default-controller>
+  <options>
+    <!-- the default controller that the URL http://server:port/ maps to
+         use appbuilder for an appbuilder clone -->
+    <default-controller>appbuilder</default-controller>
 
-		<!-- the default funciton that gets called when none is specified -->
-		<default-function>main</default-function>
+    <!-- the default funciton that gets called when none is specified -->
+    <default-function>main</default-function>
 
-		<!-- the default format to use when rendering views -->
-		<default-format>html</default-format>
+    <!-- the default format to use when rendering views -->
+    <default-format>html</default-format>
 
-		<!-- a mapping of default layouts to view formats -->
-		<layouts>
-			<layout format="html">two-column</layout>
-		</layouts>
-	</options>;
+    <!-- a mapping of default layouts to view formats -->
+    <layouts>
+      <layout format="html">two-column</layout>
+    </layouts>
+  </options>;
 
 
 declare variable $ROXY-ROUTES :=
-	(: The default Roxy routes :)
-	let $default-controller :=
-		(
-			$config:ROXY-OPTIONS/*:default-controller,
-			$ROXY-OPTIONS/*:default-controller
-		)[1]
-	let $default-function :=
-		(
-			$config:ROXY-OPTIONS/*:default-function,
-			$ROXY-OPTIONS/*:default-function
-		)[1]
-	return
-		<routes xmlns="http://marklogic.com/appservices/rest">
-	    <request uri="^/test/(js|img|css)/(.*)" />
-	    <request uri="^/test/(.*)" endpoint="/test/default.xqy">
-	      <uri-param name="func" default="{$default-function}">$1</uri-param>
-	    </request>
-	    <request uri="^/test$" redirect="/test/" />
-	    <request uri="^/(css|js|images)/(.*)" endpoint="/public/$1/$2"/>
-	    <request uri="^/favicon.ico$" endpoint="/public/favicon.ico"/>
-	    <request uri="^/([\w\d_\-]*)/?([\w\d_\-]*)\.?(\w*)/?$" endpoint="/roxy/query-router.xqy">
-	      <uri-param name="controller" default="{$default-controller}">$1</uri-param>
-	      <uri-param name="func" default="{$default-function}">$2</uri-param>
-	      <uri-param name="format">$3</uri-param>
-	      <http method="GET"/>
-	      <http method="HEAD"/>
-	    </request>
-	    <request uri="^/([\w\d_\-]*)/?([\w\d_\-]*)\.?(\w*)/?$" endpoint="/roxy/update-router.xqy">
-	      <uri-param name="controller" default="{$default-controller}">$1</uri-param>
-	      <uri-param name="func" default="{$default-function}">$2</uri-param>
-	      <uri-param name="format">$3</uri-param>
-	      <http method="POST"/>
-	      <http method="PUT"/>
-	      <http method="DELETE"/>
-	    </request>
-	    <request uri="^.+$"/>
-		</routes>;
+  (: The default Roxy routes :)
+  let $default-controller :=
+    (
+      $config:ROXY-OPTIONS/*:default-controller,
+      $ROXY-OPTIONS/*:default-controller
+    )[1]
+  let $default-function :=
+    (
+      $config:ROXY-OPTIONS/*:default-function,
+      $ROXY-OPTIONS/*:default-function
+    )[1]
+  return
+    <routes xmlns="http://marklogic.com/appservices/rest">
+      <request uri="^/test/(js|img|css)/(.*)" />
+      <request uri="^/test/default.xqy" />
+      <request uri="^/test/(.*)" endpoint="/test/default.xqy">
+        <uri-param name="func" default="{$default-function}">$1</uri-param>
+      </request>
+      <request uri="^/test$" redirect="/test/" />
+      <request uri="^/(css|js|images)/(.*)" endpoint="/public/$1/$2"/>
+      <request uri="^/favicon.ico$" endpoint="/public/favicon.ico"/>
+      <request uri="^/v1/.+$"/>
+      <request uri="^/([\w\d_\-]*)/?([\w\d_\-]*)\.?(\w*)/?$" endpoint="/roxy/query-router.xqy">
+        <uri-param name="controller" default="{$default-controller}">$1</uri-param>
+        <uri-param name="func" default="{$default-function}">$2</uri-param>
+        <uri-param name="format">$3</uri-param>
+        <http method="GET"/>
+        <http method="HEAD"/>
+      </request>
+      <request uri="^/([\w\d_\-]*)/?([\w\d_\-]*)\.?(\w*)/?$" endpoint="/roxy/update-router.xqy">
+        <uri-param name="controller" default="{$default-controller}">$1</uri-param>
+        <uri-param name="func" default="{$default-function}">$2</uri-param>
+        <uri-param name="format">$3</uri-param>
+        <http method="POST"/>
+        <http method="PUT"/>
+        <http method="DELETE"/>
+      </request>
+      <request uri="^.+$"/>
+    </routes>;
 
 (:
  : ***********************************************

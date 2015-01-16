@@ -21,6 +21,8 @@ import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/
 
 import module namespace u = "http://marklogic.com/roxy/util" at "/roxy/lib/util.xqy";
 
+import module namespace c = "http://marklogic.com/roxy/config" at "/app/config/config.xqy";
+
 declare namespace vh = "http://marklogic.com/roxy/view-helper";
 
 declare option xdmp:mapping "false";
@@ -68,14 +70,18 @@ declare function rh:render-layout($layout as xs:string, $format as xs:string, $d
 };
 declare function rh:set-content-type($format)
 {
-  if ($format eq "xml") then
-    xdmp:set-response-content-type("application/xml")
-  else if ($format eq "html") then
-    xdmp:set-response-content-type("text/html")
-  else if ($format eq "json") then
-    xdmp:set-response-content-type("application/json")
-  else if ($format eq "text") then
-    xdmp:set-response-content-type("text/plain")
-  else
-    xdmp:set-response-content-type($format)
+  let $type as xs:string? := $c:ROXY-OPTIONS/formats/format[@name = $format]/@type/fn:string(.)
+  return 
+    if (fn:exists($type)) then
+      xdmp:set-response-content-type($type)
+    else if ($format eq "xml") then
+      xdmp:set-response-content-type("application/xml")
+    else if ($format eq "html") then
+      xdmp:set-response-content-type("text/html")
+    else if ($format eq "json") then
+      xdmp:set-response-content-type("application/json")
+    else if ($format eq "text") then
+      xdmp:set-response-content-type("text/plain")
+    else
+      xdmp:set-response-content-type($format)
 };
