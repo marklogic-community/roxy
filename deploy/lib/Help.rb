@@ -25,6 +25,7 @@ class Help
         credentials   Configures user and password for the given environment
         info          Returns settings for the given environment
         restart       Restarts the given environment
+        validate      Compare your ml-config against the given environment
         wipe          Removes your application from the given environment
 
       Deployment/Data commands (with environment):
