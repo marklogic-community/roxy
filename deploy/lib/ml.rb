@@ -156,25 +156,32 @@ rescue Net::HTTPServerException => e
   case e.response
   when Net::HTTPUnauthorized then
     @logger.error "Invalid login credentials for #{@properties["environment"]} environment!!"
+    raise e
   else
     @logger.error e
     @logger.error e.response.body
+    raise e
   end
 rescue Net::HTTPFatalError => e
   @logger.error e
   @logger.error e.response.body
+  raise e
 rescue DanglingVarsException => e
   @logger.error "WARNING: The following configuration variables could not be validated:"
   e.vars.each do |k,v|
     @logger.error "#{k}=#{v}"
   end
+  raise e
 rescue HelpException => e
   Help.doHelp(@logger, e.command, e.message)
+  raise e
 rescue ExitException => e
   @logger.error e
+  raise e
 rescue Exception => e
   @logger.error e
   @logger.error e.backtrace
+  raise e
 end
 
 if @profile then
