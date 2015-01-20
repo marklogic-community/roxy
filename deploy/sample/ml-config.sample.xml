@@ -5,12 +5,12 @@
     @ml.group defaults to "Default", you can override in build.properties or {env}.properties
     Note: if you change ml.group, make sure to assign hosts to it! See <hosts> below.
   -->
-  <groups>
+  <groups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <group>
       <group-name>@ml.group</group-name>
       <!--
         Only enable the task server section if you need to.
-      <task-server xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+      <task-server>
         <threads>16</threads>
         <debug-threads>16</debug-threads>
         <max-time-limit>3600</max-time-limit>
@@ -91,7 +91,7 @@
         </scheduled-tasks>
       </task-server>
       -->
-      <http-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+      <http-servers>
         <!--Default Application Server-->
         <http-server>
           <http-server-name>@ml.app-name</http-server-name>
@@ -116,10 +116,10 @@
         @ml.test-appserver
         @ml.rest-appserver
       </http-servers>
-      <xdbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+      <xdbc-servers>
         @ml.xdbc-server
       </xdbc-servers>
-      <odbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+      <odbc-servers>
         @ml.odbc-server
       </odbc-servers>
     </group>
