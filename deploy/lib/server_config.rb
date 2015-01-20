@@ -1179,6 +1179,11 @@ private
     folders_to_ignore = @properties['ml.ignore-folders']
 
     modules_databases.each do |dest_db|
+      if dest_db == "filesystem"
+        logger.info "Skipping deployment of src to #{dest_db}.."
+        break
+      end
+      
       ignore_us = []
       ignore_us << "^#{test_dir}.*$" unless test_dir.blank? || deploy_tests?(dest_db)
       ignore_us << "^#{app_config_file}$"

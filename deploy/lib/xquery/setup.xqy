@@ -947,6 +947,7 @@ declare function setup:create-forests($import-config as element(configuration)) 
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
   let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
+  where fn:not($database-name = 'filesystem')
   return
     if (fn:exists($forests-per-host)) then
       setup:create-forests-from-count($import-config, $db-config, $database-name, $forests-per-host)
@@ -959,6 +960,7 @@ declare function setup:validate-forests($import-config as element(configuration)
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
   let $forests-per-host as xs:integer? := $db-config/db:forests-per-host
+  where fn:not($database-name = 'filesystem')
   return
     if (fn:exists($forests-per-host)) then
       setup:validate-forests-from-count($import-config, $db-config, $database-name, $forests-per-host)
@@ -1190,6 +1192,8 @@ declare function setup:create-databases($import-config as element(configuration)
   return
     if (xdmp:databases()[xdmp:database-name(.) = $database-name]) then
       fn:concat("Database ", $database-name, " already exists, not recreated..")
+    else if ($database-name = 'filesystem') then
+      fn:concat("Skipping creation of Database ", $database-name, "..")
     else
       let $admin-config :=
         admin:database-create(
@@ -1212,7 +1216,7 @@ declare function setup:validate-databases($import-config as element(configuratio
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
   return
-    if (xdmp:databases()[xdmp:database-name(.) = $database-name]) then ()
+    if (xdmp:databases()[xdmp:database-name(.) = ($database-name, 'filesystem')]) then ()
     else
       setup:validation-fail(fn:concat("Missing database: ", $database-name))
 };
@@ -1222,6 +1226,7 @@ declare function setup:attach-forests($import-config as element(configuration)) 
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
   let $forests-per-host := $db-config/db:forests-per-host
+  where fn:not($database-name = 'filesystem')
   return
     if (fn:exists($forests-per-host)) then
       setup:attach-forests-by-count($db-config)
@@ -1234,6 +1239,7 @@ declare function setup:validate-attached-forests($import-config as element(confi
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
   let $forests-per-host := $db-config/db:forests-per-host
+  where fn:not($database-name = 'filesystem')
   return
     if (fn:exists($forests-per-host)) then
       setup:validate-attached-forests-by-count($db-config)
@@ -1322,6 +1328,8 @@ declare function setup:apply-database-settings($import-config as element(configu
   let $admin-config := admin:get-configuration()
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
+  where fn:not($database-name = 'filesystem')
+  return
   let $database := xdmp:database($database-name)
   let $apply-settings :=
     for $setting in $database-settings/*:setting
@@ -1348,7 +1356,10 @@ declare function setup:validate-database-settings($import-config as element(conf
 {
     let $admin-config := admin:get-configuration()
     for $db-config in setup:get-databases-from-config($import-config)
-    let $database := xdmp:database(setup:get-database-name-from-database-config($db-config))
+    let $database-name := setup:get-database-name-from-database-config($db-config)
+    where fn:not($database-name = 'filesystem')
+    return
+    let $database := xdmp:database($database-name)
     for $setting in $database-settings/*:setting
     let $min-version as xs:string? := $setting/@min-version
     let $expected :=
@@ -1377,6 +1388,8 @@ declare function setup:configure-databases($import-config as element(configurati
 {
   for $db-config in setup:get-databases-from-config($import-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
+  where fn:not($database-name = 'filesystem')
+  return
   let $database := xdmp:database($database-name)
   let $admin-config := admin:get-configuration()
 
@@ -1425,7 +1438,10 @@ declare function setup:configure-databases($import-config as element(configurati
 declare function setup:validate-databases-indexes($import-config as element(configuration))
 {
   for $db-config in setup:get-databases-from-config($import-config)
-  let $database := xdmp:database(setup:get-database-name-from-database-config($db-config))
+  let $database-name := setup:get-database-name-from-database-config($db-config)
+  where fn:not($database-name = 'filesystem')
+  return
+  let $database := xdmp:database($database-name)
   let $admin-config := admin:get-configuration()
   return
   (
