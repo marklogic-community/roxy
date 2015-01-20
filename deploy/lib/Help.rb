@@ -33,6 +33,7 @@ class Help
         load          Loads a file or folder into the given environment
         mlcp          Runs MLCP against the given environment
         recordloader  Runs RecordLoader against the given environment
+        settings      Lists all supported settings for a given environment
         test          Runs xquery unit tests against the given environment
         xqsync        Runs XQSync against the given environment
 
