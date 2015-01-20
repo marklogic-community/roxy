@@ -1378,11 +1378,13 @@ private
 
   def clean_content
     logger.info "Cleaning #{@properties['ml.content-db']} on #{@hostname}"
-    execute_query %Q{
+    r = execute_query %Q{
       for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.content-db']}"))
       return
-        xdmp:forest-clear($id)
+        try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
     }
+    r.body = parse_json(r.body)
+    logger.info r.body
   end
 
   def deploy_cpf
