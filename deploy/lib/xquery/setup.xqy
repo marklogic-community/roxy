@@ -1298,13 +1298,12 @@ declare function setup:attach-database-forest(
   let $forest := xdmp:forest($forest-name)
   let $admin-config := admin:get-configuration()
 
-  (: if the forests are already attached we need to detach them first :)
+  (: don't detach forests first, they might be retired :)
   let $admin-config :=
     if (xdmp:database-forests(xdmp:database($database-name))[$forest-name = xdmp:forest-name(.)]) then
-      admin:database-detach-forest($admin-config, $db, $forest)
-    else
       $admin-config
-  let $admin-config := admin:database-attach-forest($admin-config, $db, $forest)
+    else
+      admin:database-attach-forest($admin-config, $db, $forest)
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
