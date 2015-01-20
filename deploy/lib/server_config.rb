@@ -603,6 +603,8 @@ In order to proceed please type: #{expected_response}
     result
   end
 
+  alias_method :validate, :validate_install
+
   def deploy
     what = ARGV.shift
     raise HelpException.new("deploy", "Missing WHAT") unless what
