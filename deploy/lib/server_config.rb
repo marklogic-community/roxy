@@ -933,9 +933,7 @@ In order to proceed please type: #{expected_response}
 
     # check params
     if full_config == nil && config == nil && target_db == nil
-      raise HelpException.new("capture", "either full-ml-config, ml-config or modules-db is required")
-    elsif target_db != nil && @properties['ml.app-type'] != 'rest'
-      raise ExitException.new("This is a #{@properties['ml.app-type']} application; capture modules only works for app-type=rest")
+      raise HelpException.new("capture", "either full-ml-config, ml-config, app-builder or modules-db is required")
     end
 
     # retrieve full setup config from environment
@@ -947,16 +945,24 @@ In order to proceed please type: #{expected_response}
     if target_db != nil
       tmp_dir = Dir.mktmpdir
       logger.debug "using temp dir " + tmp_dir
-      logger.info "Retrieving source and REST config from #{target_db}..."
 
-      save_files_to_fs(target_db, "#{tmp_dir}/src")
+      if (port != nil)
+        logger.info "Retrieving source and REST config from #{target_db}..."
+      else
+        logger.info "Retrieving source from #{target_db}..."
+      end
 
-      # set up the options
-      FileUtils.cp_r(
-        "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
-        @properties['ml.rest-options.dir']
-      )
-      FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
+      # send the target db, the destination directory, and port to know if REST for ML7+
+      save_files_to_fs(target_db, "#{tmp_dir}/src", port)
+
+      if (port != nil)
+        # set up the options
+        FileUtils.cp_r(
+          "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
+          @properties['ml.rest-options.dir']
+        )
+        FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
+      end
 
       # Make sure REST properties are in accurate format, so you can directly deploy them again..
       if (port != nil)
@@ -980,7 +986,7 @@ In order to proceed please type: #{expected_response}
 
 private
 
-  def save_files_to_fs(target_db, target_dir)
+  def save_files_to_fs(target_db, target_dir, port)
     # Get the list of URIs. We get them in order because Ruby's Dir.mkdir
     # command doesn't have a -p option (create parent).
     dirs = execute_query %Q{
@@ -1026,8 +1032,22 @@ private
           # create the directory so that it will exist when we try to save files
           Dir.mkdir("#{target_dir}" + uri)
         else
-          r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get")
-          File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(r.body) }
+          # check type, if REST use that endpoint, otherwise use a query
+          if (port != nil)
+            r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get")
+            file_content = r.body
+          else
+            # Note : There are limitations to doing it this way for non REST DBs; only text files are captured (xqy, html, etc..) 
+            # other types such as images or java scripts will not be grabbed. Also this method is slower than REST or XCC.
+            r = execute_query %Q{
+              fn:doc("#{uri}")
+            },
+            { :db_name => target_db }
+            response_hash = JSON.parse("#{r.body}").each do |r|
+              file_content = r['result']
+            end
+          end  
+          File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(file_content) }
         end
       end
     end
