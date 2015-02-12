@@ -206,9 +206,11 @@ class ServerConfig < MLClient
         properties_file.gsub!(/rewrite-resolves-globally=/, "rewrite-resolves-globally=true")
       end
 
+      # rest applications don't use Roxy's MVC structure, so they can use MarkLogic's rewriter and error handler
       if app_type == "rest"
-        # rest applications don't use Roxy's MVC structure, so they can use MarkLogic's rewriter and error handler
-        properties_file.gsub!(/url-rewriter=\/roxy\/rewrite.xqy/, "url-rewriter=/MarkLogic/rest-api/rewriter.xqy")
+        # ML8 rest uses the new native rewriter
+        rewriter_name = (server_version == "8") ? "rewriter.xml" : "rewriter.xqy"
+        properties_file.gsub!(/url-rewriter=\/roxy\/rewrite.xqy/, "url-rewriter=/MarkLogic/rest-api/" + rewriter_name)
         properties_file.gsub!(/error-handler=\/roxy\/error.xqy/, "error-handler=/MarkLogic/rest-api/error-handler.xqy")
       end
 
@@ -1020,7 +1022,7 @@ Provides listings of various kinds of settings supported within ml-config.xml.
       }
     end
   end
-  
+
 private
 
   def save_files_to_fs(target_db, target_dir)
@@ -1185,7 +1187,7 @@ private
         logger.info "Skipping deployment of src to #{dest_db}.."
         break
       end
-      
+
       ignore_us = []
       ignore_us << "^#{test_dir}.*$" unless test_dir.blank? || deploy_tests?(dest_db)
       ignore_us << "^#{app_config_file}$"
