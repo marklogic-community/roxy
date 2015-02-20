@@ -94,13 +94,12 @@ pushd %app_name%
 rmdir /Q /S .git
 del /F /Q .gitignore
 
-if "%APPTYPE%"=="rest" (
-  REM For a REST application, we won't be using the MVC code. Remove it.
-  REM mvc and hybrid apps will use it.
+if not "%APPTYPE%"=="mvc" if not "%APPTYPE%"=="hybrid" (
+  REM For non-MVC applications, we won't be using the MVC code. Remove it.
   rmdir /S /Q src
   mkdir src
   echo.
-  echo No initial source code is provided for REST apps. You can copy code from Application Builder under the source directory.
+  echo No initial source code is provided for non-MVC apps. You can capture code from a REST application, or add your own code.
 )
 
 for /f "tokens=1-2*" %%a in ("%*") do (

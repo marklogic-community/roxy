@@ -108,12 +108,11 @@ then
 
     pushd ${app_name} > /dev/null  || exit 1
     rm -rf .git* || exit 1
-    if [ "$APPTYPE" = "rest" ]
+    if [ "$APPTYPE" != "mvc" ] && [ "$APPTYPE" != "hybrid" ]
     then
-      # For a REST application, we won't be using the MVC code. Remove it.
-      # mvc and hybrid apps will use it.
+      # For non-MVC applications, we won't be using the MVC code. Remove it.
       rm -rf src/* || exit 1
-      printf "\nNo initial source code is provided for REST apps. You can copy code from Application Builder under the source directory.\n"
+      printf "\nNo initial source code is provided for non-MVC apps. You can capture code from a REST application, or add your own code.\n"
     fi
 
     ./ml init ${app_name} ${@} || exit 1
