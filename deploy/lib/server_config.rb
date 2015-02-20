@@ -206,9 +206,13 @@ class ServerConfig < MLClient
         properties_file.gsub!(/rewrite-resolves-globally=/, "rewrite-resolves-globally=true")
       end
 
-      # rest applications don't use Roxy's MVC structure, so they can use MarkLogic's rewriter and error handler
-      if app_type == "rest"
-        # ML8 rest uses the new native rewriter
+      if app_type == "bare"
+        # bare applications don't use rewriter and error handler
+        properties_file.gsub!(/url-rewriter=\/roxy\/rewrite.xqy/, "url-rewriter=")
+        properties_file.gsub!(/error-handler=\/roxy\/error.xqy/, "error-handler=")
+      elsif app_type == "rest"
+        # rest applications don't use Roxy's MVC structure, so they can use MarkLogic's rewriter and error handler
+        # Note: ML8 rest uses the new native rewriter
         rewriter_name = (server_version == "8") ? "rewriter.xml" : "rewriter.xqy"
         properties_file.gsub!(/url-rewriter=\/roxy\/rewrite.xqy/, "url-rewriter=/MarkLogic/rest-api/" + rewriter_name)
         properties_file.gsub!(/error-handler=\/roxy\/error.xqy/, "error-handler=/MarkLogic/rest-api/error-handler.xqy")

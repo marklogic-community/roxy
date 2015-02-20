@@ -71,8 +71,8 @@ if EXIST %app_name% GOTO alreadyexists
 
 :skip_already_exists
 
-if not "%APPTYPE%"=="mvc" if not "%APPTYPE%"=="rest" if not "%APPTYPE%"=="hybrid" (
-  echo Valid values for app-type are mvc, rest and hybrid. Aborting.
+if not "%APPTYPE%"=="bare" if not "%APPTYPE%"=="mvc" if not "%APPTYPE%"=="rest" if not "%APPTYPE%"=="hybrid" (
+  echo Valid values for app-type are bare, mvc, rest and hybrid. Aborting.
   exit /b
 )
 
