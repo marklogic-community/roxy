@@ -45,3 +45,33 @@ class ServerConfig
   #   # but it can be called without an environment
   # end
 end
+
+#
+# Uncomment, and adjust below code to get help about your app_specific
+# commands included into Roxy help. (ml -h)
+#
+
+#class Help
+#  def self.app_specific
+#    <<-DOC.strip_heredoc
+#
+#      App-specific commands:
+#        example       Installs app-specific alerting
+#    DOC
+#  end
+#
+#  def self.example
+#    <<-DOC.strip_heredoc
+#      Usage: ml {env} example [args] [options]
+#      
+#      Runs a special example task against given environment.
+#      
+#      Arguments:
+#        this    Do this
+#        that    Do that
+#        
+#      Options:
+#        --whatever=value
+#    DOC
+#  end
+#end
