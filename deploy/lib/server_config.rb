@@ -106,6 +106,7 @@ class ServerConfig < MLClient
     @properties.sort {|x,y| y <=> x}.each do |k, v|
       logger.info k + ": " + v
     end
+    return true
   end
 
   # This method exists to return a path relative to roxy
@@ -144,6 +145,7 @@ class ServerConfig < MLClient
           FileUtils.cp(Dir.glob("*.jar")[0], jar_file)
         end
       end
+      return true
     rescue Gem::LoadError
       raise HelpException.new("jar", "Please install the warbler gem")
     end
@@ -247,6 +249,8 @@ class ServerConfig < MLClient
     end
 
     raise HelpException.new("init", error_msg.join("\n")) if error_msg.length > 0
+
+    return true
   end
 
   def self.initcpf
@@ -263,6 +267,7 @@ class ServerConfig < MLClient
     else
       copy_file sample_config, target_config
     end
+    return true
   end
 
   def self.prompt_server_version
@@ -421,6 +426,7 @@ What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
 
     r.body = parse_json(r.body)
     logger.info r.body
+    return true
   end
 
   def config
@@ -438,6 +444,7 @@ What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
 
     r.body = parse_json(r.body)
     logger.info r.body
+    return true
   end
 
   def bootstrap
@@ -633,6 +640,7 @@ In order to proceed please type: #{expected_response}
       else
         raise HelpException.new("deploy", "Invalid WHAT")
     end
+    return true
   end
 
   def load
@@ -647,6 +655,7 @@ In order to proceed please type: #{expected_response}
     raise HelpException.new("load", "File or Directory is required!") unless dir
     count = load_data dir, :remove_prefix => remove_prefix, :add_prefix => add_prefix, :db => db, :quiet => quiet
     logger.info "\nLoaded #{count} #{pluralize(count, "document", "documents")} from #{dir} to #{xcc.hostname}:#{xcc.port}/#{db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
+    return true
   end
 
   def load_data(dir, options = {})
@@ -684,6 +693,7 @@ In order to proceed please type: #{expected_response}
       else
         raise HelpException.new("clean", "Invalid WHAT")
     end
+    return true
   end
 
   #
@@ -714,6 +724,7 @@ In order to proceed please type: #{expected_response}
         logger.info r.body
       end
     end
+    return true
   end
 
   def test_cleanup
@@ -897,6 +908,7 @@ In order to proceed please type: #{expected_response}
     logger.info ""
 
     ARGV.clear
+    return true
   end
 
   def credentials
@@ -933,6 +945,7 @@ In order to proceed please type: #{expected_response}
       end
     end
     logger.info "wrote #{properties_file}"
+    return true
   end
 
   def capture
@@ -1005,6 +1018,7 @@ In order to proceed please type: #{expected_response}
 
       FileUtils.rm_rf(tmp_dir)
     end
+    return true
   end
 
   def settings
@@ -1021,6 +1035,7 @@ Usage: ml [env] settings [group|host|database|task-server|http-server|odbc-serve
 Provides listings of various kinds of settings supported within ml-config.xml.
       }
     end
+    return true
   end
 
 private

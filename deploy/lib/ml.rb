@@ -120,7 +120,10 @@ begin
         Help.doHelp(@logger, command)
       else
         ServerConfig.logger = @logger
-        ServerConfig.send command
+        result = ServerConfig.send command
+        if !result
+          exit!
+        end
       end
       break
     #
@@ -141,11 +144,14 @@ begin
         raise HelpException.new(command, "Missing environment for #{command}") if @properties["environment"].nil?
         raise ExitException.new("Missing ml-config.xml file. Check config.file property") if @properties["ml.config.file"].nil?
 
-        @s = ServerConfig.new(
+        result = ServerConfig.new(
           :config_file => File.expand_path(@properties["ml.config.file"], __FILE__),
           :properties => @properties,
           :logger => @logger
         ).send(command)
+        if !result
+          exit!
+        end
       else
         Help.doHelp(@logger, :usage, "Unknown command #{command}!")
         break
