@@ -78,7 +78,7 @@ class MLClient
     }
   end
 
-  def go(url, verb, headers = {}, params = nil, body = nil)
+  def go(url, verb, headers = {}, params = nil, body = nil, xcc = false)
     logger.debug(%Q{[#{verb.upcase}]\t#{url}})
     password_prompt
     request_params = build_request_params(url, verb)
@@ -97,6 +97,7 @@ class MLClient
       request_params[:request].body = body
     end
 
+    request_params[:request].use_xcc(xcc)
     response = get_http.request request_params
     response.value
     response

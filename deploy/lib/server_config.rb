@@ -430,7 +430,8 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   def self.howto
     begin
       search = ARGV.first
-      doc = Nokogiri::HTML(open('http://github.com/marklogic/roxy/wiki/_pages'))
+
+      doc = Nokogiri::HTML(open("https://github.com/marklogic/roxy/wiki/_pages"))
 
       pages = doc.css('.content').select do |page|
         search == nil or page.text.downcase().include? search
@@ -448,7 +449,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
         print "Select a page: "
         selected = STDIN.gets.chomp().to_i
         if selected == 0
-          exit
+          return
         end
       
         if selected > pages.length

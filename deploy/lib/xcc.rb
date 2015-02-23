@@ -27,14 +27,24 @@ module Net
     def set_path(path)
       @path = path
     end
-
+    
+    alias_method :original_write_header, :write_header
+    
+    def use_xcc(bool)
+      @use_xcc = bool
+    end
+    
     def write_header(sock, ver, path)
-      buf = "#{@method} #{path} XDBC/1.0\r\n"
-      each_capitalized do |k,v|
-        buf << "#{k}: #{v}\r\n"
+      if @use_xcc
+        buf = "#{@method} #{path} XDBC/1.0\r\n"
+        each_capitalized do |k,v|
+          buf << "#{k}: #{v}\r\n"
+        end
+        buf << "\r\n"
+        sock.write buf
+      else
+        original_write_header(sock, ver, path)
       end
-      buf << "\r\n"
-      sock.write buf
     end
   end
 
@@ -152,7 +162,7 @@ module Roxy
 
     def go(url, verb, headers = {}, params = nil, body = nil)
       headers['User-Agent'] = "Roxy RubyXCC/#{RUBY_XCC_VERSION}  MarkXDBC/#{XCC_VERSION}"
-      super(url, verb, headers, params, body)
+      super(url, verb, headers, params, body, true)
     end
 
     def get_files(path, options = {}, data = [])
