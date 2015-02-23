@@ -1,6 +1,6 @@
 class Help
   def self.usage
-    <<-DOC.strip_heredoc
+    help = <<-DOC.strip_heredoc
 
       Usage:
         ml [ENVIRONMENT] COMMAND [ARGS]
@@ -37,9 +37,20 @@ class Help
         settings      Lists all supported settings for a given environment
         test          Runs xquery unit tests against the given environment
         xqsync        Runs XQSync against the given environment
+    DOC
+    
+    help += app_specific || ''
+
+    help += <<-DOC.strip_heredoc
 
       All commands can be run with -h or --help for more information.
     DOC
+    
+    help
+  end
+  
+  def self.app_specific
+    #stub
   end
 
   def self.create
