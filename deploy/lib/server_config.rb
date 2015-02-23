@@ -51,13 +51,17 @@ class ServerConfig < MLClient
   @@path = @@is_jar ? "./deploy" : "../.."
   @@context = @@is_jar ? Dir.pwd : __FILE__
 
+  def ServerConfig.no_prompt=(no_prompt)
+    @@no_prompt = no_prompt
+  end
+  
   def self.path
     @@path
   end
 
   def initialize(options)
     @options = options
-
+    
     @properties = options[:properties]
     @environment = @properties["environment"]
     @config_file = @properties["ml.config.file"]
@@ -94,6 +98,8 @@ class ServerConfig < MLClient
     else
       @qconsole_port = @bootstrap_port
     end
+    
+    @@no_prompt = options[:no_prompt]
   end
 
   def get_properties
@@ -278,7 +284,7 @@ class ServerConfig < MLClient
     puts 'Required option --server-version=[version] not specified with valid value.
 
 What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
-    server_version = $stdin.gets.chomp.to_i
+    server_version = $stdin.gets.chomp.to_i unless @@no_prompt
     server_version = 7 if server_version == 0
     server_version
   end
@@ -491,7 +497,7 @@ Are you sure you want to do this?
 
 In order to proceed please type: #{expected_response}
 :> }
-      response = $stdin.gets.chomp
+      response = $stdin.gets.chomp unless @@no_prompt
       if response != expected_response
         logger.info "\nAborting wipe on #{@environment}"
         return

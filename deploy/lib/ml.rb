@@ -43,6 +43,8 @@ if @profile then
   end
 end
 
+@no_prompt = find_arg(['-n', '--no-prompt'])
+
 @logger = Logger.new(STDOUT)
 @logger.level = find_arg(['-v', '--verbose']) ? Logger::DEBUG : Logger::INFO
 @logger.formatter = proc { |severity, datetime, progname, msg|
@@ -120,6 +122,7 @@ begin
         Help.doHelp(@logger, command)
       else
         ServerConfig.logger = @logger
+        ServerConfig.no_prompt = @no_prompt
         result = ServerConfig.send command
         if !result
           exit!
@@ -147,7 +150,8 @@ begin
         result = ServerConfig.new(
           :config_file => File.expand_path(@properties["ml.config.file"], __FILE__),
           :properties => @properties,
-          :logger => @logger
+          :logger => @logger,
+          :no_prompt => @no_prompt
         ).send(command)
         if !result
           exit!
