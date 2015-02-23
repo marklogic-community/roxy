@@ -5072,7 +5072,12 @@ declare function setup:get-amps($ids as xs:unsignedLong*) as element(sec:amps)? 
           {
             if ($amp/sec:database = 0) then "filesystem"
             else
-              xdmp:database-name($amp/sec:database)
+              try {
+                xdmp:database-name($amp/sec:database)
+              } catch ($e) {
+                xdmp:log(("Roxy WARN: Orphaned amp detected", $amp)),
+                "(missing)"
+              }
           }
         }
     }</amps>
