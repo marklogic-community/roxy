@@ -1212,7 +1212,7 @@ private
       @logger.debug("source permissions: #{src_permissions}")
 
       total_count = load_data xquery_dir,
-                              :add_prefix => "/",
+                              :add_prefix => @properties["ml.modules-prefix"],
                               :remove_prefix => xquery_dir,
                               :db => dest_db,
                               :ignore_list => ignore_us,
