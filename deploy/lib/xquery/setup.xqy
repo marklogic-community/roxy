@@ -1332,7 +1332,7 @@ declare function setup:apply-database-settings($import-config as element(configu
   let $database := xdmp:database($database-name)
   let $apply-settings :=
     for $setting in $database-settings/*:setting
-    let $value := fn:data(xdmp:value(fn:concat("$db-config/db:", $setting)))
+    let $value := fn:data(xdmp:value(fn:concat("$db-config/db:", $setting)))[fn:string(.) != '']
     let $min-version as xs:string? := $setting/@min-version
     where fn:exists($value)
     return
@@ -3287,7 +3287,7 @@ declare function setup:configure-hosts($import-config as element(configuration))
       if ($setting/@value) then
         xdmp:value($setting/@value)
       else
-        fn:data(xdmp:value(fn:concat("$host-config/ho:", $setting, $setting-test)))
+        fn:data(xdmp:value(fn:concat("$host-config/ho:", $setting, $setting-test)))[fn:string(.) != '']
     let $min-version as xs:string? := $setting/@min-version
     where (fn:exists($value))
     return
@@ -3746,7 +3746,7 @@ declare function setup:configure-server(
       if ($setting/@value and $if and $version-ok) then
         xdmp:value($setting/@value)
       else
-        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, $setting-test)))
+        fn:data(xdmp:value(fn:concat("$server-config/gr:", $setting, $setting-test)))[fn:string(.) != '']
     where ($if and fn:exists($value))
     return
       if ($version-ok) then
