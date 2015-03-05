@@ -149,3 +149,9 @@ def parse_json(body)
     return body
   end
 end
+
+def find_jar(jarname, jarpath = "../java/")
+  matches = Dir.glob(ServerConfig.expand_path("#{jarpath}*#{jarname}*.jar"))
+  raise "Missing #{jarname} jar." if matches.length == 0
+  matches[0]
+end

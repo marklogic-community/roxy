@@ -771,7 +771,12 @@ In order to proceed please type: #{expected_response}
       prop_string << %Q{-D#{k}="#{v}" }
     end
 
-    runme = %Q{java -cp #{ServerConfig.expand_path("../java/recordloader.jar")}#{path_separator}#{ServerConfig.expand_path("../java/marklogic-xcc-5.0.2.jar")}#{path_separator}#{ServerConfig.expand_path("../java/xpp3-1.1.4c.jar")} #{prop_string} com.marklogic.ps.RecordLoader}
+    # Find the jars
+    recordloader_file = find_jar("recordloader")
+    xcc_file = find_jar("xcc")
+    xpp_file = find_jar("xpp")
+    
+    runme = %Q{java -cp #{recordloader_file}#{path_separator}#{xcc_file}#{path_separator}#{xpp_file} #{prop_string} com.marklogic.ps.RecordLoader}
     logger.info runme
     `#{runme}`
   end
@@ -791,7 +796,13 @@ In order to proceed please type: #{expected_response}
       prop_string << %Q{-D#{k}="#{v}" }
     end
 
-    runme = %Q{java -Xmx2048m -cp #{ServerConfig.expand_path("../java/xqsync.jar")}#{path_separator}#{ServerConfig.expand_path("../java/marklogic-xcc-5.0.2.jar")}#{path_separator}#{ServerConfig.expand_path("../java/xstream-1.4.2.jar")}#{path_separator}#{ServerConfig.expand_path("../java/xpp3-1.1.4c.jar")} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
+    # Find the jars
+    xqsync_file = find_jar("xqsync")
+    xcc_file = find_jar("xcc")
+    xstream_file = find_jar("xstream")
+    xpp_file = find_jar("xpp")
+    
+    runme = %Q{java -Xmx2048m -cp #{xqsync_file}#{path_separator}#{xcc_file}#{path_separator}#{xstream_file}#{path_separator}#{xpp_file} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
     logger.info runme
     `#{runme}`
   end
@@ -815,22 +826,21 @@ In order to proceed please type: #{expected_response}
     modules_database = @properties['ml.modules-db']
     install = find_arg(['--install']) == "true" || uris_module == '""'
 
-    # Find the XCC jar
-    matches = Dir.glob(ServerConfig.expand_path("../java/*xcc*.jar"))
-    raise "Missing XCC Jar." if matches.length == 0
-    xcc_file = matches[0]
+    # Find the jars
+    corb_file = find_jar("corb")
+    xcc_file = find_jar("xcc")
 
     if install
       # If we're installing, we need to change directories to the source
       # directory, so that the xquery_modules will be visible with the
       # same path that will be used to see it in the modules database.
       Dir.chdir(@properties['ml.xquery.dir']) do
-        runme = %Q{java -cp #{ServerConfig.expand_path("../java/corb.jar")}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
+        runme = %Q{java -cp #{corb_file}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
         logger.info runme
         `#{runme}`
       end
     else
-      runme = %Q{java -cp #{ServerConfig.expand_path("../java/corb.jar")}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
+      runme = %Q{java -cp #{corb_file}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
       logger.info runme
       `#{runme}`
     end
