@@ -12,6 +12,7 @@ module Roxy
       })
       @request = {}
       @gmt_offset = Time.now.gmt_offset
+      @server_version = options[:server_version]
 
     end
 
@@ -47,6 +48,12 @@ module Roxy
             # Properties file needs to be updated
             raise ExitException.new "#{d} is in an old format; changes to this file won't take effect. See https://github.com/marklogic/roxy/wiki/REST-properties-format-change"
           else
+            copy = ""+ contents
+            copy = copy.gsub(/<!--.*?-->/m, '')
+            if @server_version > 7 && copy.match('<error-format')
+              @logger.info "WARN: REST property error-format has been deprecated since MarkLogic 8"
+              contents = copy.gsub(/<error-format[^>]*>[^<]+<\/error-format>/m, '')
+            end
             # Properties is in the correct format
             # @logger.debug "methods: #{methods}"
             url = "http://#{@hostname}:#{@port}/v1/config/properties"

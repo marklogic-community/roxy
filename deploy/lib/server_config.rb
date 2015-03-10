@@ -1454,7 +1454,8 @@ private
         :server => @hostname,
         :app_port => @properties["ml.app-port"],
         :rest_port => @properties["ml.rest-port"],
-        :logger => @logger
+        :logger => @logger,
+        :server_version => @server_version
       })
     else
       @mlRest
