@@ -1886,7 +1886,7 @@ private
         <data-directory>@ml.forest-data-dir</data-directory>
       }) if @properties['ml.forest-data-dir'].present?
 
-    if @properties['ml.rewrite-resolves-globally'].present?
+    if !@properties['ml.rewrite-resolves-globally'].nil?
       config.gsub!("@ml.rewrite-resolves-globally",
         %Q{
           <rewrite-resolves-globally>#{@properties['ml.rewrite-resolves-globally']}</rewrite-resolves-globally>
