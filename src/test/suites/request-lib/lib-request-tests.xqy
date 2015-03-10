@@ -44,7 +44,7 @@ let $uri :=
   fn:concat(
     "/test-request/test1?",
     "valid=yes",
-    "&amp;dt=", fn:current-dateTime(),
+    "&amp;dt=", fn:encode-for-uri(fn:string(fn:current-dateTime())),
     "&amp;number=1234",
     "&amp;invalidnumber=notnum",
     "&amp;single=val1",
