@@ -841,6 +841,11 @@ In order to proceed please type: #{expected_response}
     corb_file = find_jar("corb")
     xcc_file = find_jar("xcc")
 
+    # Find the CORB jar
+    matches = Dir.glob(ServerConfig.expand_path("../java/*corb*.jar"))
+    raise "Missing CORB Jar." if matches.length == 0
+    corb_file = matches[0]
+    
     if install
       # If we're installing, we need to change directories to the source
       # directory, so that the xquery_modules will be visible with the
