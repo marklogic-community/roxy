@@ -305,9 +305,11 @@ declare variable $field-settings :=
     <setting>two-character-searches</setting>
     <setting min-version="6.0-1">value-positions</setting>
     <setting min-version="6.0-1">value-searches</setting>
+    <setting min-version="6.0-1">field-value-positions</setting>
+    <setting min-version="6.0-1">field-value-searches</setting>
     <setting>word-searches</setting>
   </settings>;
-
+  
 (: A note on naming conventions:
   $admin-config refers to the configuration passed around by the Admin APIs
   $import-config is the import/export configuration format that setup:get-configuration() generates
@@ -1546,6 +1548,16 @@ declare function setup:validate-fields($admin-config, $database, $db-config)
 {
   let $existing := admin:database-get-fields($admin-config, $database)
   for $expected in $db-config/db:fields/db:field
+  let $expected := element { fn:node-name($expected) } {
+    $expected/@*,
+    for $setting in $expected/*
+    return
+      if ($setting/self::db:value-searches) then
+        <field-value-searches xmlns="http://marklogic.com/xdmp/database">{fn:string($setting)}</field-value-searches>
+      else if ($setting/self::db:value-positions) then
+        <field-value-positions xmlns="http://marklogic.com/xdmp/database">{fn:string($setting)}</field-value-positions>
+      else $setting
+  }
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
@@ -1567,7 +1579,7 @@ declare function setup:apply-field-settings(
     return
       xdmp:set(
         $admin-config,
-        xdmp:value(fn:concat("admin:database-set-field-", $setting, "($admin-config, $database, $field-name, $value)")))
+        xdmp:value(fn:concat("admin:database-set-field-", fn:replace($setting, "^field-", ""), "($admin-config, $database, $field-name, $value)")))
 
   let $add-tokenizers :=
     if ($db-config/db:fields/db:field/db:tokenizer-overrides/db:tokenizer-override) then

@@ -658,6 +658,8 @@
           <include-root>false</include-root>
           <stemmed-searches>decompounding</stemmed-searches>
           <word-searches>true</word-searches>
+          <field-value-searches>true</field-value-searches>
+          <field-value-positions>true</field-value-positions>
           <fast-phrase-searches>true</fast-phrase-searches>
           <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
           <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
@@ -706,6 +708,8 @@
         <field>
           <field-name>test</field-name>
           <include-root>true</include-root>
+          <value-searches>true</value-searches>
+          <value-positions>true</value-positions>
           <word-lexicons>
             <word-lexicon>http://marklogic.com/collation/</word-lexicon>
             <word-lexicon>http://marklogic.com/collation/codepoint</word-lexicon>
