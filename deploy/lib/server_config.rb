@@ -51,10 +51,6 @@ class ServerConfig < MLClient
   @@path = @@is_jar ? "./deploy" : "../.."
   @@context = @@is_jar ? Dir.pwd : __FILE__
 
-  def ServerConfig.no_prompt=(no_prompt)
-    @@no_prompt = no_prompt
-  end
-  
   def self.path
     @@path
   end
@@ -77,7 +73,8 @@ class ServerConfig < MLClient
     super(
       :user_name => @properties["ml.user"],
       :password => @properties["ml.password"],
-      :logger => options[:logger]
+      :logger => options[:logger],
+      :no_prompt => options[:no_prompt]
     )
 
     @server_version = @properties["ml.server-version"].to_i
@@ -98,8 +95,6 @@ class ServerConfig < MLClient
     else
       @qconsole_port = @bootstrap_port
     end
-    
-    @@no_prompt = options[:no_prompt]
   end
 
   def get_properties
@@ -281,60 +276,81 @@ class ServerConfig < MLClient
   end
 
   def self.prompt_server_version
-    puts 'Required option --server-version=[version] not specified with valid value.
+    if @@no_prompt
+      puts 'Required option --server-version=[version] not specified with valid value,
+but --no-prompt parameter prevents prompting for password. Assuming 8.'
+    else
+      puts 'Required option --server-version=[version] not specified with valid value.
 
-What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
-    server_version = $stdin.gets.chomp.to_i unless @@no_prompt
-    server_version = 7 if server_version == 0
-    server_version
+  What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
+      server_version = gets.chomp.to_i
+      server_version = 8 if server_version == 0
+      server_version
+    end
   end
 
   def self.index
-    puts "What type of index do you want to build?
-  1 element range index
-  2 attribute range index"
-    # TODO:
-    # 3 field range index
-    # 4 geospatial index
-    type = gets.chomp.to_i
-    if type == 1
-      build_element_index
-    elsif type == 2
-      build_attribute_element_index
+    if @@no_prompt
+      raise ExitException.new("--no-prompt parameter prevents prompting for input")
     else
-      puts "Sorry, I don't know how to do that yet"
+      puts "What type of index do you want to build?
+    1 element range index
+    2 attribute range index"
+      # TODO:
+      # 3 field range index
+      # 4 geospatial index
+      type = gets.chomp.to_i
+      if type == 1
+        build_element_index
+      elsif type == 2
+        build_attribute_element_index
+      else
+        puts "Sorry, I don't know how to do that yet"
+      end
     end
   end
 
   def self.request_type
-    scalar_types = %w[int unsignedInt long unsignedLong float double decimal dateTime
-      time date gYearMonth gYear gMonth gDay yearMonthDuration dayTimeDuration string anyURI]
-    puts "What will the scalar type of the index be [1-" + scalar_types.length.to_s + "]? "
-    i = 1
-    for t in scalar_types
-      puts "#{i} #{t}"
-      i += 1
+    if @@no_prompt
+      raise ExitException.new("--no-prompt parameter prevents prompting for input")
+    else
+      scalar_types = %w[int unsignedInt long unsignedLong float double decimal dateTime
+        time date gYearMonth gYear gMonth gDay yearMonthDuration dayTimeDuration string anyURI]
+      puts "What will the scalar type of the index be [1-" + scalar_types.length.to_s + "]? "
+      i = 1
+      for t in scalar_types
+        puts "#{i} #{t}"
+        i += 1
+      end
+      scalar = gets.chomp.to_i
+      scalar_types[scalar - 1]
     end
-    scalar = gets.chomp.to_i
-    scalar_types[scalar - 1]
   end
 
   def self.request_collation
-    puts "What is the collation URI (leave blank for the root collation)?"
-    collation = gets.chomp
-    collation = "http://marklogic.com/collation/" if collation.blank?
-    collation
+    if @@no_prompt
+      raise ExitException.new("--no-prompt parameter prevents prompting for input")
+    else
+      puts "What is the collation URI (leave blank for the root collation)?"
+      collation = gets.chomp
+      collation = "http://marklogic.com/collation/" if collation.blank?
+      collation
+    end
   end
 
   def self.request_range_value_positions
-    puts "Turn on range value positions? [y/N]"
-    positions = gets.chomp.downcase
-    if positions == "y"
-      positions = "true"
+    if @@no_prompt
+      raise ExitException.new("--no-prompt parameter prevents prompting for input")
     else
-      positions = "false"
+      puts "Turn on range value positions? [y/N]"
+      positions = gets.chomp.downcase
+      if positions == "y"
+        positions = "true"
+      else
+        positions = "false"
+      end
+      positions
     end
-    positions
   end
 
   def self.inject_index(key, index)
@@ -346,57 +362,65 @@ What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
   end
 
   def self.build_attribute_element_index
-    scalar_type = request_type
-    puts "What is the parent element's namespace URI?"
-    p_uri = gets.chomp
-    puts "What is the parent element's localname?"
-    p_localname = gets.chomp
-    puts "What is the attribute's namespace URI?"
-    uri = gets.chomp
-    puts "What is the attribute's localname?"
-    localname = gets.chomp
-    collation = request_collation if scalar_type == "string"
-    positions = request_range_value_positions
-    index = "        <range-element-attribute-index>
-          <scalar-type>#{scalar_type}</scalar-type>
-          <parent-namespace-uri>#{p_uri}</parent-namespace-uri>
-          <parent-localname>#{p_localname}</parent-localname>
-          <namespace-uri>#{uri}</namespace-uri>
-          <localname>#{localname}</localname>
-          <collation>#{collation}</collation>
-          <range-value-positions>#{positions}</range-value-positions>
-        </range-element-attribute-index>"
+    if @@no_prompt
+      raise ExitException.new("--no-prompt parameter prevents prompting for input")
+    else
+      scalar_type = request_type
+      puts "What is the parent element's namespace URI?"
+      p_uri = gets.chomp
+      puts "What is the parent element's localname?"
+      p_localname = gets.chomp
+      puts "What is the attribute's namespace URI?"
+      uri = gets.chomp
+      puts "What is the attribute's localname?"
+      localname = gets.chomp
+      collation = request_collation if scalar_type == "string"
+      positions = request_range_value_positions
+      index = "        <range-element-attribute-index>
+            <scalar-type>#{scalar_type}</scalar-type>
+            <parent-namespace-uri>#{p_uri}</parent-namespace-uri>
+            <parent-localname>#{p_localname}</parent-localname>
+            <namespace-uri>#{uri}</namespace-uri>
+            <localname>#{localname}</localname>
+            <collation>#{collation}</collation>
+            <range-value-positions>#{positions}</range-value-positions>
+          </range-element-attribute-index>"
 
-    properties = ServerConfig.properties
-    puts "Add this index to #{properties["ml.config.file"]}? [y/N]\n" + index
-    approve = gets.chomp.downcase
-    if approve == "y"
-      inject_index("<range-element-attribute-indexes>", index)
-      puts "Index added"
+      properties = ServerConfig.properties
+      puts "Add this index to #{properties["ml.config.file"]}? [y/N]\n" + index
+      approve = gets.chomp.downcase
+      if approve == "y"
+        inject_index("<range-element-attribute-indexes>", index)
+        puts "Index added"
+      end
     end
   end
 
   def self.build_element_index
-    scalar_type = request_type
-    puts "What is the element's namespace URI?"
-    uri = gets.chomp
-    puts "What is the element's localname?"
-    localname = gets.chomp
-    collation = request_collation if scalar_type == "string" # string
-    positions = request_range_value_positions
-    index = "        <range-element-index>
-          <scalar-type>#{scalar_type}</scalar-type>
-          <namespace-uri>#{uri}</namespace-uri>
-          <localname>#{localname}</localname>
-          <collation>#{collation}</collation>
-          <range-value-positions>#{positions}</range-value-positions>
-        </range-element-index>"
-    properties = ServerConfig.properties
-    puts "Add this index to #{properties["ml.config.file"]}? [y/N]\n" + index
-    approve = gets.chomp.downcase
-    if approve == "y"
-      inject_index("<range-element-indexes>", index)
-      puts "Index added"
+    if @@no_prompt
+      raise ExitException.new("--no-prompt parameter prevents prompting for input")
+    else
+      scalar_type = request_type
+      puts "What is the element's namespace URI?"
+      uri = gets.chomp
+      puts "What is the element's localname?"
+      localname = gets.chomp
+      collation = request_collation if scalar_type == "string" # string
+      positions = request_range_value_positions
+      index = "        <range-element-index>
+            <scalar-type>#{scalar_type}</scalar-type>
+            <namespace-uri>#{uri}</namespace-uri>
+            <localname>#{localname}</localname>
+            <collation>#{collation}</collation>
+            <range-value-positions>#{positions}</range-value-positions>
+          </range-element-index>"
+      properties = ServerConfig.properties
+      puts "Add this index to #{properties["ml.config.file"]}? [y/N]\n" + index
+      approve = gets.chomp.downcase
+      if approve == "y"
+        inject_index("<range-element-indexes>", index)
+        puts "Index added"
+      end
     end
   end
 
@@ -497,10 +521,14 @@ Are you sure you want to do this?
 
 In order to proceed please type: #{expected_response}
 :> }
-      response = $stdin.gets.chomp unless @@no_prompt
-      if response != expected_response
-        logger.info "\nAborting wipe on #{@environment}"
-        return
+      if @@no_prompt
+        raise ExitException.new("--no-prompt parameter prevents prompting for input")
+      else
+        response = gets.chomp unless @@no_prompt
+        if response != expected_response
+          logger.info "\nAborting wipe on #{@environment}"
+          return
+        end
       end
     end
 
@@ -932,40 +960,44 @@ In order to proceed please type: #{expected_response}
   end
 
   def credentials
-    logger.info "credentials #{@environment}"
-    # ml will error on invalid environment
-    # ask user for admin username and password
-    puts "What is the admin username?"
-    user = gets.chomp
-    puts "What is the admin password?"
-    # we don't want to install highline
-    # we can't rely on STDIN.noecho with older ruby versions
-    system "stty -echo"
-    password = gets.chomp
-    system "stty echo"
+    if @@no_prompt
+      raise ExitException.new("--no-prompt parameter prevents prompting for input")
+    else
+      logger.info "credentials #{@environment}"
+      # ml will error on invalid environment
+      # ask user for admin username and password
+      puts "What is the admin username?"
+      user = gets.chomp
+      puts "What is the admin password?"
+      # we don't want to install highline
+      # we can't rely on STDIN.noecho with older ruby versions
+      system "stty -echo"
+      password = gets.chomp
+      system "stty echo"
 
-    # Create or update environment properties file
-    filename = "#{@environment}.properties"
-    properties = {}
-    properties_file = ServerConfig.expand_path("#{@@path}/#{filename}")
-    begin
-      if (File.exists?(properties_file))
-        properties = ServerConfig.load_properties(properties_file, "")
-      else
-        logger.info "#{properties_file} does not yet exist"
+      # Create or update environment properties file
+      filename = "#{@environment}.properties"
+      properties = {}
+      properties_file = ServerConfig.expand_path("#{@@path}/#{filename}")
+      begin
+        if (File.exists?(properties_file))
+          properties = ServerConfig.load_properties(properties_file, "")
+        else
+          logger.info "#{properties_file} does not yet exist"
+        end
+      rescue => err
+        puts "Exception: #{err}"
       end
-    rescue => err
-      puts "Exception: #{err}"
-    end
-    properties["user"] = user
-    properties["password"] = password
-    File.open(properties_file, 'w') do |f|
-      properties.each do |k,v|
-        f.write "#{k}=#{v}\n"
+      properties["user"] = user
+      properties["password"] = password
+      File.open(properties_file, 'w') do |f|
+        properties.each do |k,v|
+          f.write "#{k}=#{v}\n"
+        end
       end
+      logger.info "wrote #{properties_file}"
+      return true
     end
-    logger.info "wrote #{properties_file}"
-    return true
   end
 
   def capture

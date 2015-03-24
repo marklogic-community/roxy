@@ -86,7 +86,7 @@ begin
       if need_help?
         Help.doHelp(@logger, command)
       else
-        f = Roxy::Framework.new :logger => @logger, :properties => ServerConfig.properties
+        f = Roxy::Framework.new :logger => @logger, :properties => ServerConfig.properties, :no_prompt => @no_prompt
         f.create
       end
       break
@@ -110,7 +110,7 @@ begin
       if need_help?
         Help.doHelp(@logger, command)
       else
-        upgrader = Roxy::Upgrader.new :logger => @logger, :properties => ServerConfig.properties
+        upgrader = Roxy::Upgrader.new :logger => @logger, :properties => ServerConfig.properties, :no_prompt => @no_prompt
         upgrader.upgrade(ARGV)
       end
       break
@@ -166,32 +166,32 @@ rescue Net::HTTPServerException => e
   case e.response
   when Net::HTTPUnauthorized then
     @logger.error "Invalid login credentials for #{@properties["environment"]} environment!!"
-    raise e
+    exit!
   else
     @logger.error e
     @logger.error e.response.body
-    raise e
+    exit!
   end
 rescue Net::HTTPFatalError => e
   @logger.error e
   @logger.error e.response.body
-  raise e
+  exit!
 rescue DanglingVarsException => e
   @logger.error "WARNING: The following configuration variables could not be validated:"
   e.vars.each do |k,v|
     @logger.error "#{k}=#{v}"
   end
-  raise e
+  exit!
 rescue HelpException => e
   Help.doHelp(@logger, e.command, e.message)
-  raise e
+  exit!
 rescue ExitException => e
   @logger.error e
-  raise e
+  exit!
 rescue Exception => e
   @logger.error e
   @logger.error e.backtrace
-  raise e
+  exit!
 end
 
 if @profile then

@@ -32,6 +32,8 @@ module Roxy
       else
         @template_base = File.expand_path('../templates', __FILE__)
       end
+      
+      @no_prompt = options[:no_prompt]
     end
 
     def create
@@ -75,8 +77,12 @@ module Roxy
           if force == false
             view_type = (format != nil && format != "none") ? ((format == "json") ? "a" : "an") + " #{format} view" : "no view"
             print "\nAbout to create a #{view}() function in the #{controller}.xqy controller with #{view_type}. Proceed?\n> "
-            answer = gets().downcase.strip
-            return if answer != "y" && answer != "yes"
+            if @no_prompt
+              raise ExitException.new("--no-prompt parameter prevents prompting for input. Use -f to force.")
+            else
+              answer = gets().downcase.strip
+              return if answer != "y" && answer != "yes"
+            end
           end
 
           create_object('controller', controller, view, controller)
