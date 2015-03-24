@@ -555,11 +555,11 @@ declare function setup:do-wipe($import-config as element(configuration)+) as ite
           xdmp:eval(
             'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
              declare variable $amp external;
-             if (sec:amp-exists($amp/sec:namespace, $amp/sec:local-name, $amp/sec:doc-uri, xdmp:database($amp/sec:db-name))) then
+             if (sec:amp-exists($amp/sec:namespace, $amp/sec:local-name, $amp/(sec:doc-uri, sec:document-uri)[1], xdmp:database($amp/sec:db-name))) then
                sec:remove-amp(
                  $amp/sec:namespace,
                  $amp/sec:local-name,
-                 $amp/sec:doc-uri,
+                 $amp/(sec:doc-uri, sec:document-uri)[1],
                  xdmp:database($amp/sec:db-name))
              else ()',
             (xs:QName("amp"), $amp),
@@ -577,7 +577,9 @@ declare function setup:do-wipe($import-config as element(configuration)+) as ite
       (: remove databases :)
       let $databases :=
         (
+          (: process databases depending on others first :)
           $import-config/db:databases/db:database[db:security-database or db:schema-database or db:triggers-database],
+          (: process databases that are likely depended on last :)
           $import-config/db:databases/db:database[fn:not(db:security-database or db:schema-database or db:triggers-database)]
         )
       for $db-config in $databases
@@ -808,6 +810,38 @@ declare function setup:do-wipe($import-config as element(configuration)+) as ite
           else
             xdmp:rethrow()
         },
+
+      (: remove orphaned amps :)
+      for $amp in
+        xdmp:eval('
+          import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+          for $amp in fn:collection(sec:amps-collection())/*
+          let $db-exists :=
+            if ($amp/sec:database ne 0) then
+              try{
+                let $_ := xdmp:database-name($amp/sec:database)
+                return fn:true()
+              } catch($ignore){
+                fn:false()
+              }
+            else fn:true() 
+          where fn:not($db-exists)
+          return (
+            $amp,
+            sec:remove-amp(
+              $amp/sec:namespace,
+              $amp/sec:local-name,
+              $amp/sec:document-uri,
+              $amp/sec:database
+            )
+          )',
+          (),
+          <options xmlns="xdmp:eval">
+            <database>{$default-security}</database>
+          </options>
+        )
+      return
+        xdmp:log(fn:concat("Removed orphaned amp ", fn:string-join($amp/(sec:namespace,sec:local-name,sec:document-uri,sec:database)/fn:string(.), ", "), "..")),
 
       if ($restart-needed) then
         "note: restart required"
@@ -4606,7 +4640,7 @@ declare function setup:create-amps($import-config)
   return
     if ($existing-amps/sec:amp[sec:namespace = $amp/sec:namespace and
                                    sec:local-name = $amp/sec:local-name and
-                                   sec:document-uri = $amp/sec:doc-uri and
+                                   sec:document-uri = $amp/(sec:doc-uri, sec:document-uri) and
                                    sec:db-name = $amp/sec:db-name]) then ()
     else
     (
@@ -4617,7 +4651,7 @@ declare function setup:create-amps($import-config)
          sec:create-amp(
            $amp/sec:namespace,
            $amp/sec:local-name,
-           $amp/sec:doc-uri,
+           $amp/(sec:doc-uri, sec:document-uri)[1],
            $db,
            $amp/sec:role-name
         )',
@@ -4637,7 +4671,7 @@ declare function setup:validate-amps($import-config)
   return
     if ($existing-amps/sec:amp[sec:namespace = $amp/sec:namespace and
                                    sec:local-name = $amp/sec:local-name and
-                                   sec:document-uri = $amp/sec:doc-uri and
+                                   sec:document-uri = $amp/(sec:doc-uri, sec:document-uri) and
                                    sec:db-name = $amp/sec:db-name]) then ()
     else
       setup:validation-fail(fn:concat("Missing amp: ", $amp/sec:local-name))
