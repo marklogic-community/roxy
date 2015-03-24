@@ -43,6 +43,8 @@ if @profile then
   end
 end
 
+@no_prompt = find_arg(['-n', '--no-prompt'])
+
 @logger = Logger.new(STDOUT)
 @logger.level = find_arg(['-v', '--verbose']) ? Logger::DEBUG : Logger::INFO
 @logger.formatter = proc { |severity, datetime, progname, msg|
@@ -84,7 +86,7 @@ begin
       if need_help?
         Help.doHelp(@logger, command)
       else
-        f = Roxy::Framework.new :logger => @logger, :properties => ServerConfig.properties
+        f = Roxy::Framework.new :logger => @logger, :properties => ServerConfig.properties, :no_prompt => @no_prompt
         f.create
       end
       break
@@ -108,7 +110,7 @@ begin
       if need_help?
         Help.doHelp(@logger, command)
       else
-        upgrader = Roxy::Upgrader.new :logger => @logger, :properties => ServerConfig.properties
+        upgrader = Roxy::Upgrader.new :logger => @logger, :properties => ServerConfig.properties, :no_prompt => @no_prompt
         upgrader.upgrade(ARGV)
       end
       break
@@ -120,6 +122,7 @@ begin
         Help.doHelp(@logger, command)
       else
         ServerConfig.logger = @logger
+        ServerConfig.no_prompt = @no_prompt
         result = ServerConfig.send command
         if !result
           exit!
@@ -147,7 +150,8 @@ begin
         result = ServerConfig.new(
           :config_file => File.expand_path(@properties["ml.config.file"], __FILE__),
           :properties => @properties,
-          :logger => @logger
+          :logger => @logger,
+          :no_prompt => @no_prompt
         ).send(command)
         if !result
           exit!
@@ -162,32 +166,32 @@ rescue Net::HTTPServerException => e
   case e.response
   when Net::HTTPUnauthorized then
     @logger.error "Invalid login credentials for #{@properties["environment"]} environment!!"
-    raise e
+    exit!
   else
     @logger.error e
     @logger.error e.response.body
-    raise e
+    exit!
   end
 rescue Net::HTTPFatalError => e
   @logger.error e
   @logger.error e.response.body
-  raise e
+  exit!
 rescue DanglingVarsException => e
   @logger.error "WARNING: The following configuration variables could not be validated:"
   e.vars.each do |k,v|
     @logger.error "#{k}=#{v}"
   end
-  raise e
+  exit!
 rescue HelpException => e
   Help.doHelp(@logger, e.command, e.message)
-  raise e
+  exit!
 rescue ExitException => e
   @logger.error e
-  raise e
+  exit!
 rescue Exception => e
   @logger.error e
   @logger.error e.backtrace
-  raise e
+  exit!
 end
 
 if @profile then
