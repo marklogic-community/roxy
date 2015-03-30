@@ -77,7 +77,7 @@ declare function t:list() {
       for $suite as xs:string in $suites
       let $tests as xs:string* :=
         if ($db-id = 0) then
-          xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites/", $suite))/dir:entry[dir:type = "file" and fn:not(dir:filename = $test-ignore-list)]/dir:filename[fn:ends-with(., ".xqy")]
+          xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites/", $suite))/dir:entry[dir:type = "file" and fn:not(dir:filename = $test-ignore-list)]/dir:filename[fn:ends-with(., ".xqy") | fn:ends-with(., ".sjs")]
         else
           let $uris := t:list-from-database(
             $db-id, $root, fn:concat($suite, '/'))
@@ -85,7 +85,7 @@ declare function t:list() {
             fn:distinct-values(
               for $uri in $uris
               let $path := fn:replace($uri, fn:concat($root, "test/suites/", $suite, "/"), "")
-              where $path ne "" and fn:not(fn:contains($path, "/")) and fn:not($path = $test-ignore-list) and fn:ends-with($path, ".xqy")
+              where $path ne "" and fn:not(fn:contains($path, "/")) and fn:not($path = $test-ignore-list) and (fn:ends-with($path, ".xqy") or fn:ends-with($path, ".sjs"))
               return
                 $path)
       where $tests
@@ -182,6 +182,14 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
     catch($ex) {
       helper:fail($ex)
     }
+  (: If we had a .sjs test module, we may get arrays back. Convert the array
+   : of results to a sequence of results.
+   :)
+  let $result :=
+    if ($result instance of json:array) then
+      json:array-values($result)
+    else
+      $result
   let $teardown :=
     if ($run-teardown eq fn:true()) then
       try {
