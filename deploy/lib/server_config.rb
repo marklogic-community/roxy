@@ -24,9 +24,6 @@ require 'MLClient'
 require 'date'
 require 'ml_rest'
 
-optional_require 'open-uri'
-optional_require 'nokogiri'
-
 class ExitException < Exception; end
 
 class HelpException < Exception
@@ -429,6 +426,9 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
   def self.howto
     begin
+      optional_require 'open-uri'
+      optional_require 'nokogiri'
+
       search = ARGV.first
 
       doc = Nokogiri::HTML(open("https://github.com/marklogic/roxy/wiki/_pages"))
