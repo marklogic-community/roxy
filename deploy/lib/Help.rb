@@ -20,7 +20,7 @@ class Help
 
       Bootstrapping commands (with environment):
         bootstrap     Configures your application on the given environment
-        capture       Captures the source code of an existing App Builder application
+        capture       Captures the source code and if applicable the REST configuration of an existing application
         clean         Removes all files from the cpf, modules, or content databases on the given environment
         credentials   Configures user and password for the given environment
         info          Returns settings for the given environment
@@ -459,11 +459,17 @@ class Help
   def self.capture
     <<-DOC.strip_heredoc
       Usage: ml {env} capture --modules-db=[name of modules database]
+		Captures the source for an existing application
+		
+	  modules-db: (required)
+        The modules database of the application.
+	  
+	  ml {env} capture --app-builder=[name of Application Builder-based application]
         Captures the source and REST API configuration for an existing
         Application Builder-based application.
 
-      modules-db: (required)
-        The modules database of the App Builder application.
+      app-builder: (required)
+        The name of the App Builder application.
     DOC
   end
 

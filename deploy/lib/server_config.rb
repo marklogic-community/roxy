@@ -952,23 +952,29 @@ In order to proceed please type: #{expected_response}
         logger.info "Retrieving source from #{target_db}..."
       end
 
-      # send the target db, the destination directory, and port to know if REST for ML7+
-      save_files_to_fs(target_db, "#{tmp_dir}/src", port)
+      # send the target db, and the destination directory
+      save_files_to_fs(target_db, "#{tmp_dir}/src")
+		
+	  # check if this is a REST project to capture REST configuration
+	  if (port != nil)	
+	  
+		  # make sure that REST	options directory exists
+		  if Dir.exists? @properties['ml.rest-options.dir'] 
+		  
+			# set up the options
+			FileUtils.cp_r(
+			  "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
+			  @properties['ml.rest-options.dir']
+			)
+			FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
 
-      if (port != nil)
-        # set up the options
-        FileUtils.cp_r(
-          "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
-          @properties['ml.rest-options.dir']
-        )
-        FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
-      end
-
-      # Make sure REST properties are in accurate format, so you can directly deploy them again..
-      if (port != nil)
-        r = go("http://#{@hostname}:#{port}/v1/config/properties", "get")
-        r.body = parse_json(r.body)
-        File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
+			# Make sure REST properties are in accurate format, so you can directly deploy them again..
+			r = go("http://#{@hostname}:#{port}/v1/config/properties", "get")
+			r.body = parse_json(r.body)
+			File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
+		  else
+			raise HelpException.new("capture", "attempting --app-builder REST capture into non-REST project, you may try capture with --modules-db to only capture modules without the REST configuration")
+		  end	
       end
 
       # If we have an application/custom directory, we've probably done a capture
@@ -986,7 +992,7 @@ In order to proceed please type: #{expected_response}
 
 private
 
-  def save_files_to_fs(target_db, target_dir, port)
+  def save_files_to_fs(target_db, target_dir)
     # Get the list of URIs. We get them in order because Ruby's Dir.mkdir
     # command doesn't have a -p option (create parent).
     dirs = execute_query %Q{
@@ -1032,26 +1038,12 @@ private
           # create the directory so that it will exist when we try to save files
           Dir.mkdir("#{target_dir}" + uri)
         else
-          # check type, if REST use that endpoint, otherwise use a query
-          if (port != nil)
-            r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get")
-            file_content = r.body
-          else
-            # Note : There are limitations to doing it this way for non REST DBs; only text files are captured (xqy, html, etc..) 
-            # other types such as images or java scripts will not be grabbed. Also this method is slower than REST or XCC.
-            r = execute_query %Q{
-              fn:doc("#{uri}")
-            },
-            { :db_name => target_db }
-            response_hash = JSON.parse("#{r.body}").each do |r|
-              file_content = r['result']
-            end
-          end  
-          File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(file_content) }
-        end
+		  r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get")
+		  file_content = r.body
+		  File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(file_content) }
+		end
       end
     end
-
   end
 
   # Note: this is the beginning of a feature; not really useful yet. What we want is to specify one or more app servers,
