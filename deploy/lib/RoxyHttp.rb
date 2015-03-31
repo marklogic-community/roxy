@@ -32,7 +32,7 @@ module Net
       @path = path
     end
   end
-
+  
   module HTTPHeader
     @@nonce_count = -1
     CNONCE = Digest::MD5.hexdigest "%x" % (Time.now.to_i + rand(65535))
@@ -318,6 +318,7 @@ module Roxy
           @http.ca_file         = ca_file
         end
       end
+      
       # open connection
       @http.start
     end

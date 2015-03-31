@@ -136,6 +136,13 @@ class Object
   def to_b
     present? && ['true', 'TRUE', 'yes', 'YES', 'y', 'Y', 't', 'T'].include?(self)
   end
+  
+  def optional_require(feature)
+    begin
+      require feature
+    rescue LoadError
+    end
+  end
 end
 
 def parse_json(body)
