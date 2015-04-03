@@ -1076,9 +1076,15 @@ private
   def quote_arglist(arglist)
     if arglist != nil
       # TODO: remove duplicates
+      # TODO: what happens when strings and numbers are combined as arguments?
       args = arglist.split(/[,]+/).reject { |arg| arg.empty? }
-      arglist = args.join("\",\"")
-      return "\"#{arglist}\""
+      if !/\A\d+\z/.match(args[0])
+        arglist = args.join("\",\"")
+        return "\"#{arglist}\""
+      else
+        arglist = args.join(",")
+        return "#{arglist}"
+      end  
     end
   end
 
