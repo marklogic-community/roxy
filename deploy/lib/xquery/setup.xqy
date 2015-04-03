@@ -4562,8 +4562,15 @@ declare function setup:get-privilege-by-name($name as xs:string) as element(sec:
 declare function setup:get-users-by-name($names as xs:string*) as element(sec:users)? {
   let $ids :=
     for $name in $names
-      return xdmp:user($name)
-  return setup:get-users($ids)
+      return setup:get-users-by-name-helper($name)
+   return setup:get-users($ids)
+};
+
+declare function setup:get-users-by-name-helper($name as xs:string*) as xs:integer? {
+  try{
+    xdmp:user($name)
+  } catch($e) {
+  }
 };
 
 declare function setup:get-users($ids as xs:unsignedLong*) as element(sec:users)? {
@@ -4633,8 +4640,15 @@ declare function setup:get-user-id($user-name as xs:string) as xs:unsignedLong? 
 declare function setup:get-roles-by-name($roles as xs:string*) as element(sec:roles)? {
   let $ids :=
     for $role in $roles
-      return xdmp:role($role)
+      return setup:get-roles-by-name-helper($role)
   return setup:get-roles($ids)
+};
+
+declare function setup:get-roles-by-name-helper($role as xs:string*) as xs:integer? {
+  try{
+    xdmp:role($role)
+  } catch($e) {
+  }
 };
 
 declare function setup:get-roles($ids as xs:unsignedLong*) as element(sec:roles)? {
