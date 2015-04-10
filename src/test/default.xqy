@@ -77,7 +77,7 @@ declare function t:list() {
       for $suite as xs:string in $suites
       let $tests as xs:string* :=
         if ($db-id = 0) then
-          xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites/", $suite))/dir:entry[dir:type = "file" and fn:not(dir:filename = $test-ignore-list)]/dir:filename[fn:ends-with(., ".xqy") | fn:ends-with(., ".sjs")]
+          xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites/", $suite))/dir:entry[dir:type = "file" and fn:not(dir:filename = $test-ignore-list)]/dir:filename[fn:ends-with(., ".xqy") or fn:ends-with(., ".sjs")]
         else
           let $uris := t:list-from-database(
             $db-id, $root, fn:concat($suite, '/'))
