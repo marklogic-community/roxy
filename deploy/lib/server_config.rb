@@ -1079,9 +1079,7 @@ In order to proceed please type: #{expected_response}
 
     # check params
     if full_config == nil && config == nil && target_db == nil
-      raise HelpException.new("capture", "either full-ml-config, ml-config or modules-db is required")
-    elsif target_db != nil && @properties['ml.app-type'] != 'rest'
-      raise ExitException.new("This is a #{@properties['ml.app-type']} application; capture modules only works for app-type=rest")
+      raise HelpException.new("capture", "either full-ml-config, ml-config, app-builder or modules-db is required")
     end
 
     # retrieve full setup config from environment
@@ -1093,22 +1091,36 @@ In order to proceed please type: #{expected_response}
     if target_db != nil
       tmp_dir = Dir.mktmpdir
       logger.debug "using temp dir " + tmp_dir
-      logger.info "Retrieving source and REST config from #{target_db}..."
 
-      save_files_to_fs(target_db, "#{tmp_dir}/src")
-
-      # set up the options
-      FileUtils.cp_r(
-        "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
-        @properties['ml.rest-options.dir']
-      )
-      FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
-
-      # Make sure REST properties are in accurate format, so you can directly deploy them again..
       if (port != nil)
-        r = go("http://#{@hostname}:#{port}/v1/config/properties", "get")
-        r.body = parse_json(r.body)
-        File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
+        logger.info "Retrieving source and REST config from #{target_db}..."
+      else
+        logger.info "Retrieving source from #{target_db}..."
+      end
+
+      # send the target db, and the destination directory
+      save_files_to_fs(target_db, "#{tmp_dir}/src")
+		
+	  # check if this is a REST project to capture REST configuration
+	  if (port != nil)	
+	  
+		  # make sure that REST	options directory exists
+		  if Dir.exists? @properties['ml.rest-options.dir'] 
+		  
+			# set up the options
+			FileUtils.cp_r(
+			  "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
+			  @properties['ml.rest-options.dir']
+			)
+			FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
+
+			# Make sure REST properties are in accurate format, so you can directly deploy them again..
+			r = go("http://#{@hostname}:#{port}/v1/config/properties", "get")
+			r.body = parse_json(r.body)
+			File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
+		  else
+			raise HelpException.new("capture", "attempting --app-builder REST capture into non-REST project, you may try capture with --modules-db to only capture modules without the REST configuration")
+		  end	
       end
 
       # If we have an application/custom directory, we've probably done a capture
@@ -1190,12 +1202,12 @@ private
           # create the directory so that it will exist when we try to save files
           Dir.mkdir("#{target_dir}" + uri)
         else
-          r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get")
-          File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(r.body) }
-        end
+		  r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get")
+		  file_content = r.body
+		  File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(file_content) }
+		end
       end
     end
-
   end
 
   # Note: this is the beginning of a feature; not really useful yet. What we want is to specify one or more app servers,
