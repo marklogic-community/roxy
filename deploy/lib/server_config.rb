@@ -1215,14 +1215,8 @@ private
       # TODO: include dav, xdbc, odbc servers?
       servers = quote_arglist(find_arg(['--servers']) || "#{@properties["ml.app-name"]}")
       mimes = quote_arglist(find_arg(['--mime-types']) || "##none##")
-
-      # setup.xqy expects ids for users and roles, unfortunately
-      #users = quote_arglist(find_arg(['--users'])) || '9999999'
-      #roles = quote_arglist(find_arg(['--roles'])) || '9999999'
-      # TODO: fix setup.xqy to (also) accept users/roles by name
-      # TODO: add app-user, default-user, and app-role as defaults
-      users = '9999999' # non-existing id
-      roles = '9999999' # non-existing id
+      users = quote_arglist(find_arg(['--users']) || "#{@properties["ml.app-name-user"]},#{@properties["ml.default-user"]}")
+      roles = quote_arglist(find_arg(['--roles']) || "#{@properties["ml.app-role"]}")
     end
 
     logger.info "Capturing configuration of MarkLogic on #{@hostname}..."
@@ -1238,7 +1232,7 @@ private
     else
       name = "#{@properties["ml.config.file"].sub( %r{.xml}, '' )}-#{@properties["ml.environment"]}.xml"
       File.open(name, 'wb') { |file| file.write(r.body) }
-      logger.info("... Captured full configuration into #{name}")
+      logger.info("... Captured configuration into #{name}")
       return true
     end
   end
@@ -1246,9 +1240,15 @@ private
   def quote_arglist(arglist)
     if arglist != nil
       # TODO: remove duplicates
+      # TODO: what happens when strings and numbers are combined as arguments?
       args = arglist.split(/[,]+/).reject { |arg| arg.empty? }
-      arglist = args.join("\",\"")
-      return "\"#{arglist}\""
+      if !/\A\d+\z/.match(args[0])
+        arglist = args.join("\",\"")
+        return "\"#{arglist}\""
+      else
+        arglist = args.join(",")
+        return "#{arglist}"
+      end  
     end
   end
 

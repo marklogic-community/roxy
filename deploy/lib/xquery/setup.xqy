@@ -4681,18 +4681,33 @@ declare function setup:get-configuration(
   $databases as xs:string*,
   $forests as xs:string*,
   $app-servers as xs:string*,
-  $user-ids as xs:unsignedLong*,
-  $role-ids as xs:unsignedLong*,
+  $users as xs:anySimpleType*,
+  $roles as xs:anySimpleType*,
   $mimetypes as xs:string*) as element()
 {
-  <configuration>
-    {setup:get-app-servers($app-servers)}
-    {setup:get-forests($forests)}
-    {setup:get-databases($databases)}
-    {setup:get-users($user-ids)}
-    {setup:get-roles($role-ids)}
-    {setup:get-mimetypes($mimetypes)}
-  </configuration>
+  let $user-configuration :=
+      typeswitch($users[1])
+        case xs:integer
+          return setup:get-users($users)
+        case xs:string
+          return setup:get-users-by-name($users)
+        default return setup:get-users(())
+  let $role-configuration :=
+      typeswitch($roles[1])
+        case xs:integer
+          return setup:get-roles($roles)
+        case xs:string
+          return setup:get-roles-by-name($roles)
+        default return setup:get-roles(())
+  return
+    <configuration>
+      {setup:get-app-servers($app-servers)}
+      {setup:get-forests($forests)}
+      {setup:get-databases($databases)}
+      {$user-configuration}
+      {$role-configuration}
+      {setup:get-mimetypes($mimetypes)}
+    </configuration>
 };
 
 declare function setup:get-app-servers($names as xs:string*) as element()*
@@ -4943,6 +4958,20 @@ declare function setup:get-privilege-by-name($name as xs:string) as element(sec:
     </options>)
 };
 
+declare function setup:get-users-by-name($names as xs:string*) as element(sec:users)? {
+  let $ids :=
+    for $name in $names
+      return setup:get-users-by-name-helper($name)
+   return setup:get-users($ids)
+};
+
+declare function setup:get-users-by-name-helper($name as xs:string*) as xs:integer? {
+  try{
+    xdmp:user($name)
+  } catch($e) {
+  }
+};
+
 declare function setup:get-users($ids as xs:unsignedLong*) as element(sec:users)? {
   let $users :=
     xdmp:eval(
@@ -5005,6 +5034,20 @@ declare function setup:get-user-id($user-name as xs:string) as xs:unsignedLong? 
      <options xmlns="xdmp:eval">
        <database>{$default-security}</database>
      </options>)
+};
+
+declare function setup:get-roles-by-name($roles as xs:string*) as element(sec:roles)? {
+  let $ids :=
+    for $role in $roles
+      return setup:get-roles-by-name-helper($role)
+  return setup:get-roles($ids)
+};
+
+declare function setup:get-roles-by-name-helper($role as xs:string*) as xs:integer? {
+  try{
+    xdmp:role($role)
+  } catch($e) {
+  }
 };
 
 declare function setup:get-roles($ids as xs:unsignedLong*) as element(sec:roles)? {
