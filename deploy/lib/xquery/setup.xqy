@@ -1009,18 +1009,25 @@ declare function setup:create-forests-from-config(
   $db-config as element(db:database),
   $database-name as xs:string) as item()*
 {
+  let $group-id := setup:get-group($db-config)
   for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
   for $forest-name as xs:string in $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
   let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
+  let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group-id)
   let $host-name as xs:string? := $forest-config/as:host-name[fn:string-length(fn:string(.)) > 0]
+  let $host-id := if ($host-name) then xdmp:host($host-name) else $default-host
+  let $hostnr := fn:index-of($hosts, $host-id)
   let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
-  let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+  let $replicas :=
+    if (fn:count($hosts) gt 1) then
+      $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+    else ()
   return
     setup:create-forest(
       $forest-name,
       $data-directory,
-      if ($host-name) then xdmp:host($host-name) else (),
-      $replicas)
+      $host-id,
+      setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, 1, fn:false()))
 
 };
 
@@ -1057,13 +1064,16 @@ declare function setup:create-forests-from-count(
   for $forestnr in (1 to $forests-per-host)
   let $new-forest-name := fn:string-join(($forest-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
   let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
-  let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+  let $replicas :=
+    if (fn:count($hosts) gt 1) then
+      $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+    else ()
   return
     setup:create-forest(
       $new-forest-name,
       $data-directory,
       $host,
-      setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr))
+      setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr, fn:true()))
 };
 
 declare function setup:reassign-replicas(
@@ -1071,10 +1081,11 @@ declare function setup:reassign-replicas(
   $hosts as xs:unsignedLong+,
   $hostnr as xs:integer,
   $forest-name as xs:string,
-  $forestnr as xs:int) as element(as:assignment)*
+  $forestnr as xs:int,
+  $append-numbering as xs:boolean) as element(as:assignment)*
 {
-  let $default-replica-host := xdmp:host-name($hosts[$hostnr mod count($hosts) + 1])
-  for $replica in $replicas
+  for $replica at $pos in $replicas
+  let $default-replica-host := xdmp:host-name($hosts[($hostnr + $pos - 1) mod count($hosts) + 1])
   let $replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
   let $replica-host-name := $replica/as:host-name[fn:string-length(fn:string(.)) > 0]
   let $replica-host-name :=
@@ -1084,7 +1095,17 @@ declare function setup:reassign-replicas(
       $default-replica-host
   return element { fn:node-name($replica) } {
       $replica/@*,
-      <as:forest-name>{fn:string-join(($replica-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")}</as:forest-name>,
+      <as:forest-name>{
+        fn:string-join((
+          $replica-name,
+          if ($append-numbering) then
+            fn:string-join(
+              (fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)),
+              "-"
+            )
+          else ()
+        ), "-")
+      }</as:forest-name>,
       <as:host-name>{$replica-host-name}</as:host-name>,
       $replica/node() except ($replica/as:forest-name, $replica/as:host-name)
   }
@@ -1132,49 +1153,83 @@ declare function setup:create-forest(
   $host-id as xs:unsignedLong?,
   $replicas as element(as:assignment)*) as item()*
 {
-  if (xdmp:forests()[$forest-name = xdmp:forest-name(.)]) then
-    fn:concat("Forest ", $forest-name, " already exists, not recreated..")
-  else
-  (
-    let $host := ($host-id, $default-host)[1]
-    let $admin-config :=
-      admin:forest-create(admin:get-configuration(), $forest-name, $host, $data-directory)
-    let $forest-id := admin:forest-get-id($admin-config, $forest-name)
-    let $_ :=
-      for $replica in $replicas
-      let $replica-host-name := $replica/as:host-name[fn:string-length(fn:string(.)) > 0]
-      let $replica-host-id :=
-        if ($replica-host-name) then xdmp:host($replica-host-name) else ()
-      let $replica-host := ($replica-host-id, $default-host)[1]
-      let $cfg :=
+  let $exists := xdmp:forests()[$forest-name = xdmp:forest-name(.)]
+  let $host := ($host-id, $default-host)[1]
+  let $admin-config := admin:get-configuration()
+  let $admin-config :=
+    if ($exists) then
+      $admin-config
+    else
+      admin:forest-create($admin-config, $forest-name, $host, $data-directory)
+  let $forest-id := admin:forest-get-id($admin-config, $forest-name)
+  let $forest-replicas := admin:forest-get-replicas($admin-config, $forest-id)
+  let $rep-log :=
+    for $replica in $replicas
+    let $replica-name := $replica/as:forest-name
+    let $replica-dir := $replica/as:data-directory[fn:string-length(fn:string(.)) > 0]
+    let $rep-exists := admin:forest-exists($admin-config, $replica-name)
+    let $replica-host-name := $replica/as:host-name[fn:string-length(fn:string(.)) > 0]
+    let $replica-host-id :=
+      if ($replica-host-name) then xdmp:host($replica-host-name) else ()
+    let $replica-host := ($replica-host-id, $default-host)[1]
+    let $cfg :=
+      if ($rep-exists) then
+        $admin-config
+      else
         admin:forest-create(
           $admin-config,
-          $replica/as:forest-name,
+          $replica-name,
           $replica-host,
-          $replica/as:data-directory[fn:string-length(fn:string(.)) > 0])
-      let $replica-id := admin:forest-get-id($cfg, $replica/as:forest-name)
-      let $cfg := admin:forest-set-failover-enable($cfg, $forest-id, fn:true())
-      let $cfg := admin:forest-set-failover-enable($cfg, $replica-id, fn:true())
-    return
-        xdmp:set($admin-config, admin:forest-add-replica($cfg, $forest-id, $replica-id))
-    return
-    (
-      if (admin:save-configuration-without-restart($admin-config)) then
-        xdmp:set($restart-needed, fn:true())
-      else (),
-      setup:add-rollback(
-        "assignments",
-        element as:assignment
-        {
-          element as:forest-name { $forest-name }
-        }),
-      fn:string-join((
-        "Forest ", $forest-name, " succesfully created",
-        if ($data-directory) then (" at ", $data-directory)
-        else (),
-        if ($host) then (" on ", xdmp:host-name($host))
-        else ()), "")
+          $replica-dir)
+    let $replica-id := admin:forest-get-id($cfg, $replica-name)
+    let $cfg := admin:forest-set-failover-enable($cfg, $forest-id, fn:true())
+    let $cfg := admin:forest-set-failover-enable($cfg, $replica-id, fn:true())
+    let $rep-attached := fn:exists(
+      for $r in $forest-replicas
+      where $r eq $replica-id
+      return $r
     )
+    where fn:not($rep-attached)
+    return (
+      fn:string-join((
+        "Forest ", $replica-name, " succesfully created",
+
+        if ($replica-dir) then (" at ", $replica-dir)
+        else (),
+      
+        if ($replica-host-name) then (" on ", $replica-host-name)
+        else (),
+        
+        " as replica of ", $forest-name
+      ), ""),
+      xdmp:set($admin-config, admin:forest-add-replica($cfg, $forest-id, $replica-id))
+    )
+  return (
+    if (admin:save-configuration-without-restart($admin-config)) then
+      xdmp:set($restart-needed, fn:true())
+    else (),
+    
+    setup:add-rollback(
+      "assignments",
+      element as:assignment
+      {
+        element as:forest-name { $forest-name }
+      }),
+    
+    fn:string-join((
+      if ($exists) then
+        ("Forest ", $forest-name, " already exists, not recreated..")
+      else
+        ("Forest ", $forest-name, " succesfully created"),
+
+      if ($data-directory) then (" at ", $data-directory)
+      else (),
+      
+      if ($host) then (" on ", xdmp:host-name($host))
+      else ()
+    ), ""),
+    
+    $rep-log
   )
 };
 
