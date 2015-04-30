@@ -1806,7 +1806,8 @@ private
     config = File.read(config_file)
 
     # Build the triggers db if it is provided
-    if @properties['ml.triggers-db'].present?
+    if @properties['ml.triggers-db'].present? &&
+       @properties['ml.triggers-db'] != @properties['ml.app-modules-db']
       config.gsub!("@ml.triggers-db-xml",
       %Q{
       <database>
@@ -1858,7 +1859,8 @@ private
       }) if @properties['ml.odbc-port'].present?
 
     # Build the schemas db if it is provided
-    if @properties['ml.schemas-db'].present?
+    if @properties['ml.schemas-db'].present? &&
+       @properties['ml.schemas-db'] != @properties['ml.app-modules-db']
       config.gsub!("@ml.schemas-db-xml",
       %Q{
       <database>
