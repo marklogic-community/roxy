@@ -1,6 +1,66 @@
 # Roxy Changes
 This file describes changes made to Roxy per release
 
+## 1.7.2
+
+### New Features
+* [#410](https://github.com/marklogic/roxy/issues/410) Test .sjs modules using SJS unit testing
+* [#404](https://github.com/marklogic/roxy/issues/404) Remove orphaned amps at wipe
+* [#397](https://github.com/marklogic/roxy/issues/397) Dynamically suppress error-format if ML8
+* [#395](https://github.com/marklogic/roxy/issues/395) Automatically adjust rewriter based on ml version
+* [#380](https://github.com/marklogic/roxy/issues/380) Ignore replica forests when bootstrapping to standalone
+* [#376](https://github.com/marklogic/roxy/issues/376) Suppressing prompts
+* [#375](https://github.com/marklogic/roxy/issues/375) Create ML8 Roxy release
+* [#374](https://github.com/marklogic/roxy/issues/374) RFE: show app_specific.rb methods in help output
+* [#371](https://github.com/marklogic/roxy/issues/371) Deploy modules not honoring modules root
+* [#366](https://github.com/marklogic/roxy/issues/366) Added bootstrap/wipe for internal replicas
+* [#365](https://github.com/marklogic/roxy/issues/365) Add howto command to show Roxy wiki pages
+* [#364](https://github.com/marklogic/roxy/issues/364) Suppress triggers/schemas in ml-config if eq modules
+* [#362](https://github.com/marklogic/roxy/issues/362) Support a new type of application for those which are neither REST nor MVC
+* [#359](https://github.com/marklogic/roxy/issues/359) Added separate mlcp user/pass properties
+* [#337](https://github.com/marklogic/roxy/pull/337) Adding roxy property to ignore certain files or folders
+* [#335](https://github.com/marklogic/roxy/issues/335) Raise exception to OS level for integratability
+* [#332](https://github.com/marklogic/roxy/issues/332) Make group support work for ML 5
+* [#330](https://github.com/marklogic/roxy/issues/330) Update ml new to select server-version 8 (and drop 4)
+* [#328](https://github.com/marklogic/roxy/issues/328) Add group/server/database settings to help
+* [#313](https://github.com/marklogic/roxy/issues/313) exposed validate command
+* [#312](https://github.com/marklogic/roxy/issues/312) added support for group and host properties, backwards compatible
+* [#231](https://github.com/marklogic/roxy/issues/231) separate deploy modules from rest extensions and transforms enhancement
+* [#223](https://github.com/marklogic/roxy/issues/223) Allow capturing modules for any app-type capture
+* [#78](https://github.com/marklogic/roxy/issues/78) Integrated with MLCP
+
+### Resolved Issues
+* [#428](https://github.com/marklogic/roxy/issues/428) JSON sending in the request body is not being converted into map:map in ML8
+* [#412](https://github.com/marklogic/roxy/issues/412) Update copyright
+* [#405](https://github.com/marklogic/roxy/issues/405) Make sure field-value-searches works at field level
+* [#400](https://github.com/marklogic/roxy/issues/400) Win8.1 ML7 Roxy rest problem
+* [#399](https://github.com/marklogic/roxy/issues/399) ML8 with Roxy on Win8.1
+* [#398](https://github.com/marklogic/roxy/issues/398) Ignore empty settings in version-check
+* [#391](https://github.com/marklogic/roxy/issues/391) Corb doesn't run against ML8
+* [#383](https://github.com/marklogic/roxy/issues/383) Reassigning replicas doesn't spread replicas
+* [#379](https://github.com/marklogic/roxy/issues/379) Replication forests not created once forests exists
+* [#378](https://github.com/marklogic/roxy/issues/378) Forest replication doesn't work unless forests-per-host
+* [#377](https://github.com/marklogic/roxy/issues/377) Deploy rest ignores .sjs extensions
+* [#370](https://github.com/marklogic/roxy/issues/370) deploy modules throws 404 error after upgrade to ML8
+* [#369](https://github.com/marklogic/roxy/issues/369) Set exit code when setup:do-setup fails
+* [#361](https://github.com/marklogic/roxy/issues/361) Is granular replica forest configuration possible?
+* [#355](https://github.com/marklogic/roxy/issues/355) Sample ssl certificate fails
+* [#353](https://github.com/marklogic/roxy/issues/353) Capture configs is unable to capture users and roles when specified by name
+* [#348](https://github.com/marklogic/roxy/issues/348) ml-config.sample.xml causes roxy to not bootstrap app servers in dev branch
+* [#339](https://github.com/marklogic/roxy/issues/339) self-test is failing
+* [#336](https://github.com/marklogic/roxy/issues/336) ML8 doesn't support REST property error-format
+* [#334](https://github.com/marklogic/roxy/issues/334) MLCP path with spaces fails
+* [#333](https://github.com/marklogic/roxy/issues/333) ml script breaks in gitbash (Windows)
+* [#329](https://github.com/marklogic/roxy/issues/329) 'filesystem' db created when when 'filesystem' is specified as the 'modules-db'?
+* [#324](https://github.com/marklogic/roxy/issues/324) Command line unit test (ml local test) fails with 404 not found error
+* [#323](https://github.com/marklogic/roxy/issues/323) Clear content breaks if (some) forests are read-only
+* [#322](https://github.com/marklogic/roxy/issues/322) Bootstrap looses retire status of forest
+* [#317](https://github.com/marklogic/roxy/issues/317) restart command not working when variable are provide from command line
+* [#355](https://github.com/marklogic/roxy/issues/355) Sample ssl certificate fails
+* [#282](https://github.com/marklogic/roxy/issues/282) Orphaned Amps Fix
+* [#280](https://github.com/marklogic/roxy/issues/280) Corb.jar not found
+* [#265](https://github.com/marklogic/roxy/issues/265) Failing tests in untouched hybrid-project
+
 ## 1.7.1
 
 ### New Features
