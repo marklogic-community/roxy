@@ -536,6 +536,19 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   def bootstrap
     raise ExitException.new("Bootstrap requires the target environment's hostname to be defined") unless @hostname.present?
 
+    if @server_version > 7 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xqy"
+      @logger.info "WARN: XQuery REST rewriter has been deprecated since MarkLogic 8"
+      @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xml"
+    
+    elsif @server_version < 8 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xml"
+      @logger.info "WARN: XML REST rewriter not supported on MarkLogic 7 or less"
+      @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xqy"
+    
+    elsif @server_version > 7 && @properties["ml.app-type"] == 'hybrid'
+      @logger.info "WARN: Running hybrid app-type with MarkLogic 8 requires manual patching of Roxy rewriter."
+      @logger.info "      See https://github.com/marklogic/roxy/issues/416 for details."
+    end
+
     logger.info "Bootstrapping your project into MarkLogic #{@properties['ml.server-version']} on #{@hostname}..."
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
