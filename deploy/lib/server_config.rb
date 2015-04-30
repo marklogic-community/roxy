@@ -57,7 +57,7 @@ class ServerConfig < MLClient
 
   def initialize(options)
     @options = options
-    
+
     @properties = options[:properties]
     @environment = @properties["environment"]
     @config_file = @properties["ml.config.file"]
@@ -445,13 +445,13 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
           count = count + 1
           puts "#{count} - #{page.text}\n\thttps://github.com/#{page.xpath('a/@href').text}"
         end
-  
+
         print "Select a page: "
         selected = STDIN.gets.chomp().to_i
         if selected == 0
           return
         end
-      
+
         if selected > pages.length
           selected = pages.length
         end
@@ -461,21 +461,21 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       pages.each do |page|
         count = count + 1
         if count == selected
-    
+
           puts "\n#{page.text}\n\thttps://github.com/#{page.xpath('a/@href').text}"
-    
+
           uri = "https://github.com/#{page.xpath('a/@href').text}"
           doc = Nokogiri::HTML(open(uri))
 
           puts doc.css('.markdown-body').text.gsub(/\n\n\n+/, "\n\n")
-    
+
         end
       end
     rescue NameError => e
       puts "Missing library: #{e}"
     end
   end
-  
+
   def execute_query(query, properties = {})
     r = nil
     if @server_version == 4
@@ -536,22 +536,37 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   def bootstrap
     raise ExitException.new("Bootstrap requires the target environment's hostname to be defined") unless @hostname.present?
 
+    if @server_version > 7 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xqy"
+      @logger.info "WARN: XQuery REST rewriter has been deprecated since MarkLogic 8"
+      @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xml"
+
+    elsif @server_version < 8 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xml"
+      @logger.info "WARN: XML REST rewriter not supported on MarkLogic 7 or less"
+      @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xqy"
+
+    elsif @server_version > 7 && @properties["ml.app-type"] == 'hybrid'
+      @logger.info "WARN: Running the hybrid app-type with MarkLogic 8 is not recommended."
+      @logger.info "      Doing so requires manual patching of the Roxy rewriter."
+      @logger.info "      You will be unable to access all of the MarkLogic REST features."
+      @logger.info "      See https://github.com/marklogic/roxy/issues/416 for details."
+    end
+
     internals = find_arg(['--replicate-internals'])
     if internals
 
       nr = find_arg(['--nr-replicas'])
       if nr
-        nr = nr.to_i 
+        nr = nr.to_i
       else
         nr = 2
       end
-      
+
       # check cluster size
       r = execute_query %Q{ fn:count(xdmp:hosts()) }
       r.body = parse_json(r.body)
       raise ExitException.new("Increase nr-replicas, minimum is 1") if nr < 1
       raise ExitException.new("Adding #{nr} replicas to internals requires at least a #{nr + 1} node cluster") if r.body.to_i <= nr
-      
+
       logger.info "Bootstrapping replicas for #{@properties['ml.system-dbs']} on #{@hostname}..."
 
       # build custom ml-config
@@ -568,7 +583,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
               <forest-name>#{db}-rep#{i}</forest-name>
             </assignment>}
         end
-        
+
         assigns = assigns + %Q{
 
             <!-- #{db} -->
@@ -722,9 +737,9 @@ In order to proceed please type: #{expected_response}
       r = execute_query %Q{
         xquery version "1.0-ml";
 
-        import module namespace admin = "http://marklogic.com/xdmp/admin" 
+        import module namespace admin = "http://marklogic.com/xdmp/admin"
           at "/MarkLogic/admin.xqy";
-       
+
         let $admin-config := admin:get-configuration()
         let $replicas :=
           for $forest-name in (#{quote_arglist(@properties['ml.system-dbs'])})
@@ -747,7 +762,7 @@ In order to proceed please type: #{expected_response}
           if (admin:save-configuration-without-restart($admin-config)) then
             "(note: restart required)"
           else ()
-      
+
       }
     else
       #logger.debug %Q{#{setup} setup:do-wipe(#{config})}
@@ -974,7 +989,7 @@ In order to proceed please type: #{expected_response}
     recordloader_file = find_jar("recordloader")
     xcc_file = find_jar("xcc")
     xpp_file = find_jar("xpp")
-    
+
     runme = %Q{java -cp #{recordloader_file}#{path_separator}#{xcc_file}#{path_separator}#{xpp_file} #{prop_string} com.marklogic.ps.RecordLoader}
     logger.info runme
     `#{runme}`
@@ -1000,7 +1015,7 @@ In order to proceed please type: #{expected_response}
     xcc_file = find_jar("xcc")
     xstream_file = find_jar("xstream")
     xpp_file = find_jar("xpp")
-    
+
     runme = %Q{java -Xmx2048m -cp #{xqsync_file}#{path_separator}#{xcc_file}#{path_separator}#{xstream_file}#{path_separator}#{xpp_file} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
     logger.info runme
     `#{runme}`
@@ -1202,13 +1217,13 @@ In order to proceed please type: #{expected_response}
 
       # send the target db, and the destination directory
       save_files_to_fs(target_db, "#{tmp_dir}/src")
-		
+
 	  # check if this is a REST project to capture REST configuration
-	  if (port != nil)	
-	  
+	  if (port != nil)
+
 		  # make sure that REST	options directory exists
-		  if Dir.exists? @properties['ml.rest-options.dir'] 
-		  
+		  if Dir.exists? @properties['ml.rest-options.dir']
+
 			# set up the options
 			FileUtils.cp_r(
 			  "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
@@ -1222,7 +1237,7 @@ In order to proceed please type: #{expected_response}
 			File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
 		  else
 			raise HelpException.new("capture", "attempting --app-builder REST capture into non-REST project, you may try capture with --modules-db to only capture modules without the REST configuration")
-		  end	
+		  end
       end
 
       # If we have an application/custom directory, we've probably done a capture
@@ -1362,7 +1377,7 @@ private
       else
         arglist = args.join(",")
         return "#{arglist}"
-      end  
+      end
     end
   end
 
