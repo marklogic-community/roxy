@@ -536,9 +536,76 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   def bootstrap
     raise ExitException.new("Bootstrap requires the target environment's hostname to be defined") unless @hostname.present?
 
-    logger.info "Bootstrapping your project into MarkLogic #{@properties['ml.server-version']} on #{@hostname}..."
+    internals = find_arg(['--replicate-internals'])
+    if internals
+
+      nr = find_arg(['--nr-replicas'])
+      if nr
+        nr = nr.to_i 
+      else
+        nr = 2
+      end
+      
+      # check cluster size
+      r = execute_query %Q{ fn:count(xdmp:hosts()) }
+      r.body = parse_json(r.body)
+      raise ExitException.new("Increase nr-replicas, minimum is 1") if nr < 1
+      raise ExitException.new("Adding #{nr} replicas to internals requires at least a #{nr + 1} node cluster") if r.body.to_i <= nr
+      
+      logger.info "Bootstrapping replicas for #{@properties['ml.system-dbs']} on #{@hostname}..."
+
+      # build custom ml-config
+      assigns = ''
+      internals = @properties['ml.system-dbs'].split ','
+      internals.each do |db|
+        repnames = ''
+        repassigns = ''
+        (1..nr).each do |i|
+          repnames = repnames + %Q{
+                <replica-name>#{db}-rep#{i}</replica-name>}
+          repassigns = repassigns + %Q{
+            <assignment>
+              <forest-name>#{db}-rep#{i}</forest-name>
+            </assignment>}
+        end
+        
+        assigns = assigns + %Q{
+
+            <!-- #{db} -->
+            <assignment>
+              <forest-name>#{db}</forest-name>
+              <replica-names>#{repnames}
+              </replica-names>
+            </assignment>#{repassigns}}
+      end
+      databases = ''
+      internals.each do |db|
+        databases = databases + %Q{
+
+            <!-- #{db} -->
+            <database>
+              <database-name>#{db}</database-name>
+              <forests>
+                <forest-id name="#{db}"/>
+              </forests>
+            </database>}
+      end
+      config = %Q{
+        <configuration default-group="#{@properties['ml.group']}">
+          <assignments xmlns="http://marklogic.com/xdmp/assignments">#{assigns}
+          </assignments>
+          <databases xmlns="http://marklogic.com/xdmp/database">#{databases}
+          </databases>
+        </configuration>
+      }
+      logger.debug config
+    else
+      logger.info "Bootstrapping your project into MarkLogic #{@properties['ml.server-version']} on #{@hostname}..."
+      config = get_config
+    end
+
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-setup(#{get_config})}
+    r = execute_query %Q{#{setup} setup:do-setup(#{config})}
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_json(r.body)
@@ -585,6 +652,7 @@ In order to proceed please type: #{expected_response}
     end
 
     appbuilder = find_arg(['--app-builder'])
+    internals = find_arg(['--internal-replicas'])
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
 
     if (appbuilder != nil)
@@ -611,7 +679,7 @@ In order to proceed please type: #{expected_response}
           </databases>
         </configuration>
       }
-    else
+    elsif (internals == nil)
       databases = find_arg(['--databases']) || '##none##'
       forests = find_arg(['--forests']) || '##none##'
       servers = find_arg(['--servers']) || '##none##'
@@ -649,8 +717,42 @@ In order to proceed please type: #{expected_response}
       end
     end
 
-    #logger.debug %Q{#{setup} setup:do-wipe(#{config})}
-    r = execute_query %Q{#{setup} setup:do-wipe(#{config})}
+    if (internals != nil)
+      logger.info "Wiping replicas for #{@properties['ml.system-dbs']} from #{@hostname}.."
+      r = execute_query %Q{
+        xquery version "1.0-ml";
+
+        import module namespace admin = "http://marklogic.com/xdmp/admin" 
+          at "/MarkLogic/admin.xqy";
+       
+        let $admin-config := admin:get-configuration()
+        let $replicas :=
+          for $forest-name in (#{quote_arglist(@properties['ml.system-dbs'])})
+          let $forest-id := admin:forest-get-id($admin-config, $forest-name)
+          for $replica in admin:forest-get-replicas($admin-config, $forest-id)
+          return (
+            xdmp:set(
+              $admin-config,
+              admin:forest-remove-replica($admin-config, $forest-id, $replica)
+            ),
+            $replica
+          )
+        let $_ :=
+          for $replica in $replicas
+          return xdmp:set(
+            $admin-config,
+            admin:forest-delete($admin-config, $replica, fn:true())
+          )
+        return
+          if (admin:save-configuration-without-restart($admin-config)) then
+            "(note: restart required)"
+          else ()
+      
+      }
+    else
+      #logger.debug %Q{#{setup} setup:do-wipe(#{config})}
+      r = execute_query %Q{#{setup} setup:do-wipe(#{config})}
+    end
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_json(r.body)
