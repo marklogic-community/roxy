@@ -545,7 +545,9 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xqy"
     
     elsif @server_version > 7 && @properties["ml.app-type"] == 'hybrid'
-      @logger.info "WARN: Running hybrid app-type with MarkLogic 8 requires manual patching of Roxy rewriter."
+      @logger.info "WARN: Running the hybrid app-type with MarkLogic 8 is not recommended."
+      @logger.info "      Doing so requires manual patching of the Roxy rewriter."
+      @logger.info "      You will be unable to access all of the MarkLogic REST features."
       @logger.info "      See https://github.com/marklogic/roxy/issues/416 for details."
     end
 
