@@ -989,8 +989,8 @@ In order to proceed please type: #{expected_response}
       end
     end
 
-    @ml_username = @properties['ml.mlcp-user']
-    @ml_password = @properties['ml.mlcp-password']
+    @ml_username = @properties['ml.mlcp-user'] || @properties['ml.user']
+    @ml_password = @properties['ml.mlcp-password'] || @ml_password
     if ARGV.length > 0
       password_prompt
       connection_string = %Q{ -username #{@ml_username} -password #{@ml_password} -host #{@properties['ml.server']} -port #{@properties['ml.xcc-port']}}
