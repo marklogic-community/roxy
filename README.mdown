@@ -95,7 +95,7 @@ Download the [ml](https://github.com/marklogic/roxy/raw/master/ml) file
 1. Open a command prompt in the root folder of Roxy.
 2. Run ml init to create sample configuration files.  
   *You must specify the --server-version option with a value of 4, 5, 6 or 7*.  
-  *You must specify the --app-type with a value or rest, hybrid, or mvc*.
+  *You must specify the --app-type with a value or bare, rest, hybrid, or mvc*.
 
   `$ ml init app-name --server-version=7 --app-type=rest`
 3. Modify deploy/build.properties with your application's settings.

@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright 2012 MarkLogic Corporation
+# Copyright 2012-2015 MarkLogic Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,11 +21,17 @@ end
 require 'uri'
 
 class MLClient
+  def MLClient.no_prompt=(no_prompt)
+    @@no_prompt = no_prompt
+  end
+  
   def initialize(options)
     @ml_username = options[:user_name]
     @ml_password = options[:password].xquery_unsafe
     @logger = options[:logger] || logger
     @request = {}
+    
+    @@no_prompt = options[:no_prompt]
   end
 
   def MLClient.logger()
@@ -72,7 +78,7 @@ class MLClient
     }
   end
 
-  def go(url, verb, headers = {}, params = nil, body = nil)
+  def go(url, verb, headers = {}, params = nil, body = nil, xcc = false)
     logger.debug(%Q{[#{verb.upcase}]\t#{url}})
     password_prompt
     request_params = build_request_params(url, verb)
@@ -91,6 +97,7 @@ class MLClient
       request_params[:request].body = body
     end
 
+    request_params[:request].use_xcc(xcc)
     response = get_http.request request_params
     response.value
     response
@@ -103,18 +110,34 @@ class MLClient
   end
 
   def prompt(*args)
-    print(*args)
-    gets.strip
+    if @@no_prompt
+      raise ExitException.new("--no-prompt parameter prevents prompting for input")
+    else
+      print(*args)
+      gets.strip
+    end
   end
 
   def password_prompt
-    if (@ml_password == "") then
-      if STDIN.respond_to?(:noecho)
-      print "Password for admin user: "
-      @ml_password = STDIN.noecho(&:gets).chomp
-      print "\n"
+    if (@ml_username == "") then
+      if @@no_prompt
+        raise ExitException.new("--no-prompt parameter prevents prompting for username")
       else
-        raise ExitException.new("Upgrade to Ruby >= 1.9 for password prompting on the shell. Or you can set password= in your properties file")
+        print "Login for admin user: "
+        @ml_username = gets.chomp
+      end
+    end
+    if (@ml_password == "") then
+      if @@no_prompt
+        raise ExitException.new("--no-prompt parameter prevents prompting for password")
+      else
+        if STDIN.respond_to?(:noecho)
+          print "Password for #{@ml_username} user: "
+          @ml_password = STDIN.noecho(&:gets).chomp
+          print "\n"
+        else
+          raise ExitException.new("Upgrade to Ruby >= 1.9 for password prompting on the shell. Or you can set password= in your properties file")
+        end
       end
     end
   end

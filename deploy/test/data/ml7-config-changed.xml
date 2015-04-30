@@ -1,4 +1,4 @@
-<configuration>
+<configuration default-group="roxy-self-test">
   <task-server xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <threads>16</threads>
     <debug-threads>16</debug-threads>
@@ -222,7 +222,7 @@
       <http-server-name>@ml.app-name2</http-server-name>
       <enabled>false</enabled>
       <root>/@ml.app-name/</root>
-      <port>@ml.app-port</port>
+      <port>1@ml.app-port</port>
       <modules name="@ml.app-modules-db"/>
       <database name="@ml.content-db"/>
       <last-login>Last-Login</last-login>
@@ -490,6 +490,73 @@
   <odbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     @ml.odbc-server
   </odbc-servers>
+  <groups>
+    <group>
+      <group-name>roxy-self-test</group-name>
+
+      <list-cache-size>2049</list-cache-size>
+      <list-cache-partitions>2</list-cache-partitions>
+      <compressed-tree-cache-size>1025</compressed-tree-cache-size>
+      <compressed-tree-cache-partitions>3</compressed-tree-cache-partitions>
+      <compressed-tree-read-size>33</compressed-tree-read-size>
+      <expanded-tree-cache-size>2049</expanded-tree-cache-size>
+      <expanded-tree-cache-partitions>3</expanded-tree-cache-partitions>
+      <triple-cache-size>2049</triple-cache-size>
+      <triple-cache-partitions>2</triple-cache-partitions>
+      <triple-cache-timeout>301</triple-cache-timeout>
+      <triple-value-cache-size>1025</triple-value-cache-size>
+      <triple-value-cache-partitions>3</triple-value-cache-partitions>
+      <triple-value-cache-timeout>301</triple-value-cache-timeout>
+
+      <smtp-relay>localhost2</smtp-relay>
+      <smtp-timeout>61</smtp-timeout>
+      <http-user-agent>MarkLogic Server2</http-user-agent>
+      <http-timeout>61</http-timeout>
+      <xdqp-timeout>11</xdqp-timeout>
+      <host-timeout>31</host-timeout>
+      <host-initial-timeout>241</host-initial-timeout>
+      <retry-timeout>181</retry-timeout>
+      <module-cache-timeout>301</module-cache-timeout>
+
+      <system-log-level>info</system-log-level>
+      <file-log-level>notice</file-log-level>
+      <rotate-log-files>hourly</rotate-log-files>
+      <keep-log-files>24</keep-log-files>
+
+      <failover-enable>false</failover-enable>
+      <xdqp-ssl-enabled>true</xdqp-ssl-enabled>
+      <xdqp-ssl-allow-sslv3>false</xdqp-ssl-allow-sslv3>
+      <xdqp-ssl-allow-tls>false</xdqp-ssl-allow-tls>
+      <xdqp-ssl-ciphers>ALL:!LOW:@STRENGTH2</xdqp-ssl-ciphers>
+
+      <background-io-limit>0</background-io-limit>
+      <metering-enabled>false</metering-enabled>
+      <performance-metering-enabled>false</performance-metering-enabled>
+      <performance-metering-period>2</performance-metering-period>
+      <performance-metering-retain-raw>8</performance-metering-retain-raw>
+      <performance-metering-retain-hourly>31</performance-metering-retain-hourly>
+      <performance-metering-retain-daily>91</performance-metering-retain-daily>
+
+      <s3-domain>s3.amazonaws.com2</s3-domain>
+      <s3-protocol>http</s3-protocol>
+      <s3-server-side-encryption>none</s3-server-side-encryption>
+      
+      <!-- Diagnostics -->
+      <trace-events-activated>false</trace-events-activated>
+      
+      <!-- Auditing -->
+      <audit-enabled>false</audit-enabled>
+      <rotate-audit-files>hourly</rotate-audit-files>
+      <keep-audit-files>24</keep-audit-files>
+      <audit-outcome-restriction>both</audit-outcome-restriction>
+    </group>
+  </groups>
+  <hosts xsi:schemaLocation="http://marklogic.com/xdmp/hosts hosts.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/hosts">
+    <host>
+      <host-name>@ml.bootstrap-host</host-name>
+      <group name="roxy-self-test"/>
+    </host>
+  </hosts>
   <!--Assignments-->
   <assignments xmlns="http://marklogic.com/xdmp/assignments" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/assignments assignments.xsd">
     <assignment>
@@ -591,6 +658,8 @@
           <include-root>false</include-root>
           <stemmed-searches>decompounding</stemmed-searches>
           <word-searches>true</word-searches>
+          <field-value-searches>true</field-value-searches>
+          <field-value-positions>true</field-value-positions>
           <fast-phrase-searches>true</fast-phrase-searches>
           <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
           <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
@@ -639,6 +708,8 @@
         <field>
           <field-name>test</field-name>
           <include-root>true</include-root>
+          <value-searches>true</value-searches>
+          <value-positions>true</value-positions>
           <word-lexicons>
             <word-lexicon>http://marklogic.com/collation/</word-lexicon>
             <word-lexicon>http://marklogic.com/collation/codepoint</word-lexicon>

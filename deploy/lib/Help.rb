@@ -1,6 +1,6 @@
 class Help
   def self.usage
-    <<-DOC.strip_heredoc
+    help = <<-DOC.strip_heredoc
 
       Usage:
         ml [ENVIRONMENT] COMMAND [ARGS]
@@ -20,11 +20,12 @@ class Help
 
       Bootstrapping commands (with environment):
         bootstrap     Configures your application on the given environment
-        capture       Captures the source code of an existing App Builder application
+        capture       Captures the source code and if applicable the REST configuration of an existing application
         clean         Removes all files from the cpf, modules, or content databases on the given environment
         credentials   Configures user and password for the given environment
         info          Returns settings for the given environment
         restart       Restarts the given environment
+        validate      Compare your ml-config against the given environment
         wipe          Removes your application from the given environment
 
       Deployment/Data commands (with environment):
@@ -33,11 +34,23 @@ class Help
         load          Loads a file or folder into the given environment
         mlcp          Runs MLCP against the given environment
         recordloader  Runs RecordLoader against the given environment
+        settings      Lists all supported settings for a given environment
         test          Runs xquery unit tests against the given environment
         xqsync        Runs XQSync against the given environment
+    DOC
+    
+    help += app_specific || ''
+
+    help += <<-DOC.strip_heredoc
 
       All commands can be run with -h or --help for more information.
     DOC
+    
+    help
+  end
+  
+  def self.app_specific
+    #stub
   end
 
   def self.create
@@ -191,14 +204,15 @@ class Help
 
   def self.restart
     <<-DOC.strip_heredoc
-      Usage: ml {env} restart [group] [options]
+      Usage: ml {env} restart [{groupname}|cluster] [options]
 
       General options:
         -v, [--verbose]  # Verbose output
 
       Restart the MarkLogic process in the given environment on each host in the
       specified group. If no group is specified, restart the MarkLogic process
-      on each host in the group to which the target host belongs.
+      on each host in the group to which the target host belongs. Use 'cluster'
+      to restart all hosts within the cluster to which the target belongs.
     DOC
   end
 
@@ -459,11 +473,17 @@ class Help
   def self.capture
     <<-DOC.strip_heredoc
       Usage: ml {env} capture --modules-db=[name of modules database]
+		Captures the source for an existing application
+		
+	  modules-db: (required)
+        The modules database of the application.
+	  
+	  ml {env} capture --app-builder=[name of Application Builder-based application]
         Captures the source and REST API configuration for an existing
         Application Builder-based application.
 
-      modules-db: (required)
-        The modules database of the App Builder application.
+      app-builder: (required)
+        The name of the App Builder application.
     DOC
   end
 

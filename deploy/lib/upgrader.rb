@@ -23,6 +23,7 @@ module Roxy
     def initialize(options)
       @logger = options[:logger]
       @app_type = options[:properties]["ml.app-type"]
+      @no_prompt = options[:no_prompt]
     end
 
     def upgrade_deploy(tmp_dir)
@@ -50,41 +51,44 @@ module Roxy
     end
 
     def upgrade(args)
-      fork = find_arg(['--fork']) || 'marklogic'
-      branch = find_arg(['--branch'])
-      raise HelpException.new("upgrade", "Missing branch name") unless branch
-
-      print "This command will attempt to upgrade to the latest Roxy files.\n"
-      print "Before running this command, you should have checked all your code\n"
-      print "into a source code repository, such as Git or Subversion. Doing so\n"
-      print "will make it much easier to fix problems if something goes wrong.\n"
-
-      print "\nAre you ready to proceed? [y/N]\n"
-      confirm = gets.chomp
-
-      if confirm.match(/^y(es)?$/i)
-        @logger.info "Upgrading to the #{branch} branch from #{fork}/roxy"
-        tmp_dir = Dir.mktmpdir
-
-        @logger.info "Cloning Roxy in a temp directory..."
-        system("git clone git://github.com/#{fork}/roxy.git -b #{branch} #{tmp_dir}")
-
-        @logger.info "Upgrading base project files\n"
-        upgrade_base(tmp_dir)
-
-        @logger.info "Upgrading deploy/ files\n"
-        upgrade_deploy(tmp_dir)
-
-        if (["mvc", "hybrid"].include? @app_type)
-          @logger.info "Upgrading src/roxy files\n"
-          upgrade_src(tmp_dir)
-        end
-
-        FileUtils.rm_rf(tmp_dir)
+      if @no_prompt
+        raise ExitException.new("--no-prompt parameter prevents prompting for input")
       else
-        puts "Aborting upgrade"
-      end
+        fork = find_arg(['--fork']) || 'marklogic'
+        branch = find_arg(['--branch'])
+        raise HelpException.new("upgrade", "Missing branch name") unless branch
 
+        print "This command will attempt to upgrade to the latest Roxy files.\n"
+        print "Before running this command, you should have checked all your code\n"
+        print "into a source code repository, such as Git or Subversion. Doing so\n"
+        print "will make it much easier to fix problems if something goes wrong.\n"
+
+        print "\nAre you ready to proceed? [y/N]\n"
+        confirm = gets.chomp
+
+        if confirm.match(/^y(es)?$/i)
+          @logger.info "Upgrading to the #{branch} branch from #{fork}/roxy"
+          tmp_dir = Dir.mktmpdir
+
+          @logger.info "Cloning Roxy in a temp directory..."
+          system("git clone git://github.com/#{fork}/roxy.git -b #{branch} #{tmp_dir}")
+
+          @logger.info "Upgrading base project files\n"
+          upgrade_base(tmp_dir)
+
+          @logger.info "Upgrading deploy/ files\n"
+          upgrade_deploy(tmp_dir)
+
+          if (["mvc", "hybrid"].include? @app_type)
+            @logger.info "Upgrading src/roxy files\n"
+            upgrade_src(tmp_dir)
+          end
+
+          FileUtils.rm_rf(tmp_dir)
+        else
+          puts "Aborting upgrade"
+        end
+      end
     end
 
   end
