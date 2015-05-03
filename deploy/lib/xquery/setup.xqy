@@ -181,6 +181,7 @@ declare variable $database-settings :=
     <setting>merge-min-ratio</setting>
     <setting>merge-timestamp</setting>
     <setting min-version="7.0-0">triple-index</setting>
+    <setting min-version="7.0-0">triple-positions</setting>
     <setting min-version="7.0-0">rebalancer-enable</setting>
     <setting min-version="7.0-0">rebalancer-throttle</setting>
     <setting min-version="7.0-0">in-memory-triple-index-size</setting>
