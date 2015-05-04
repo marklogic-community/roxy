@@ -1925,24 +1925,28 @@ private
     config = File.read(config_file)
 
     # Build the triggers db if it is provided
-    if @properties['ml.triggers-db'].present? &&
-       @properties['ml.triggers-db'] != @properties['ml.app-modules-db']
-      config.gsub!("@ml.triggers-db-xml",
-      %Q{
-      <database>
-        <database-name>@ml.triggers-db</database-name>
-        <forests>
-          <forest-id name="@ml.triggers-db"/>
-        </forests>
-      </database>
-      })
+    if @properties['ml.triggers-db'].present?
+      if @properties['ml.triggers-db'] != @properties['ml.app-modules-db']
+        config.gsub!("@ml.triggers-db-xml",
+        %Q{
+        <database>
+          <database-name>@ml.triggers-db</database-name>
+          <forests>
+            <forest-id name="@ml.triggers-db"/>
+          </forests>
+        </database>
+        })
 
-      config.gsub!("@ml.triggers-assignment",
-      %Q{
-        <assignment>
-          <forest-name>@ml.triggers-db</forest-name>
-        </assignment>
-      })
+        config.gsub!("@ml.triggers-assignment",
+        %Q{
+          <assignment>
+            <forest-name>@ml.triggers-db</forest-name>
+          </assignment>
+        })
+      else
+        config.gsub!("@ml.triggers-db-xml", "")
+        config.gsub!("@ml.triggers-assignment", "")
+      end
 
       config.gsub!("@ml.triggers-mapping",
       %Q{
@@ -1978,24 +1982,28 @@ private
       }) if @properties['ml.odbc-port'].present?
 
     # Build the schemas db if it is provided
-    if @properties['ml.schemas-db'].present? &&
-       @properties['ml.schemas-db'] != @properties['ml.app-modules-db']
-      config.gsub!("@ml.schemas-db-xml",
-      %Q{
-      <database>
-        <database-name>@ml.schemas-db</database-name>
-        <forests>
-          <forest-id name="@ml.schemas-db"/>
-        </forests>
-      </database>
-      })
+    if @properties['ml.schemas-db'].present?
+      if @properties['ml.schemas-db'] != @properties['ml.app-modules-db']
+        config.gsub!("@ml.schemas-db-xml",
+        %Q{
+        <database>
+          <database-name>@ml.schemas-db</database-name>
+          <forests>
+            <forest-id name="@ml.schemas-db"/>
+          </forests>
+        </database>
+        })
 
-      config.gsub!("@ml.schemas-assignment",
-      %Q{
-        <assignment>
-          <forest-name>@ml.schemas-db</forest-name>
-        </assignment>
-      })
+        config.gsub!("@ml.schemas-assignment",
+        %Q{
+          <assignment>
+            <forest-name>@ml.schemas-db</forest-name>
+          </assignment>
+        })
+      else
+        config.gsub!("@ml.schemas-db-xml", "")
+        config.gsub!("@ml.schemas-assignment", "")
+      end
 
       config.gsub!("@ml.schemas-mapping",
       %Q{
