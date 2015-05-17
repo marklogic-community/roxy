@@ -164,7 +164,8 @@ class Help
       Usage: ml {env} info [options]
 
       General options:
-        -v, [--verbose]  # Verbose output
+        --format                           # Output format can be (json | xml).
+        -v, [--verbose]                    # Verbose output
 
       Displays the properties for the given environment
     DOC

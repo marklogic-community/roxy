@@ -102,10 +102,27 @@ class ServerConfig < MLClient
   end
 
   def info
-    logger.info "IS_JAR: #{@@is_jar}"
-    logger.info "Properties:"
-    @properties.sort {|x,y| y <=> x}.each do |k, v|
-      logger.info k + ": " + v
+    format = find_arg(['--format'])
+    info = {}
+    info["isJar"] = @@is_jar
+    info["properties"] = @properties
+    if format == "json"
+      logger.info "#{JSON.pretty_generate(info)}"
+    elsif format == "xml"
+      logger.info "<info>"
+      logger.info "\s\s<isJar>#{@@is_jar}</isJar>"
+      logger.info "\s\s<properties>"
+      @properties.sort {|x,y| y <=> x}.each do |k, v|
+        logger.info "\s\s\s\s<property name=\"#{k}\">#{v}</property>"
+      end
+      logger.info "\s\s</properties>"
+      logger.info "</info>"
+    else
+      logger.info "IS_JAR: #{@@is_jar}"
+      logger.info "Properties:"
+      @properties.sort {|x,y| y <=> x}.each do |k, v|
+        logger.info k + ": " + v
+      end
     end
     return true
   end
