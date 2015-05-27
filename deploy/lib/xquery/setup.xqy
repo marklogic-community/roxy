@@ -311,6 +311,21 @@ declare variable $field-settings :=
     <setting>word-searches</setting>
   </settings>;
   
+declare variable $external-security-settings :=
+  <settings>
+    <setting min-version="7.0-0">authentication</setting>
+    <setting min-version="7.0-0">authorization</setting>
+    <setting min-version="7.0-0">cache-timeout</setting>
+    <setting min-version="7.0-0">description</setting>
+    <setting min-version="7.0-0">ldap-attribute</setting>
+    <setting min-version="7.0-0">ldap-base</setting>
+    <setting min-version="8.0-2">ldap-bind-method</setting>
+    <setting min-version="7.0-0">ldap-default-user</setting>
+    <setting min-version="7.0-0">ldap-password</setting>
+    <setting min-version="7.0-0">ldap-server-uri</setting>
+    <setting min-version="7.0-0">name</setting>
+  </settings>;
+
 (: A note on naming conventions:
   $admin-config refers to the configuration passed around by the Admin APIs
   $import-config is the import/export configuration format that setup:get-configuration() generates
@@ -445,6 +460,7 @@ declare function setup:do-setup($import-config as element(configuration)+) as it
       setup:create-roles($import-config),
       setup:create-users($import-config),
       setup:create-external-security($import-config),
+      setup:apply-external-security-settings($import-config),
       setup:create-mimetypes($import-config),
       setup:create-groups($import-config),
       setup:configure-groups($import-config),
@@ -4371,6 +4387,44 @@ declare function setup:create-external-security(
       },
       setup:add-rollback("external-security", $es)
     )
+};
+
+declare function setup:apply-external-security-settings($import-config as element(configuration)) as item()*
+{
+  for $es-config in $import-config/sec:external-securities/sec:external-security
+  let $es-name := $es-config/sec:external-security-name
+  let $apply-settings :=
+    for $setting in $external-security-settings/*:setting
+    let $setting-test :=
+      if ($setting/@accept-blank = "true") then
+        ""
+      else
+        "[fn:string-length(fn:string(.)) > 0]"
+    let $value :=
+      if ($setting/@value) then
+        xdmp:value($setting/@value)
+      else
+        fn:data(xdmp:value(fn:concat("$es-config/sec:", $setting, $setting-test)))
+    let $min-version as xs:string? := $setting/@min-version
+    where (fn:exists($value))
+    return
+      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+        xdmp:eval(
+          fn:concat('
+            xquery version "1.0-ml";
+            import module namespace sec = "http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+            declare variable $value external;
+            sec:external-security-set-', fn:replace($setting, 'external-security-', ''), '("', $es-name, '", $value)
+          '),
+          (xs:QName("value"), $value),
+          <options xmlns="xdmp:eval"><database>{$default-security}</database></options>
+        )
+      else
+        fn:error(
+          xs:QName("VERSION_NOT_SUPPORTED"),
+          fn:concat("MarkLogic ", xdmp:version(), " does not support ", $setting, ". Use ", $min-version, " or higher."))
+  return
+    fn:concat("External security ", $es-name, " settings applied succesfully.")
 };
 
 declare function setup:validate-external-security(
