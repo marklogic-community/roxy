@@ -4405,6 +4405,7 @@ declare function setup:create-roles(
   let $role-name as xs:string := $role/sec:role-name
   let $description as xs:string? := $role/sec:description
   let $collections as xs:string* := $role/sec:collections/sec:collection/fn:string()
+  let $compartment as xs:string? := $role/sec:compartment
   let $eval-options :=
     <options xmlns="xdmp:eval">
       <database>{$default-security}</database>
@@ -4419,10 +4420,12 @@ declare function setup:create-roles(
          declare variable $role-name as xs:string external;
          declare variable $description as xs:string external;
          declare variable $collections as element() external;
-         sec:create-role($role-name, $description, (), (), $collections/*)',
+         declare variable $compartment as xs:string external;
+         sec:create-role($role-name, $description, (), (), $collections/*, $compartment[. ne ""])',
         (xs:QName("role-name"), $role-name,
          xs:QName("description"), fn:string($description),
-         xs:QName("collections"), <w>{for $c in $collections return <w>{$c}</w>}</w>),
+         xs:QName("collections"), <w>{for $c in $collections return <w>{$c}</w>}</w>,
+         xs:QName("compartment"), fn:string($compartment)),
         $eval-options),
         setup:add-rollback("roles", $role)
     ),
