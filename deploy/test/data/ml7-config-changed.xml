@@ -1097,6 +1097,10 @@
     <role>
       <role-name>@ml.app-role</role-name>
       <description>A role for users of the @ml.app-name application</description>
+      <compartment>roxy</compartment>
+      <external-names>
+        <external-name>test</external-name>
+      </external-names>
       <role-names>
       </role-names>
       <permissions>
@@ -1180,6 +1184,9 @@
       <user-name>@ml.app-name-user</user-name>
       <description>A user for the @ml.app-name application</description>
       <password>password</password>
+      <external-names>
+        <external-name>test</external-name>
+      </external-names>
       <role-names>
         <role-name>@ml.app-role</role-name>
       </role-names>
