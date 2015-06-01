@@ -1534,7 +1534,7 @@ private
       # Figure out where we need to deploy this stuff
       rest_modules_db = ''
       if @properties.has_key?('ml.rest-port') and @properties['ml.rest-port'] != ''
-        rest_modules_db = "#{@properties['ml.app-name']}-rest-modules"
+        rest_modules_db = "#{@properties['ml.app-name-rest-modules']}"
       else
         rest_modules_db = @properties['ml.modules-db']
       end
