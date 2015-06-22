@@ -1534,7 +1534,7 @@ private
       # Figure out where we need to deploy this stuff
       rest_modules_db = ''
       if @properties.has_key?('ml.rest-port') and @properties['ml.rest-port'] != ''
-        rest_modules_db = "#{@properties['ml.app-name']}-rest-modules"
+        rest_modules_db = "#{@properties['ml.app-name-rest-modules']}"
       else
         rest_modules_db = @properties['ml.modules-db']
       end
@@ -2106,6 +2106,15 @@ private
       rest_auth_method = conditional_prop('ml.rest-authentication-method', 'ml.authentication-method')
       rest_default_user = conditional_prop('ml.rest-default-user', 'ml.default-user')
 
+      rest_url_rewriter = nil
+      if @properties['ml.rest-url-rewriter'].present?
+        rest_url_rewriter = @properties['ml.rest-url-rewriter']
+      elsif @server_version > 7
+        rest_url_rewriter = '/MarkLogic/rest-api/rewriter.xml'
+      else 
+        rest_url_rewriter = '/MarkLogic/rest-api/rewriter.xqy'
+      end
+
       config.gsub!("@ml.rest-appserver",
       %Q{
         <http-server import="@ml.app-name">
@@ -2115,7 +2124,7 @@ private
           <modules name="@ml.app-name-rest-modules"/>
           <authentication>#{rest_auth_method}</authentication>
           <default-user name="#{test_default_user}"/>
-          <url-rewriter>/MarkLogic/rest-api/rewriter.xqy</url-rewriter>
+          <url-rewriter>#{rest_url_rewriter}</url-rewriter>
           <error-handler>/MarkLogic/rest-api/error-handler.xqy</error-handler>
           <rewrite-resolves-globally>true</rewrite-resolves-globally>
         </http-server>
