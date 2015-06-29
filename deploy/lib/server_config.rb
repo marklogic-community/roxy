@@ -74,7 +74,11 @@ class ServerConfig < MLClient
       :user_name => @properties["ml.user"],
       :password => @properties["ml.password"],
       :logger => options[:logger],
-      :no_prompt => options[:no_prompt]
+      :no_prompt => options[:no_prompt],
+      :http_connection_retry_count => @properties["ml.http.retry-count"].to_i,
+      :http_connection_open_timeout => @properties["ml.http.open-timeout"].to_i,
+      :http_connection_read_timeout => @properties["ml.http.read-timeout"].to_i,
+      :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i
     )
 
     @server_version = @properties["ml.server-version"].to_i
@@ -1694,7 +1698,11 @@ private
           :password => @ml_password,
           :xcc_server => @hostname,
           :xcc_port => @properties["ml.xcc-port"],
-          :logger => logger
+          :logger => logger,
+          :http_connection_retry_count => @properties["ml.http.retry-count"].to_i,
+          :http_connection_open_timeout => @properties["ml.http.open-timeout"].to_i,
+          :http_connection_read_timeout => @properties["ml.http.read-timeout"].to_i,
+          :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i
         })
       end
   end
@@ -1708,7 +1716,11 @@ private
         :app_port => @properties["ml.app-port"],
         :rest_port => @properties["ml.rest-port"],
         :logger => @logger,
-        :server_version => @server_version
+        :server_version => @server_version,
+        :http_connection_retry_count => @properties["ml.http.retry-count"].to_i,
+        :http_connection_open_timeout => @properties["ml.http.open-timeout"].to_i,
+        :http_connection_read_timeout => @properties["ml.http.read-timeout"].to_i,
+        :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i
       })
     else
       @mlRest

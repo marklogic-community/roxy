@@ -8,7 +8,11 @@ module Roxy
         @port = options[:app_port]
       end
       @http = Roxy::Http.new({
-        :logger => @logger
+        :logger => @logger,
+        :http_connection_retry_count => options[:http_connection_retry_count],
+        :http_connection_open_timeout => options[:http_connection_open_timeout],
+        :http_connection_read_timeout => options[:http_connection_read_timeout],
+        :http_connection_retry_delay => options[:http_connection_retry_delay]
       })
       @request = {}
       @gmt_offset = Time.now.gmt_offset
