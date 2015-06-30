@@ -1534,7 +1534,7 @@ private
       # Figure out where we need to deploy this stuff
       rest_modules_db = ''
       if @properties.has_key?('ml.rest-port') and @properties['ml.rest-port'] != ''
-        rest_modules_db = "#{@properties['ml.app-name-rest-modules']}"
+        rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
       else
         rest_modules_db = @properties['ml.modules-db']
       end
@@ -2103,6 +2103,7 @@ private
     if @properties['ml.rest-port'].present?
       # Set up a REST API app server, distinct from the main application.
 
+      rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
       rest_auth_method = conditional_prop('ml.rest-authentication-method', 'ml.authentication-method')
       rest_default_user = conditional_prop('ml.rest-default-user', 'ml.default-user')
 
@@ -2121,9 +2122,9 @@ private
           <http-server-name>@ml.app-name-rest</http-server-name>
           <port>@ml.rest-port</port>
           <database name="@ml.content-db"/>
-          <modules name="@ml.app-name-rest-modules"/>
+          <modules name="#{rest_modules_db}"/>
           <authentication>#{rest_auth_method}</authentication>
-          <default-user name="#{test_default_user}"/>
+          <default-user name="#{rest_default_user}"/>
           <url-rewriter>#{rest_url_rewriter}</url-rewriter>
           <error-handler>/MarkLogic/rest-api/error-handler.xqy</error-handler>
           <rewrite-resolves-globally>true</rewrite-resolves-globally>
@@ -2133,9 +2134,9 @@ private
       config.gsub!("@ml.rest-modules-db-xml",
       %Q{
         <database>
-          <database-name>@ml.app-name-rest-modules</database-name>
+          <database-name>#{rest_modules_db}</database-name>
           <forests>
-            <forest-id name="@ml.app-name-rest-modules"/>
+            <forest-id name="#{rest_modules_db}"/>
           </forests>
         </database>
       })
@@ -2143,7 +2144,7 @@ private
       config.gsub!("@ml.rest-modules-db-assignment",
       %Q{
         <assignment>
-          <forest-name>@ml.app-name-rest-modules</forest-name>
+          <forest-name>#{rest_modules_db}</forest-name>
         </assignment>
       })
 
