@@ -622,7 +622,7 @@ declare function setup:do-wipe($import-config as element(configuration)+) as ite
         let $all-replica-names as xs:string* := $import-config/as:assignments/as:assignment/as:replica-names/as:replica-name
         for $assignment in $import-config/as:assignments/as:assignment[fn:not(as:forest-name = $all-replica-names)]
         let $forest-name := $assignment/as:forest-name
-        let $db-config := $import-config/db:databases/db:database[db:forests/db:forest-id/@name = $forest-name]
+        let $db-config := setup:get-databases-from-config($import-config)[db:forests/db:forest-id/@name = $forest-name]
         let $group-id := try { setup:get-group($db-config) } catch ($ignore) {}
         where $group-id
         return
