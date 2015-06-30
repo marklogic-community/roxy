@@ -116,7 +116,7 @@ class ServerConfig < MLClient
       logger.info "<info>"
       logger.info "\s\s<isJar>#{@@is_jar}</isJar>"
       logger.info "\s\s<properties>"
-      @properties.sort {|x,y| y <=> x}.each do |k, v|
+      @properties.sort {|x,y| x <=> y}.each do |k, v|
         logger.info "\s\s\s\s<property name=\"#{k}\">#{v}</property>"
       end
       logger.info "\s\s</properties>"
@@ -124,7 +124,7 @@ class ServerConfig < MLClient
     else
       logger.info "IS_JAR: #{@@is_jar}"
       logger.info "Properties:"
-      @properties.sort {|x,y| y <=> x}.each do |k, v|
+      @properties.sort {|x,y| x <=> y}.each do |k, v|
         logger.info k + ": " + v
       end
     end
@@ -1093,9 +1093,7 @@ In order to proceed please type: #{expected_response}
           options = File.read option_file
 
           # substitute properties
-          @properties.sort {|x,y| y <=> x}.each do |k, v|
-            options.gsub!("@#{k}", v)
-          end
+          replace_properties(options, File.basename(option_file))
 
           logger.debug "Options after resolving properties:"
           lines = options.split(/[\n\r]+/).reject { |line| line.empty? || line.match("^#") }
@@ -1475,9 +1473,7 @@ private
 
       if File.exist? app_config_file
         buffer = File.read app_config_file
-        @properties.sort {|x,y| y <=> x}.each do |k, v|
-          buffer.gsub!("@#{k}", v)
-        end
+        replace_properties(buffer, File.basename(app_config_file))
 
         total_count += xcc.load_buffer "/config.xqy",
                                        buffer,
@@ -1488,9 +1484,7 @@ private
 
       if deploy_tests?(dest_db) && File.exist?(test_config_file)
         buffer = File.read test_config_file
-        @properties.sort {|x,y| y <=> x}.each do |k, v|
-          buffer.gsub!("@#{k}", v)
-        end
+        replace_properties(buffer, File.basename(test_config_file))
 
         total_count += xcc.load_buffer "/test-config.xqy",
                                        buffer,
@@ -1659,9 +1653,7 @@ private
       ERR
     else
       cpf_config = File.read ServerConfig.expand_path("#{@@path}/pipeline-config.xml")
-      @properties.sort {|x,y| y <=> x}.each do |k, v|
-        cpf_config.gsub!("@#{k}", v)
-      end
+      replace_properties(cpf_config, "pipeline-config.xml")
       cpf_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/cpf.xqy")
       query = %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}
       logger.debug(query)
@@ -2271,11 +2263,30 @@ private
       config.gsub!("@ml.ssl-certificate-xml", "")
     end
     
-    @properties.sort {|x,y| y <=> x}.each do |k, v|
-      config.gsub!("@#{k}", v)
-    end
+    replace_properties(config, File.basename(config_file))
+    
+    # escape unresolved braces, they have special meaning in XQuery
+    config.gsub!("{", "{{")
+    config.gsub!("}", "}}")
 
     config
+  end
+  
+  def replace_properties(contents, name)
+    @properties.sort {|x,y| y <=> x}.each do |k, v|
+      # new property syntax
+      n = k.sub("ml.", "")
+      contents.gsub!("@{#{n}}", v)
+      contents.gsub!("${#{n}}", v)
+      
+      # backwards compat
+      contents.gsub!("@#{k}", v)
+    end
+    
+    # warn for unresolved properties
+    contents.scan(/[@$]\{[^}]+\}/).each do |match|
+      logger.warn("Unresolved property #{match} in #{name}")
+    end
   end
 
   def ServerConfig.properties(prop_file_location = @@path)
