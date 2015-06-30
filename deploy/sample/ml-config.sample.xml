@@ -425,15 +425,7 @@
     @ml.schemas-db-xml
   </databases>
   <certificates xmlns="http://marklogic.com/xdmp/pki">
-    <certificate>
-      <name>@ml.ssl-certificate-template</name>
-      <countryName>@ml.ssl-certificate-countryName</countryName>
-      <stateOrProvinceName>@ml.ssl-certificate-stateOrProvinceName</stateOrProvinceName>
-      <localityName>@ml.ssl-certificate-localityName</localityName>
-      <organizationName>@ml.ssl-certificate-organizationName</organizationName>
-      <organizationalUnitName>@ml.ssl-certificate-organizationalUnitName</organizationalUnitName>
-      <emailAddress>@ml.ssl-certificate-emailAddress</emailAddress>
-    </certificate>
+    @ml.ssl-certificate-xml
   </certificates>
   <roles xmlns="http://marklogic.com/xdmp/security">
     <role>
