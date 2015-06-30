@@ -4463,6 +4463,7 @@ declare function setup:validate-external-security(
 declare function setup:create-roles(
   $import-config as element(configuration))
 {
+  (: Create all missing roles :)
   for $role in $import-config/sec:roles/sec:role
   let $role-name as xs:string := $role/sec:role-name
   let $description as xs:string? := $role/sec:description
@@ -4492,6 +4493,7 @@ declare function setup:create-roles(
         setup:add-rollback("roles", $role)
     ),
 
+  (: apply settings (could have changed) :)
   for $role in $import-config/sec:roles/sec:role
   let $role-name as xs:string := $role/sec:role-name
   let $description as xs:string? := $role/sec:description
@@ -4500,6 +4502,7 @@ declare function setup:create-roles(
   let $collections as xs:string* := $role/sec:collections/sec:collection/fn:string()
   let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
   let $amps as element(sec:amp)* := $role/sec:amps/*
+  let $external-names as xs:string* := $role/sec:external-names/sec:external-name
   let $eval-options :=
     <options xmlns="xdmp:eval">
       <database>{$default-security}</database>
@@ -4515,36 +4518,36 @@ declare function setup:create-roles(
        xs:QName("description"), fn:string($description)),
       $eval-options),
 
-      xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $role-name as xs:string external;
-         declare variable $role-names as element() external;
-         sec:role-set-roles($role-name, $role-names/*)',
-        (xs:QName("role-name"), $role-name,
-         xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
-    $eval-options),
+    xdmp:eval(
+      'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+       declare variable $role-name as xs:string external;
+       declare variable $role-names as element() external;
+       sec:role-set-roles($role-name, $role-names/*)',
+      (xs:QName("role-name"), $role-name,
+       xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
+  $eval-options),
 
-      xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $role-name as xs:string external;
-         declare variable $permissions as element() external;
-         sec:role-set-default-permissions($role-name, $permissions/*)',
-        (
-          xs:QName("role-name"), $role-name,
-          xs:QName("permissions"),
-          <w>
-          {
-            for $p in $permissions
-            return
-              xdmp:eval('
-                declare variable $p external;
+    xdmp:eval(
+      'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+       declare variable $role-name as xs:string external;
+       declare variable $permissions as element() external;
+       sec:role-set-default-permissions($role-name, $permissions/*)',
+      (
+        xs:QName("role-name"), $role-name,
+        xs:QName("permissions"),
+        <w>
+        {
+          for $p in $permissions
+          return
+            xdmp:eval('
+              declare variable $p external;
 
-                xdmp:permission($p/sec:role-name, $p/sec:capability)',
-                (xs:QName("p"), $p))
-          }
-          </w>
-        ),
-    $eval-options),
+              xdmp:permission($p/sec:role-name, $p/sec:capability)',
+              (xs:QName("p"), $p))
+        }
+        </w>
+      ),
+  $eval-options),
 
     if ($collections) then
       xdmp:eval(
@@ -4605,7 +4608,24 @@ declare function setup:create-roles(
          xs:QName("document-uri"), $amp/sec:document-uri,
          xs:QName("database"), if ($amp/sec:database-name eq "filesystem") then 0 else xdmp:database($amp/sec:database-name),
          xs:QName("role-name"), $role-name),
-        $eval-options)
+        $eval-options),
+    
+    if (fn:exists($external-names)) then
+      if (setup:at-least-version("7.0-0")) then
+        xdmp:eval(
+          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+           declare variable $role-name as xs:string external;
+           declare variable $external-names as element() external;
+           sec:role-set-external-names($role-name, $external-names/*)',
+          (xs:QName("role-name"), $role-name,
+           xs:QName("external-names"), <w>{for $v in $external-names return <w>{$v}</w>}</w>),
+          $eval-options)
+      else
+        fn:error(
+          xs:QName("VERSION_NOT_SUPPORTED"),
+          fn:concat("MarkLogic ", xdmp:version(), " does not support external names on roles. Use 7.0-0 or higher."))
+    else ()
+
   )
 };
 
@@ -4615,19 +4635,23 @@ declare function setup:validate-roles(
   for $role in $import-config/sec:roles/sec:role
   let $role-name as xs:string := $role/sec:role-name
   let $description as xs:string? := $role/sec:description
+  let $compartment as xs:string? := $role/sec:compartment
   let $role-names as xs:string* := $role/sec:role-names/sec:role-name
   let $permissions as element(sec:permission)* := $role/sec:permissions/sec:permission
   let $collections as xs:string* := $role/sec:collections/*
   let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
   let $amps as element(sec:amp)* := $role/sec:amps/*
+  let $external-names as xs:string* := $role/sec:external-names/sec:external-name
   let $match := setup:get-roles(())/sec:role[sec:role-name = $role-name]
   return
     if ($match) then
       if ($match/sec:role-name != $role-name or
           $match/sec:description != $description or
+          $match/sec:compartment != $compartment or
           $match/sec:role-names/sec:role-name != $role-names or
           fn:count($match/sec:permissions/sec:permission) != fn:count($permissions) or
-          fn:count($match/sec:privileges/sec:privilege) != fn:count($privileges)) then
+          fn:count($match/sec:privileges/sec:privilege) != fn:count($privileges) or
+          $match/sec:external-names/sec:external-name != $external-names) then
         setup:validation-fail(fn:concat("Mismatched role: ", $role-name))
       else ()
     else
@@ -4643,6 +4667,7 @@ declare function setup:create-users($import-config as element(configuration))
   let $role-names as xs:string* := $user/sec:role-names/*
   let $permissions as element(sec:permission)* := $user/sec:permissions/*
   let $collections as xs:string* := $user/sec:collections/*
+  let $external-names as xs:string* := $user/sec:external-names/sec:external-name
   let $eval-options :=
     <options xmlns="xdmp:eval">
       <database>{$default-security}</database>
@@ -4700,6 +4725,22 @@ declare function setup:create-users($import-config as element(configuration))
           (xs:QName("user-name"), $user-name,
            xs:QName("collections"), <w>{for $c in $collections return <w>{$c}</w>}</w>),
           $eval-options)
+      else (),
+        
+      if (fn:exists($external-names)) then
+        if (setup:at-least-version("7.0-0")) then
+          xdmp:eval(
+            'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+             declare variable $user-name as xs:string external;
+             declare variable $external-names as element() external;
+             sec:user-set-external-names($user-name, $external-names/*)',
+            (xs:QName("user-name"), $user-name,
+             xs:QName("external-names"), <w>{for $v in $external-names return <w>{$v}</w>}</w>),
+            $eval-options)
+        else
+          fn:error(
+            xs:QName("VERSION_NOT_SUPPORTED"),
+            fn:concat("MarkLogic ", xdmp:version(), " does not support external names on users. Use 7.0-0 or higher."))
       else ()
     )
     else
@@ -4721,6 +4762,7 @@ declare function setup:create-users($import-config as element(configuration))
          xs:QName("collections"), <w>{for $c in $collections return <w>{$c}</w>}</w>),
         $eval-options),
       setup:add-rollback("users", $user),
+      
       if ($permissions) then
         xdmp:eval(
           'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
@@ -4730,7 +4772,24 @@ declare function setup:create-users($import-config as element(configuration))
           (xs:QName("user-name"), $user-name,
            xs:QName("permissions"), <w>{$permissions}</w>),
           $eval-options)
+      else (),
+      
+      if (fn:exists($external-names)) then
+        if (setup:at-least-version("7.0-0")) then
+          xdmp:eval(
+            'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+             declare variable $user-name as xs:string external;
+             declare variable $external-names as element() external;
+             sec:user-set-external-names($user-name, $external-names/*)',
+            (xs:QName("user-name"), $user-name,
+             xs:QName("external-names"), <w>{for $v in $external-names return <w>{$v}</w>}</w>),
+            $eval-options)
+        else
+          fn:error(
+            xs:QName("VERSION_NOT_SUPPORTED"),
+            fn:concat("MarkLogic ", xdmp:version(), " does not support external names on users. Use 7.0-0 or higher."))
       else ()
+
     )
 };
 
@@ -4743,11 +4802,13 @@ declare function setup:validate-users($import-config as element(configuration))
   let $role-names as xs:string* := $user/sec:role-names/*
   let $permissions as element(sec:permission)* := $user/sec:permissions/*
   let $collections as xs:string* := $user/sec:collections/*
+  let $external-names as xs:string* := $user/sec:external-names/sec:external-name
   let $match := setup:get-users(())/sec:user[sec:user-name = $user-name]
   return
     if ($match) then
       if ($match/sec:description != $description or
-          $match/sec:role-names/* != $role-names) then
+          $match/sec:role-names/* != $role-names or
+          $match/sec:exernal-names/* != $external-names) then
         setup:validation-fail(fn:concat("User mismatch: ", $user-name))
       else ()
     else
@@ -5585,22 +5646,23 @@ declare function setup:at-least-version($target)
   let $current := xdmp:version()
   let $current-formatted :=
     fn:concat(
-      fn:format-number(xs:int(fn:replace($current, "^(\d+)\..*", "$1")), "000"), (: major :)
-      fn:format-number(xs:int(fn:replace($current, "^\d+\.(\d+).*", "$1")), "000"), (: minor :)
-      fn:format-number(xs:int(fn:replace($current, "^\d+\.\d+\-(\d+).*", "$1")), "000"), (: x.x-X :)
-      if (fn:matches($current, "^\d+\.\d+\-\d+\.\d+")) then
-        fn:format-number(xs:int(fn:replace($current, "^\d+\.\d+\-\d+\.(\d+)", "$1")), "000") (: x.x-x.X :)
+      fn:format-number(xs:int(fn:replace($current, "^(\d+)\..*$", "$1")), "000"), (: major :)
+      fn:format-number(xs:int(fn:replace($current, "^\d+\.(\d+).*$", "$1")), "000"), (: minor :)
+      fn:format-number(xs:int(fn:replace($current, "^\d+\.\d+\-(\d+).*$", "$1")), "000"), (: x.x-X :)
+      if (fn:matches($current, "^\d+\.\d+\-\d+\.\d+$")) then
+        fn:format-number(xs:int(fn:replace($current, "^\d+\.\d+\-\d+\.(\d+)$", "$1")), "000") (: x.x-x.X :)
       else "000"
     )
   let $target-formatted :=
     fn:concat(
-      fn:format-number(xs:int(fn:replace($target, "^(\d+)\..*", "$1")), "000"), (: major :)
-      fn:format-number(xs:int(fn:replace($target, "^\d+\.(\d+).*", "$1")), "000"), (: minor :)
-      fn:format-number(xs:int(fn:replace($target, "^\d+\.\d+\-(\d+).*", "$1")), "000"), (: x.x-X :)
-      if (fn:matches($target, "^\d+\.\d+\-\d+\.\d+")) then
-        fn:format-number(xs:int(fn:replace($target, "^\d+\.\d+\-\d+\.(\d+)", "$1")), "000") (: x.x-x.X :)
+      fn:format-number(xs:int(fn:replace($target, "^(\d+)\..*$", "$1")), "000"), (: major :)
+      fn:format-number(xs:int(fn:replace($target, "^\d+\.(\d+).*$", "$1")), "000"), (: minor :)
+      fn:format-number(xs:int(fn:replace($target, "^\d+\.\d+\-(\d+).*$", "$1")), "000"), (: x.x-X :)
+      if (fn:matches($target, "^\d+\.\d+\-\d+\.\d+$")) then
+        fn:format-number(xs:int(fn:replace($target, "^\d+\.\d+\-\d+\.(\d+)$", "$1")), "000") (: x.x-x.X :)
       else "000"
     )
+  let $_ := xdmp:log(($current-formatted, $target-formatted, fn:compare($current-formatted, $target-formatted)))
   return fn:compare($current-formatted, $target-formatted) >= 0
 };
 
