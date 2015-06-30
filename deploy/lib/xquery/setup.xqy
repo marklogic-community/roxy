@@ -1036,15 +1036,16 @@ declare function setup:create-forests-from-config(
   let $hostnr := fn:index-of($hosts, $host-id)
   let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
   let $replicas :=
-    if (fn:count($hosts) gt 1) then
-      $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
-    else ()
+    $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
   return
     setup:create-forest(
       $forest-name,
       $data-directory,
       $host-id,
-      setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, 1, fn:false()))
+      if (fn:count($hosts) gt 1) then
+        setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, 1, fn:false())
+      else ()
+    )
 
 };
 
@@ -1082,15 +1083,16 @@ declare function setup:create-forests-from-count(
   let $new-forest-name := fn:string-join(($forest-name, fn:format-number(xs:integer($hostnr), "000"), xs:string($forestnr)), "-")
   let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
   let $replicas :=
-    if (fn:count($hosts) gt 1) then
-      $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
-    else ()
+    $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
   return
     setup:create-forest(
       $new-forest-name,
       $data-directory,
       $host,
-      setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr, fn:true()))
+      if (fn:count($hosts) gt 1) then
+        setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr, fn:true())
+      else ()
+    )
 };
 
 declare function setup:reassign-replicas(
@@ -3391,6 +3393,7 @@ declare function setup:validate-groups-settings($import-config as element(config
 declare function setup:configure-hosts($import-config as element(configuration)) as item()*
 {
   let $admin-config := admin:get-configuration()
+  let $nr-hosts := fn:count(xdmp:hosts())
   for $host-config in $import-config/ho:hosts/ho:host
   let $host-name := $host-config/ho:host-name
   let $host-id := xdmp:host($host-name)
@@ -3409,7 +3412,9 @@ declare function setup:configure-hosts($import-config as element(configuration))
     let $min-version as xs:string? := $setting/@min-version
     where (fn:exists($value))
     return
-      if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+      if ($setting eq 'group' and $nr-hosts eq 1) then
+        xdmp:log("Ignoring host group setting in non-clustered environment")
+      else if (fn:empty($min-version) or setup:at-least-version($min-version)) then
         xdmp:set($admin-config,
           xdmp:value(fn:concat("admin:host-set-", $setting, "($admin-config, $host-id, $value)")))
       else
@@ -3429,6 +3434,7 @@ declare function setup:configure-hosts($import-config as element(configuration))
 declare function setup:validate-hosts-settings($import-config as element(configuration)) as item()*
 {
   let $admin-config := admin:get-configuration()
+  let $nr-hosts := fn:count(xdmp:hosts())
   let $settings := $host-settings
   for $host-config in $import-config/ho:hosts/ho:host
   let $host-name := $host-config/ho:host-name
@@ -3448,7 +3454,9 @@ declare function setup:validate-hosts-settings($import-config as element(configu
   let $min-version as xs:string? := $setting/@min-version
   where (fn:exists($expected))
   return
-    if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+    if ($setting eq 'group' and $nr-hosts eq 1) then
+      xdmp:log("Ignoring host group setting in non-clustered environment")
+    else if (fn:empty($min-version) or setup:at-least-version($min-version)) then
       let $actual := xdmp:value(fn:concat("admin:host-get-", $setting, "($admin-config, $host-id)"))
       return
         if ($expected = $actual) then ()
