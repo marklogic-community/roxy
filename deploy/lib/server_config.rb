@@ -1923,7 +1923,7 @@ private
           if i
             key = prefix + line[0..i - 1].strip
             value = line[i + 1..-1].strip
-            properties[key] = value
+            properties[key] = ENV[key.sub("ml.", "ml_")] || value
           end
         end
       end
