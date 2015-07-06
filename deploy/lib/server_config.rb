@@ -1085,7 +1085,10 @@ In order to proceed please type: #{expected_response}
 
     # Find all jars required for running MLCP. At least:
     jars = Dir.glob(ServerConfig.expand_path("#{mlcp_home}/lib/*.jar"))
-    classpath = jars.join(path_separator)
+    confdir = ServerConfig.expand_path("#{mlcp_home}/conf")
+    classpath = "#{confdir}#{path_separator}#{jars.join(path_separator)}"
+    
+    vmargs = %Q{"-DCONTENTPUMP_HOME=#{mlcp_home}" -Dfile.encoding=UTF-8 -Dxcc.txn.compatible=true "-Djava.library.path=#{mlcp_home}/lib/native" #{@properties['ml.mlcp-vmargs']} }
 
     ARGV.each do |arg|
       if arg == "-option_file"
@@ -1131,9 +1134,9 @@ In order to proceed please type: #{expected_response}
 
       args = ARGV.join(" ")
 
-      runme = %Q{java -cp "#{classpath}" #{@properties['ml.mlcp-vmargs']} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
+      runme = %Q{java -cp "#{classpath}" #{vmargs} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
     else
-      runme = %Q{java -cp "#{classpath}" com.marklogic.contentpump.ContentPump}
+      runme = %Q{java -cp "#{classpath}" #{vmargs} com.marklogic.contentpump.ContentPump}
     end
 
     logger.debug runme
