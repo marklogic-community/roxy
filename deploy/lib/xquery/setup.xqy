@@ -407,6 +407,11 @@ declare function setup:suppress-comments($nodes) {
 (: for backwards-compatibility :)
 declare function setup:rewrite-config($import-configs as element(configuration)+) as element(configuration)
 {
+  setup:rewrite-config($import-configs, ())
+};
+
+declare function setup:rewrite-config($import-configs as element(configuration)+, $silent as xs:boolean?) as element(configuration)
+{
   let $config :=
     element { fn:node-name($import-configs[1]) } {
       $import-configs/@*,
@@ -414,7 +419,7 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
       <groups xmlns="http://marklogic.com/xdmp/group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">{
         let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
-          ($import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
+          ($import-configs/gr:groups/gr:group/gr:group-name, $import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
             gr:odbc-servers/gr:odbc-server, gr:task-server, db:databases/db:database)/@group, $default-group))
         let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = $default-group and fn:empty(@group))]
         let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
@@ -450,13 +455,15 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
   
   (: Check config on group consistency! :)
   let $_ :=
-    for $group in $config/gr:groups/gr:group/gr:group-name
-    let $hosts := ($config/ho:hosts/ho:host[ho:group/@name = $group], try { xdmp:group-hosts(xdmp:group($group)) } catch ($ignore) {})
-    where fn:empty($hosts)
-    return
-      fn:error(
-        xs:QName("NO_HOSTS_IN_GROUP"),
-        fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!"))
+    if ($silent) then ()
+    else
+      for $group in $config/gr:groups/gr:group/gr:group-name
+      let $hosts := ($config/ho:hosts/ho:host[ho:group/@name = $group], try { xdmp:group-hosts(xdmp:group($group)) } catch ($ignore) {})
+      where fn:empty($hosts)
+      return
+        fn:error(
+          xs:QName("NO_HOSTS_IN_GROUP"),
+          fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!"))
 
   (: all good :)
   return setup:suppress-comments($config)
@@ -512,7 +519,7 @@ declare function setup:do-wipe($import-config as element(configuration)+) as ite
 {
   try
   {
-    let $import-config := setup:rewrite-config($import-config)
+    let $import-config := setup:rewrite-config($import-config, fn:true())
     return (
   
       (: remove scheduled tasks :)
@@ -3285,9 +3292,9 @@ declare function setup:create-group(
   
   (: Make sure App-Services and Manage are available in the new group in case the host we use Roxy against is assigned to it! :)
   let $group-id := admin:group-get-id($admin-config, $group)
-  let $appservices-id := xdmp:server("App-Services")[1]
+  let $appservices-id := xdmp:server("App-Services")[1] (: just grab the first occurrence, from whatever group :)
   let $appservices-port := admin:appserver-get-port($admin-config, $appservices-id)
-  let $manage-id := xdmp:server("Manage")[1]
+  let $manage-id := xdmp:server("Manage")[1] (: just grab the first occurrence, from whatever group :)
   let $manage-port := admin:appserver-get-port($admin-config, $manage-id)
   let $_ :=
     if (admin:appserver-exists($admin-config, $group-id, "App-Services")) then ()
@@ -3540,15 +3547,15 @@ declare function setup:create-appserver(
   $server-config as element(gr:http-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]
+  let $group-id := setup:get-group($server-config)
   return
-    if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then
+    if (setup:get-server($server-name, $group-id)) then
       fn:concat("HTTP Server ", $server-name, " already exists, not recreated..")
     else
       let $root := ($server-config/gr:root[fn:string-length(fn:string(.)) > 0], "/")[1]
       let $port := xs:unsignedLong($server-config/gr:port)
       let $database := setup:get-appserver-content-database($server-config)
       let $modules := setup:get-appserver-modules-database($server-config)
-      let $group-id := setup:get-group($server-config)
       let $admin-config := admin:get-configuration()
       let $admin-config :=
         if (xs:boolean($server-config/gr:webDAV)) then
@@ -3583,8 +3590,9 @@ declare function setup:validate-appserver(
   $server-config as element(gr:http-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]
+  let $group-id := setup:get-group($server-config)
   return
-    if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then ()
+    if (setup:get-server($server-name, $group-id)) then ()
     else
       setup:validation-fail(fn:concat("Missing HTTP server: ", $server-name))
 };
@@ -3593,11 +3601,11 @@ declare function setup:create-odbcserver(
   $server-config as element(gr:odbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]
+  let $group-id := setup:get-group($server-config)
   return
-    if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then
+    if (setup:get-server($server-name, $group-id)) then
       fn:concat("ODBC Server ", $server-name, " already exists, not recreated..")
     else
-      let $group-id := setup:get-group($server-config)
       (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
       let $admin-config := admin:get-configuration()
       let $admin-config :=
@@ -3649,8 +3657,9 @@ declare function setup:validate-odbcserver(
   $server-config as element(gr:odbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]
+  let $group-id := setup:get-group($server-config)
   return
-    if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then ()
+    if (setup:get-server($server-name, $group-id)) then ()
     else
       setup:validation-fail(fn:concat("Missing ODBC server: ", $server-name))
 };
@@ -3659,11 +3668,11 @@ declare function setup:create-xdbcserver(
   $server-config as element(gr:xdbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]
+  let $group-id := setup:get-group($server-config)
   return
-    if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then
+    if (setup:get-server($server-name, $group-id)) then
       fn:concat("XDBC Server ", $server-name, " already exists, not recreated..")
     else
-      let $group-id := setup:get-group($server-config)
       let $admin-config :=
         admin:xdbc-server-create(
           admin:get-configuration(),
@@ -3687,8 +3696,9 @@ declare function setup:validate-xdbcserver(
   $server-config as element(gr:xdbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]
+  let $group-id := setup:get-group($server-config)
   return
-    if (xdmp:servers()[xdmp:server-name(.) = $server-name]) then ()
+    if (setup:get-server($server-name, $group-id)) then ()
     else
       setup:validation-fail(fn:concat("Missing XDBC server: ", $server-name))
 };
@@ -3737,7 +3747,8 @@ declare function setup:configure-http-server(
   $server-config as element(gr:http-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]
-  let $admin-config := setup:configure-server($server-config, xdmp:server($server-name), if (xs:boolean($server-config/gr:webDAV)) then $webdav-server-settings else $http-server-settings)
+  let $group-id := setup:get-group($server-config)
+  let $admin-config := setup:configure-server($server-config, setup:get-server($server-name, $group-id), if (xs:boolean($server-config/gr:webDAV)) then $webdav-server-settings else $http-server-settings)
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
@@ -3750,9 +3761,11 @@ declare function setup:configure-http-server(
 declare function setup:validate-http-server(
   $server-config as element(gr:http-server)) as item()*
 {
+  let $group-id := setup:get-group($server-config)
+  return
   setup:validate-server(
     $server-config,
-    xdmp:server($server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0]),
+    setup:get-server($server-config/gr:http-server-name[fn:string-length(fn:string(.)) > 0], $group-id),
     if ($server-config/gr:webDAV = fn:true()) then
       $webdav-server-settings
     else
@@ -3763,7 +3776,8 @@ declare function setup:configure-xdbc-server(
   $server-config as element(gr:xdbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]
-  let $admin-config := setup:configure-server($server-config, xdmp:server($server-name), $xdbc-server-settings)
+  let $group-id := setup:get-group($server-config)
+  let $admin-config := setup:configure-server($server-config, setup:get-server($server-name, $group-id), $xdbc-server-settings)
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
@@ -3776,9 +3790,11 @@ declare function setup:configure-xdbc-server(
 declare function setup:validate-xdbc-server(
   $server-config as element(gr:xdbc-server)) as item()*
 {
+  let $group-id := setup:get-group($server-config)
+  return
   setup:validate-server(
     $server-config,
-    xdmp:server($server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0]),
+    setup:get-server($server-config/gr:xdbc-server-name[fn:string-length(fn:string(.)) > 0], $group-id),
     $xdbc-server-settings)
 };
 
@@ -3786,7 +3802,8 @@ declare function setup:configure-odbc-server(
   $server-config as element(gr:odbc-server)) as item()*
 {
   let $server-name as xs:string? := $server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]
-  let $admin-config := setup:configure-server($server-config, xdmp:server($server-name), $odbc-server-settings)
+  let $group-id := setup:get-group($server-config)
+  let $admin-config := setup:configure-server($server-config, setup:get-server($server-name, $group-id), $odbc-server-settings)
   return
   (
     if (admin:save-configuration-without-restart($admin-config)) then
@@ -3799,9 +3816,11 @@ declare function setup:configure-odbc-server(
 declare function setup:validate-odbc-server(
   $server-config as element(gr:odbc-server)) as item()*
 {
+  let $group-id := setup:get-group($server-config)
+  return
   setup:validate-server(
     $server-config,
-    xdmp:server($server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0]),
+    setup:get-server($server-config/gr:odbc-server-name[fn:string-length(fn:string(.)) > 0], $group-id),
     $odbc-server-settings)
 };
 
@@ -5861,6 +5880,11 @@ declare function setup:list-settings($type as xs:string) as item()*
       )
   else
     fn:concat("Unknown type of settings: ", $type)
+};
+
+declare function setup:get-server($server-name as xs:string, $group-id as xs:unsignedLong) as xs:unsignedLong?
+{
+  xdmp:group-servers($group-id)[xdmp:server-name(.) = $server-name]
 };
 
 (:
