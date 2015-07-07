@@ -5021,7 +5021,8 @@ declare function setup:get-users-by-name($names as xs:string*) as element(sec:us
   let $ids :=
     for $name in $names
       return setup:get-users-by-name-helper($name)
-   return setup:get-users($ids)
+  where $ids
+  return setup:get-users($ids)
 };
 
 declare function setup:get-users-by-name-helper($name as xs:string*) as xs:integer? {
@@ -5099,6 +5100,7 @@ declare function setup:get-roles-by-name($roles as xs:string*) as element(sec:ro
   let $ids :=
     for $role in $roles
       return setup:get-roles-by-name-helper($role)
+  where $ids
   return setup:get-roles($ids)
 };
 
