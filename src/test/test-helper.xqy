@@ -314,7 +314,7 @@ declare function helper:easy-url($url) as xs:string
 {
   if (fn:starts-with($url, "http")) then $url
   else
-    fn:concat("http://localhost:", fn:tokenize(xdmp:get-request-header("Host"), ":")[2], if (fn:starts-with($url, "/")) then () else "/", $url)
+    fn:concat("http://localhost:", xdmp:get-request-port(), if (fn:starts-with($url, "/")) then () else "/", $url)
 };
 
 declare function helper:http-get($url as xs:string, $options as node()?)
@@ -322,7 +322,7 @@ declare function helper:http-get($url as xs:string, $options as node()?)
   let $uri :=
     if (fn:starts-with($url, "http")) then $url
     else
-      fn:concat("http://localhost:", fn:tokenize(xdmp:get-request-header("Host"), ":")[2], if (fn:starts-with($url, "/")) then () else "/", $url)
+      fn:concat("http://localhost:", xdmp:get-request-port(), if (fn:starts-with($url, "/")) then () else "/", $url)
   return
     xdmp:http-get($uri, $options)
 };
