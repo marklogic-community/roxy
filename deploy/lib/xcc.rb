@@ -184,11 +184,11 @@ module Roxy
           if File.directory?(full_path)
             get_files(full_path, options, data)
           else
-            data << full_path
+            data << full_path.encode("UTF-8")
           end
         end
       else
-        data = [path]
+        data = [path.encode("UTF-8")]
       end
       data
     end
