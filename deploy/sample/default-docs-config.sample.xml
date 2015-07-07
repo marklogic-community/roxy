@@ -1,0 +1,142 @@
+<database>
+  <database-name>Documents</database-name>
+
+  <language>en</language>
+  <stemmed-searches>basic</stemmed-searches>
+  <word-searches>false</word-searches>
+  <word-positions>false</word-positions>
+  <fast-phrase-searches>true</fast-phrase-searches>
+  <fast-reverse-searches>false</fast-reverse-searches>
+  <triple-index>false</triple-index>
+  <triple-positions>false</triple-positions>
+  <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
+  <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
+  <fast-element-word-searches>true</fast-element-word-searches>
+  <element-word-positions>false</element-word-positions>
+  <fast-element-phrase-searches>true</fast-element-phrase-searches>
+  <element-value-positions>false</element-value-positions>
+  <attribute-value-positions>false</attribute-value-positions>
+  <field-value-searches>false</field-value-searches>
+  <field-value-positions>false</field-value-positions>
+  <three-character-searches>false</three-character-searches>
+  <three-character-word-positions>false</three-character-word-positions>
+  <fast-element-character-searches>false</fast-element-character-searches>
+  <trailing-wildcard-searches>false</trailing-wildcard-searches>
+  <trailing-wildcard-word-positions>false</trailing-wildcard-word-positions>
+  <fast-element-trailing-wildcard-searches>false</fast-element-trailing-wildcard-searches>
+  <word-lexicons/>
+  <two-character-searches>false</two-character-searches>
+  <one-character-searches>false</one-character-searches>
+  <uri-lexicon>true</uri-lexicon>
+  <collection-lexicon>false</collection-lexicon>
+
+  <directory-creation>manual</directory-creation>
+  <maintain-last-modified>false</maintain-last-modified>
+  <maintain-directory-last-modified>false</maintain-directory-last-modified>
+  <inherit-permissions>false</inherit-permissions>
+  <inherit-collections>false</inherit-collections>
+  <inherit-quality>false</inherit-quality>
+
+  <large-size-threshold>1024</large-size-threshold>
+  <locking>fast</locking>
+
+  <preload-mapped-data>false</preload-mapped-data>
+  <preload-replica-mapped-data>false</preload-replica-mapped-data>
+  <range-index-optimize>facet-time</range-index-optimize>
+
+  <format-compatibility>automatic</format-compatibility>
+  <index-detection>automatic</index-detection>
+  <expunge-locks>none</expunge-locks>
+  <tf-normalization>scaled-log</tf-normalization>
+
+  <merge-blackouts/>
+  <database-backups/>
+  <fragment-roots/>
+  <fragment-parents/>
+  <element-word-query-throughs>
+    <element-word-query-through>
+      <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
+      <localname>p</localname>
+    </element-word-query-through>
+    <element-word-query-through>
+      <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
+      <localname>p</localname>
+    </element-word-query-through>
+  </element-word-query-throughs>
+  <phrase-throughs>
+    <phrase-through>
+      <namespace-uri>http://www.w3.org/1999/xhtml</namespace-uri>
+      <localname>a abbr acronym b big br center cite code dfn em font i kbd q samp small span strong sub sup tt var</localname>
+    </phrase-through>
+    <phrase-through>
+      <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
+      <localname>br cr fldChar fldData fldSimple hlink noBreakHyphen permEnd permStart pgNum proofErr r softHyphen sym t tab</localname>
+    </phrase-through>
+    <phrase-through>
+      <namespace-uri>http://schemas.microsoft.com/office/word/2003/auxHint</namespace-uri>
+      <localname>t</localname>
+    </phrase-through>
+    <phrase-through>
+      <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
+      <localname>r t endnoteReference footnoteReference customXml hyperlink sdt sdtContent commentRangeEnd commentRangeStart bookmarkStart bookmarkEnd fldSimple instrText smartTag ins proofErr</localname>
+    </phrase-through>
+    <phrase-through>
+      <namespace-uri>http://marklogic.com/entity</namespace-uri>
+      <localname>person organization location gpe facility religion nationality credit-card-number email coordinate money percent id phone-number url utm date time</localname>
+    </phrase-through>
+  </phrase-throughs>
+  <phrase-arounds>
+    <phrase-around>
+      <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
+      <localname>delInstrText delText endnote footnote instrText pict rPr</localname>
+    </phrase-around>
+    <phrase-around>
+      <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
+      <localname>pPr rPr customXmlPr sdtPr commentReference del</localname>
+    </phrase-around>
+  </phrase-arounds>
+  <range-element-indexes>
+    <range-element-index>
+      <scalar-type>dateTime</scalar-type>
+      <namespace-uri>http://marklogic.com/xdmp/dls</namespace-uri>
+      <localname>created replaced</localname>
+      <collation/>
+      <range-value-positions>false</range-value-positions>
+      <invalid-values>reject</invalid-values>
+    </range-element-index>
+    <range-element-index>
+      <scalar-type>unsignedLong</scalar-type>
+      <namespace-uri>http://marklogic.com/xdmp/dls</namespace-uri>
+      <localname>version-id</localname>
+      <collation/>
+      <range-value-positions>false</range-value-positions>
+      <invalid-values>reject</invalid-values>
+    </range-element-index>
+  </range-element-indexes>
+  <range-element-attribute-indexes/>
+  <element-word-lexicons/>
+  <element-attribute-word-lexicons/>
+  <path-namespaces/>
+  <range-path-indexes/>
+  <fields>
+    <field>
+      <field-name/>
+      <include-root>true</include-root>
+      <included-elements/>
+      <excluded-elements/>
+    </field>
+  </fields>
+  <range-field-indexes/>
+  <geospatial-element-indexes/>
+  <geospatial-element-child-indexes/>
+  <geospatial-element-pair-indexes/>
+  <geospatial-element-attribute-pair-indexes/>
+  <geospatial-path-indexes/>
+  <default-rulesets/>
+  <database-replication/>
+  <database-references/>
+
+  <assignment-policy>
+    <assignment-policy-name>bucket</assignment-policy-name>
+  </assignment-policy>
+</database>
