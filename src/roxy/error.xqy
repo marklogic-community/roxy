@@ -144,7 +144,7 @@ declare function local:error($title as xs:string?, $heading, $msg)
   </html>
 };
 
-if ($ex/error:code = "RESTAPI-EXTNERR") then
+if (fn:starts-with($ex/error:code, "REST")) then
   xdmp:invoke(
     "/MarkLogic/rest-api/error-handler.xqy",
     (xs:QName("error:errors"), $error:errors)
