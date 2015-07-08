@@ -116,6 +116,7 @@ class ServerConfig < MLClient
       logger.info "<info>"
       logger.info "\s\s<isJar>#{@@is_jar}</isJar>"
       logger.info "\s\s<properties>"
+      # applying ascending order for better readability
       @properties.sort {|x,y| x <=> y}.each do |k, v|
         logger.info "\s\s\s\s<property name=\"#{k}\">#{v}</property>"
       end
@@ -2273,13 +2274,14 @@ private
   end
   
   def replace_properties(contents, name)
+    # make sure to apply descending order to replace @ml.foo-bar before @ml.foo
     @properties.sort {|x,y| y <=> x}.each do |k, v|
-      # new property syntax
+      # new property syntax: @{app-name} or ${app-name}
       n = k.sub("ml.", "")
       contents.gsub!("@{#{n}}", v)
       contents.gsub!("${#{n}}", v)
       
-      # backwards compat
+      # backwards compat, old syntax: @ml.app-name
       contents.gsub!("@#{k}", v)
     end
     
