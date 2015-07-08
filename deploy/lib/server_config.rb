@@ -557,21 +557,6 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   def bootstrap
     raise ExitException.new("Bootstrap requires the target environment's hostname to be defined") unless @hostname.present?
 
-    if @server_version > 7 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xqy"
-      @logger.info "WARN: XQuery REST rewriter has been deprecated since MarkLogic 8"
-      @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xml"
-
-    elsif @server_version < 8 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xml"
-      @logger.info "WARN: XML REST rewriter not supported on MarkLogic 7 or less"
-      @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xqy"
-
-    elsif @server_version > 7 && @properties["ml.app-type"] == 'hybrid'
-      @logger.info "WARN: Running the hybrid app-type with MarkLogic 8 is not recommended."
-      @logger.info "      Doing so requires manual patching of the Roxy rewriter."
-      @logger.info "      You will be unable to access all of the MarkLogic REST features."
-      @logger.info "      See https://github.com/marklogic/roxy/issues/416 for details."
-    end
-
     internals = find_arg(['--replicate-internals'])
     if internals
 
@@ -1728,6 +1713,21 @@ private
   end
 
   def get_config
+    if @server_version > 7 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xqy"
+      @logger.info "WARN: XQuery REST rewriter has been deprecated since MarkLogic 8"
+      @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xml"
+
+    elsif @server_version < 8 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xml"
+      @logger.info "WARN: XML REST rewriter not supported on MarkLogic 7 or less"
+      @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xqy"
+
+    elsif @server_version > 7 && @properties["ml.app-type"] == 'hybrid'
+      @logger.info "WARN: Running the hybrid app-type with MarkLogic 8 is not recommended."
+      @logger.info "      Doing so requires manual patching of the Roxy rewriter."
+      @logger.info "      You will be unable to access all of the MarkLogic REST features."
+      @logger.info "      See https://github.com/marklogic/roxy/issues/416 for details."
+    end
+
     @config ||= build_config(@options[:config_file])
   end
 
@@ -1949,95 +1949,245 @@ private
 
     value
   end
+  
+  def triggers_db_xml
+    %Q{
+      <database>
+        <database-name>@ml.triggers-db</database-name>
+        <forests>
+          <forest-id name="@ml.triggers-db"/>
+        </forests>
+      </database>
+    }
+  end
+  
+  def triggers_assignment
+    %Q{
+      <assignment>
+        <forest-name>@ml.triggers-db</forest-name>
+      </assignment>
+    }
+  end
+
+  def xdbc_server
+    xdbc_auth_method = conditional_prop('ml.xdbc-authentication-method', 'ml.authentication-method')
+    %Q{
+      <xdbc-server>
+        <xdbc-server-name>@ml.app-name-xcc</xdbc-server-name>
+        <port>@ml.xcc-port</port>
+        <database name="@ml.content-db"/>
+        <modules name="@ml.modules-db"/>
+        <authentication>#{xdbc_auth_method}</authentication>
+      </xdbc-server>
+    }
+  end
+  
+  def odbc_server
+    odbc_auth_method = conditional_prop('ml.odbc-authentication-method', 'ml.authentication-method')
+    %Q{
+      <odbc-server>
+        <odbc-server-name>@ml.app-name-odbc</odbc-server-name>
+        <port>@ml.odbc-port</port>
+        <database name="@ml.content-db"/>
+        <modules name="@ml.modules-db"/>
+        <authentication>#{odbc_auth_method}</authentication>
+      </odbc-server>
+    }
+  end
+  
+  def schemas_db_xml
+    %Q{
+      <database>
+        <database-name>@ml.schemas-db</database-name>
+        <forests>
+          <forest-id name="@ml.schemas-db"/>
+        </forests>
+      </database>
+    }
+  end
+
+  def schemas_assignment
+    %Q{
+      <assignment>
+        <forest-name>@ml.schemas-db</forest-name>
+      </assignment>
+    }
+  end
+  
+  def test_content_db_xml
+    %Q{
+      <database import="@ml.content-db">
+        <database-name>@ml.test-content-db</database-name>
+        <forests>
+          <forest-id name="@ml.test-content-db"/>
+        </forests>
+      </database>
+    }
+  end
+  
+  def test_content_db_assignment
+    %Q{
+      <assignment>
+        <forest-name>@ml.test-content-db</forest-name>
+      </assignment>
+    }
+  end
+  
+  def test_appserver
+    # The modules database for the test server can be different from the app one
+    test_modules_db = conditional_prop('ml.test-modules-db', 'ml.app-modules-db')
+    test_auth_method = conditional_prop('ml.test-authentication-method', 'ml.authentication-method')
+    test_default_user = conditional_prop('ml.test-default-user', 'ml.default-user')
+
+    %Q{
+      <http-server import="@ml.app-name">
+        <http-server-name>@ml.app-name-test</http-server-name>
+        <port>@ml.test-port</port>
+        <database name="@ml.test-content-db"/>
+        <modules name="#{test_modules_db}"/>
+        <authentication>#{test_auth_method}</authentication>
+        <default-user name="#{test_default_user}"/>
+      </http-server>
+    }
+  end
+  
+  def test_modules_db_xml
+    %Q{
+      <database import="@ml.modules-db">
+        <database-name>@ml.test-modules-db</database-name>
+        <forests>
+          <forest-id name="@ml.test-modules-db"/>
+        </forests>
+      </database>
+    }
+  end
+
+  def test_modules_db_assignment
+    %Q{
+      <assignment>
+        <forest-name>@ml.test-modules-db</forest-name>
+      </assignment>
+    }
+  end
+  
+  def rest_appserver
+    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
+    rest_auth_method = conditional_prop('ml.rest-authentication-method', 'ml.authentication-method')
+    rest_default_user = conditional_prop('ml.rest-default-user', 'ml.default-user')
+
+    rest_url_rewriter = nil
+    if @properties['ml.rest-url-rewriter'].present?
+      rest_url_rewriter = @properties['ml.rest-url-rewriter']
+    elsif @server_version > 7
+      rest_url_rewriter = '/MarkLogic/rest-api/rewriter.xml'
+    else 
+      rest_url_rewriter = '/MarkLogic/rest-api/rewriter.xqy'
+    end
+    
+    %Q{
+      <http-server import="@ml.app-name">
+        <http-server-name>@ml.app-name-rest</http-server-name>
+        <port>@ml.rest-port</port>
+        <database name="@ml.content-db"/>
+        <modules name="#{rest_modules_db}"/>
+        <authentication>#{rest_auth_method}</authentication>
+        <default-user name="#{rest_default_user}"/>
+        <url-rewriter>#{rest_url_rewriter}</url-rewriter>
+        <error-handler>/MarkLogic/rest-api/error-handler.xqy</error-handler>
+        <rewrite-resolves-globally>true</rewrite-resolves-globally>
+      </http-server>
+    }
+  end
+  
+  def rest_modules_db_xml
+    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
+    
+    %Q{
+      <database>
+        <database-name>#{rest_modules_db}</database-name>
+        <forests>
+          <forest-id name="#{rest_modules_db}"/>
+        </forests>
+      </database>
+    }
+  end
+  
+  def rest_modules_db_assignment
+    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
+    
+    %Q{
+      <assignment>
+        <forest-name>#{rest_modules_db}</forest-name>
+      </assignment>
+    }
+  end
+  
+  def ssl_certificate_xml
+    %Q{
+      <certificate>
+        <name>@ml.ssl-certificate-template</name>
+        <countryName>@ml.ssl-certificate-countryName</countryName>
+        <stateOrProvinceName>@ml.ssl-certificate-stateOrProvinceName</stateOrProvinceName>
+        <localityName>@ml.ssl-certificate-localityName</localityName>
+        <organizationName>@ml.ssl-certificate-organizationName</organizationName>
+        <organizationalUnitName>@ml.ssl-certificate-organizationalUnitName</organizationalUnitName>
+        <emailAddress>@ml.ssl-certificate-emailAddress</emailAddress>
+      </certificate>
+    }
+  end
 
   def build_config(config_file)
     config = File.read(config_file)
 
     # Build the triggers db if it is provided
     if @properties['ml.triggers-db'].present?
+      
       if @properties['ml.triggers-db'] != @properties['ml.app-modules-db']
-        config.gsub!("@ml.triggers-db-xml",
-        %Q{
-        <database>
-          <database-name>@ml.triggers-db</database-name>
-          <forests>
-            <forest-id name="@ml.triggers-db"/>
-          </forests>
-        </database>
-        })
-
-        config.gsub!("@ml.triggers-assignment",
-        %Q{
-          <assignment>
-            <forest-name>@ml.triggers-db</forest-name>
-          </assignment>
-        })
+        config.gsub!("@ml.triggers-db-xml", triggers_db_xml)
+        config.gsub!("@ml.triggers-assignment", triggers_assignment)
       else
         config.gsub!("@ml.triggers-db-xml", "")
         config.gsub!("@ml.triggers-assignment", "")
       end
 
       config.gsub!("@ml.triggers-mapping",
-      %Q{
-      <triggers-database name="@ml.triggers-db"/>
-      })
+        %Q{
+        <triggers-database name="@ml.triggers-db"/>
+        })
+      
     else
       config.gsub!("@ml.triggers-db-xml", "")
       config.gsub!("@ml.triggers-assignment", "")
       config.gsub!("@ml.triggers-mapping", "")
     end
 
+    if @properties['ml.xcc-port'].present? and @properties['ml.install-xcc'] != 'false'
+      config.gsub!("@ml.xdbc-server", xdbc_server)
+    else
+      config.gsub!("@ml.xdbc-server", "")
+    end
 
-    config.gsub!("@ml.xdbc-server",
-      %Q{
-      <xdbc-server>
-        <xdbc-server-name>@ml.app-name-xcc</xdbc-server-name>
-        <port>@ml.xcc-port</port>
-        <database name="@ml.content-db"/>
-        <modules name="@ml.modules-db"/>
-        <authentication>digest</authentication>
-      </xdbc-server>
-      }) if @properties['ml.xcc-port'].present? and @properties['ml.install-xcc'] != 'false'
-
-    config.gsub!("@ml.odbc-server",
-      %Q{
-      <odbc-server>
-        <odbc-server-name>@ml.app-name-odbc</odbc-server-name>
-        <port>@ml.odbc-port</port>
-        <database name="@ml.content-db"/>
-        <modules name="@ml.modules-db"/>
-        <authentication>digest</authentication>
-      </odbc-server>
-      }) if @properties['ml.odbc-port'].present?
+    if @properties['ml.odbc-port'].present?
+      config.gsub!("@ml.odbc-server", odbc_server)
+    else
+      config.gsub!("@ml.odbc-server", "")
+    end
 
     # Build the schemas db if it is provided
     if @properties['ml.schemas-db'].present?
+      
       if @properties['ml.schemas-db'] != @properties['ml.app-modules-db']
-        config.gsub!("@ml.schemas-db-xml",
-        %Q{
-        <database>
-          <database-name>@ml.schemas-db</database-name>
-          <forests>
-            <forest-id name="@ml.schemas-db"/>
-          </forests>
-        </database>
-        })
-
-        config.gsub!("@ml.schemas-assignment",
-        %Q{
-          <assignment>
-            <forest-name>@ml.schemas-db</forest-name>
-          </assignment>
-        })
+        config.gsub!("@ml.schemas-db-xml", schemas_db_xml)
+        config.gsub!("@ml.schemas-assignment", schemas_assignment)
       else
         config.gsub!("@ml.schemas-db-xml", "")
         config.gsub!("@ml.schemas-assignment", "")
       end
 
       config.gsub!("@ml.schemas-mapping",
-      %Q{
-      <schema-database name="@ml.schemas-db"/>
-      })
+        %Q{
+        <schema-database name="@ml.schemas-db"/>
+        })
 
     else
       config.gsub!("@ml.schemas-db-xml", "")
@@ -2049,40 +2199,11 @@ private
     if @properties['ml.test-content-db'].present? &&
        @properties['ml.test-port'].present? &&
        @environment != "prod"
-      config.gsub!("@ml.test-content-db-xml",
-      %Q{
-        <database import="@ml.content-db">
-          <database-name>@ml.test-content-db</database-name>
-          <forests>
-            <forest-id name="@ml.test-content-db"/>
-          </forests>
-        </database>
-      })
 
-      config.gsub!("@ml.test-content-db-assignment",
-      %Q{
-        <assignment>
-          <forest-name>@ml.test-content-db</forest-name>
-        </assignment>
-      })
-
-      # The modules database for the test server can be different from the app one
-      test_modules_db = conditional_prop('ml.test-modules-db', 'ml.app-modules-db')
-      test_auth_method = conditional_prop('ml.test-authentication-method', 'ml.authentication-method')
-      test_default_user = conditional_prop('ml.test-default-user', 'ml.default-user')
-
-      config.gsub!("@ml.test-appserver",
-      %Q{
-        <http-server import="@ml.app-name">
-          <http-server-name>@ml.app-name-test</http-server-name>
-          <port>@ml.test-port</port>
-          <database name="@ml.test-content-db"/>
-          <modules name="#{test_modules_db}"/>
-          <authentication>#{test_auth_method}</authentication>
-          <default-user name="#{test_default_user}"/>
-        </http-server>
-      })
-
+      config.gsub!("@ml.test-content-db-xml", test_content_db_xml)
+      config.gsub!("@ml.test-content-db-assignment", test_content_db_assignment)
+      config.gsub!("@ml.test-appserver", test_appserver)
+      
     else
       config.gsub!("@ml.test-content-db-xml", "")
       config.gsub!("@ml.test-content-db-assignment", "")
@@ -2092,73 +2213,28 @@ private
     # Build the test modules db if it is different from the app modules db
     if @properties['ml.test-modules-db'].present? &&
        @properties['ml.test-modules-db'] != @properties['ml.app-modules-db']
-      config.gsub!("@ml.test-modules-db-xml",
-      %Q{
-        <database import="@ml.modules-db">
-          <database-name>@ml.test-modules-db</database-name>
-          <forests>
-            <forest-id name="@ml.test-modules-db"/>
-          </forests>
-        </database>
-      })
-
-      config.gsub!("@ml.test-modules-db-assignment",
-      %Q{
-        <assignment>
-          <forest-name>@ml.test-modules-db</forest-name>
-        </assignment>
-      })
+       
+      config.gsub!("@ml.test-modules-db-xml", test_modules_db_xml)
+      config.gsub!("@ml.test-modules-db-assignment", test_modules_db_assignment)
+      
     else
       config.gsub!("@ml.test-modules-db-xml", "")
+      config.gsub!("@ml.test-modules-db-assignment", "")
     end
 
     if @properties['ml.rest-port'].present?
+
       # Set up a REST API app server, distinct from the main application.
-
-      rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
-      rest_auth_method = conditional_prop('ml.rest-authentication-method', 'ml.authentication-method')
-      rest_default_user = conditional_prop('ml.rest-default-user', 'ml.default-user')
-
-      rest_url_rewriter = nil
-      if @properties['ml.rest-url-rewriter'].present?
-        rest_url_rewriter = @properties['ml.rest-url-rewriter']
-      elsif @server_version > 7
-        rest_url_rewriter = '/MarkLogic/rest-api/rewriter.xml'
-      else 
-        rest_url_rewriter = '/MarkLogic/rest-api/rewriter.xqy'
+      config.gsub!("@ml.rest-appserver", rest_appserver)
+      
+      if @properties['ml.rest-modules-db'].present? &&
+         @properties['ml.rest-modules-db'] != @properties['ml.app-modules-db']
+         config.gsub!("@ml.rest-modules-db-xml", rest_modules_db_xml)
+         config.gsub!("@ml.rest-modules-db-assignment", rest_modules_db_assignment)
+      else
+        config.gsub!("@ml.rest-modules-db-xml", "")
+        config.gsub!("@ml.rest-modules-db-assignment", "")
       end
-
-      config.gsub!("@ml.rest-appserver",
-      %Q{
-        <http-server import="@ml.app-name">
-          <http-server-name>@ml.app-name-rest</http-server-name>
-          <port>@ml.rest-port</port>
-          <database name="@ml.content-db"/>
-          <modules name="#{rest_modules_db}"/>
-          <authentication>#{rest_auth_method}</authentication>
-          <default-user name="#{rest_default_user}"/>
-          <url-rewriter>#{rest_url_rewriter}</url-rewriter>
-          <error-handler>/MarkLogic/rest-api/error-handler.xqy</error-handler>
-          <rewrite-resolves-globally>true</rewrite-resolves-globally>
-        </http-server>
-      })
-
-      config.gsub!("@ml.rest-modules-db-xml",
-      %Q{
-        <database>
-          <database-name>#{rest_modules_db}</database-name>
-          <forests>
-            <forest-id name="#{rest_modules_db}"/>
-          </forests>
-        </database>
-      })
-
-      config.gsub!("@ml.rest-modules-db-assignment",
-      %Q{
-        <assignment>
-          <forest-name>#{rest_modules_db}</forest-name>
-        </assignment>
-      })
 
     else
       config.gsub!("@ml.rest-appserver", "")
@@ -2166,10 +2242,14 @@ private
       config.gsub!("@ml.rest-modules-db-assignment", "")
     end
 
-    config.gsub!("@ml.forest-data-dir-xml",
-      %Q{
-        <data-directory>@ml.forest-data-dir</data-directory>
-      }) if @properties['ml.forest-data-dir'].present?
+    if @properties['ml.forest-data-dir'].present?
+      config.gsub!("@ml.forest-data-dir-xml",
+        %Q{
+          <data-directory>@ml.forest-data-dir</data-directory>
+        })
+    else
+      config.gsub!("@ml.forest-data-dir-xml", "")
+    end
 
     if !@properties['ml.rewrite-resolves-globally'].nil?
       config.gsub!("@ml.rewrite-resolves-globally",
@@ -2184,6 +2264,13 @@ private
     else
       config.gsub!("@ml.rewrite-resolves-globally", "")
     end
+    
+    if @properties['ml.ssl-certificate-template'].present?
+      config.gsub!("@ml.ssl-certificate-xml", ssl_certificate_xml)
+    else
+      config.gsub!("@ml.ssl-certificate-xml", "")
+    end
+    
     @properties.sort {|x,y| y <=> x}.each do |k, v|
       config.gsub!("@#{k}", v)
     end

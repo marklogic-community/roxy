@@ -391,6 +391,19 @@ declare function setup:get-rollback-config()
   }
 };
 
+declare function setup:suppress-comments($nodes) {
+  for $node in $nodes
+  return
+    typeswitch ($node)
+    case element() return
+      element { fn:node-name($node) } {
+        $node/@*,
+        setup:suppress-comments($node/node())
+      }
+    case comment() return ()
+    default return $node
+};
+
 (: for backwards-compatibility :)
 declare function setup:rewrite-config($import-configs as element(configuration)+) as element(configuration)
 {
@@ -401,8 +414,8 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
       <groups xmlns="http://marklogic.com/xdmp/group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">{
         let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
-          ($import-configs/(gr:http-servers/gr:http-server | gr:xdbc-servers/gr:xdbc-server |
-            gr:odbc-servers/gr:odbc-server | gr:task-server | db:databases/db:database)/@group, $default-group))
+          ($import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
+            gr:odbc-servers/gr:odbc-server, gr:task-server, db:databases/db:database)/@group, $default-group))
         let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = $default-group and fn:empty(@group))]
         let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
         let $odbc-servers := $import-configs/gr:odbc-servers/gr:odbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
@@ -432,7 +445,7 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
           </group>
       }</groups>,
     
-      $import-configs/(node() except (gr:groups | gr:http-servers | gr:xdbc-servers | gr:odbc-servers | gr:task-server))
+      $import-configs/(node() except (gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server))
     }
   
   (: Check config on group consistency! :)
@@ -446,7 +459,7 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
         fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!"))
 
   (: all good :)
-  return $config
+  return setup:suppress-comments($config)
 };
 
 declare function setup:do-setup($import-config as element(configuration)+) as item()*
@@ -609,7 +622,7 @@ declare function setup:do-wipe($import-config as element(configuration)+) as ite
         let $all-replica-names as xs:string* := $import-config/as:assignments/as:assignment/as:replica-names/as:replica-name
         for $assignment in $import-config/as:assignments/as:assignment[fn:not(as:forest-name = $all-replica-names)]
         let $forest-name := $assignment/as:forest-name
-        let $db-config := $import-config/db:databases/db:database[db:forests/db:forest-id/@name = $forest-name]
+        let $db-config := setup:get-databases-from-config($import-config)[db:forests/db:forest-id/@name = $forest-name]
         let $group-id := try { setup:get-group($db-config) } catch ($ignore) {}
         where $group-id
         return
