@@ -3508,7 +3508,8 @@ declare function setup:get-http-appservers-from-config(
       return
         element gr:http-server
         {
-          $server/@*[fn:not(fn:local-name(.) = "import")],
+          attribute group { setup:get-group-name($server) },
+          $server/(@* except (@import, @group)),
           $imported-http/@*[fn:not(fn:local-name(.) = $server/@*/fn:local-name(.))],
           $server/*,
           let $ignore := $server/*/fn:node-name(.)
@@ -5626,7 +5627,8 @@ declare function setup:get-databases-from-config(
       return
         element db:database
         {
-          $db/@*[fn:not(fn:local-name(.) = "import")],
+          attribute group {setup:get-group-name($db)},
+          $db/(@* except (@import, @group)),
           $imported-db/@*[fn:not(fn:local-name(.) = $db/@*/fn:local-name(.))],
           $db/*,
           let $ignore := $db/*/fn:node-name(.)
@@ -5791,19 +5793,24 @@ declare function setup:create-ssl-certificate-templates($import-config as elemen
 
 };
 
-declare function setup:get-group($server-config as element()) as xs:unsignedLong
+declare function setup:get-group-name($server-config as element()) as xs:string
 {
   (: app servers :)
   if ($server-config/ancestor::gr:group/gr:group-name) then
-    xdmp:group($server-config/ancestor::gr:group/gr:group-name)
+    $server-config/ancestor::gr:group/gr:group-name
   (: databases :)
   else if ($server-config/@group) then
-    xdmp:group($server-config/@group)
+    $server-config/@group
   (: revert to defaults :)
   else if ($server-config/ancestor::*:configuration/@default-group) then
-    xdmp:group($server-config/ancestor::*:configuration/@default-group)
+    $server-config/ancestor::*:configuration/@default-group
   else
-    xdmp:group("Default")
+    "Default"
+};
+
+declare function setup:get-group($server-config as element()) as xs:unsignedLong
+{
+    xdmp:group(setup:get-group-name($server-config))
 };
 
 declare function setup:get-host-group($host-config as element(ho:host)) as xs:unsignedLong
