@@ -1449,6 +1449,26 @@ private
     load_css_as_binary = @properties['ml.load-css-as-binary']
     folders_to_ignore = @properties['ml.ignore-folders']
 
+    if @properties['ml.save-commit-info'] == 'true'
+      
+      if File.exists? ".svn"
+        svn_info_file = File.new("#{xquery_dir}/svn-info.xml", "w")
+        svn_info_file.puts(`svn info --xml`)
+        svn_info_file.close
+        @logger.info "Saved commit info as #{xquery_dir}/svn-info.xml"
+      
+      elsif File.exists? ".git"
+        git_info_file = File.new("#{xquery_dir}/git-info.xml", "w")
+        git_info_file.puts(`git log -1 --pretty=format:"<entry><id>%H</id><author>%an</author><date>%ai</date><subject>%s</subject><body>%b</body></entry>"`)
+        git_info_file.close
+        @logger.info "Saved commit info as #{xquery_dir}/git-info.xml"
+      
+      else
+        @logger.warn "Only SVN and GIT supported for save-commit-info"
+      end
+    
+    end
+
     modules_databases.each do |dest_db|
       if dest_db == "filesystem"
         logger.info "Skipping deployment of src to #{dest_db}.."
