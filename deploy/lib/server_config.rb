@@ -532,6 +532,72 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     return true
   end
 
+  def merge
+    what = ARGV.shift
+    raise HelpException.new("merge", "Missing WHAT") unless what
+
+    case what
+      when 'content'
+        merge_db(@properties['ml.content-db'])
+      else
+        raise HelpException.new("merge", "Invalid WHAT")
+    end
+    return true
+  end
+  
+  def merge_db(target_db)
+    logger.info "Merging #{target_db} on #{@hostname}"
+
+    r = execute_query %Q{
+      xdmp:merge(
+      <options xmlns="xdmp:merge">
+        <merge-timestamp>{xdmp:request-timestamp()}</merge-timestamp>
+      </options>)
+    },
+    { :db_name => target_db }
+    logger.debug "code: #{r.code.to_i}"
+
+    r.body = parse_json(r.body)
+    logger.info r.body
+  end
+
+  def reindex
+    what = ARGV.shift
+    raise HelpException.new("reindex", "Missing WHAT") unless what
+
+    case what
+      when 'content'
+        reindex_db(@properties['ml.content-db'])
+      else
+        raise HelpException.new("reindex", "Invalid WHAT")
+    end
+    return true
+  end
+  
+  def reindex_db(target_db)
+    logger.info "Reindexing #{target_db} on #{@hostname}"
+
+    r = execute_query %Q{
+      xquery version "1.0-ml";
+
+      import module namespace admin = "http://marklogic.com/xdmp/admin" 
+        at "/MarkLogic/admin.xqy";
+
+      admin:save-configuration-without-restart(
+        admin:database-set-reindexer-timestamp(
+          admin:get-configuration(), 
+          xdmp:database("#{target_db}"),
+          xdmp:request-timestamp()
+        )
+      )
+    },
+    { :db_name => target_db }
+    logger.debug "code: #{r.code.to_i}"
+
+    r.body = parse_json(r.body)
+    logger.info r.body
+  end
+
   def config
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
     r = execute_query %Q{
