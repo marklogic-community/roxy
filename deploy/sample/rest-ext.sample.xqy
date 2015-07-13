@@ -3,6 +3,7 @@ xquery version "1.0-ml";
 module namespace yourNSAlias = "http://marklogic.com/rest-api/resource/extension";
 
 declare namespace roxy = "http://marklogic.com/roxy";
+declare namespace rapi = "http://marklogic.com/rest-api";
 
 (: 
  : To add parameters to the functions, specify them in the params annotations. 
@@ -44,6 +45,7 @@ function yourNSAlias:put(
  :)
 declare 
 %roxy:params("")
+%rapi:transaction-mode("update")
 function yourNSAlias:post(
     $context as map:map,
     $params  as map:map,
