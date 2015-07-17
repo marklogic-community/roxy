@@ -514,10 +514,12 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   end
 
   def restart
-    group = ARGV.shift
-    # Exclude any argument passed from command line.
-    if group && group.index("-") == 0
-      group = nil
+    group = nil
+    ARGV.each do |arg|
+      # Exclude any argument passed from command line.
+      if ! arg.match("^-")
+        group = arg
+      end
     end
 
     if group && group == "cluster"
@@ -525,7 +527,10 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     elsif group
       logger.info "Restarting MarkLogic Server group #{group}"
     else
-      logger.info "Restarting MarkLogic Server group of #{@hostname}"
+      # restarting partial cluster unsafe when working with multiple groups
+      #logger.info "Restarting MarkLogic Server group of #{@hostname}"
+      logger.info "Restarting MarkLogic Server cluster of #{@hostname}"
+      group = "cluster"
     end
     logger.debug "this: #{self}"
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
