@@ -1855,7 +1855,37 @@ declare function setup:add-range-element-indexes(
   $db-config as element(db:database)) as element(configuration)
 {
   admin:database-add-range-element-index(setup:remove-existing-range-element-indexes($admin-config, $database),
-    $database, $db-config/db:range-element-indexes/db:range-element-index)
+    $database,
+    setup:validated-range-element-indexes($db-config/db:range-element-indexes/db:range-element-index))
+};      
+        
+declare function setup:validated-range-element-indexes(     
+  $index-configs as element(db:range-element-index)*) as element(db:range-element-index)*     
+{
+  let $function := xdmp:function(xs:QName("admin:database-range-element-index"))      
+  let $validated-index-configs :=
+    for $index-config in $index-configs
+      return      
+        if (setup:at-least-version("6.0-1")) then     
+          xdmp:apply(     
+            $function,        
+            $index-config/db:scalar-type,     
+            $index-config/db:namespace-uri,       
+            $index-config/db:localname/fn:string(.),      
+            fn:string($index-config/db:collation[../db:scalar-type = 'string']),      
+            ($index-config/db:range-value-positions/xs:boolean(.), false())[1],       
+            ($index-config/db:invalid-values, "reject")[1]        
+          )       
+        else      
+          xdmp:apply(     
+            $function,        
+            $index-config/db:scalar-type,     
+            $index-config/db:namespace-uri,       
+            $index-config/db:localname/fn:string(.),      
+            fn:string($index-config/db:collation[../db:scalar-type = 'string']),      
+            ($index-config/db:range-value-positions/xs:boolean(.), false())[1]        
+          )
+  return $validated-index-configs       
 };
 
 declare function setup:validate-range-element-indexes(
@@ -1885,7 +1915,41 @@ declare function setup:add-range-element-attribute-indexes(
   $db-config as element(db:database)) as element(configuration)
 {
   admin:database-add-range-element-attribute-index(setup:remove-existing-range-element-attribute-indexes($admin-config, $database),
-    $database, $db-config/db:range-element-attribute-indexes/db:range-element-attribute-index)
+    $database,
+    setup:validated-range-element-attribute-indexes($db-config/db:range-element-attribute-indexes/db:range-element-attribute-index))
+};
+
+declare function setup:validated-range-element-attribute-indexes(
+  $index-configs as element(db:range-element-attribute-index)*) as element(db:range-element-attribute-index)*
+{
+  let $function := xdmp:function(xs:QName("admin:database-range-element-attribute-index"))
+  let $validated-index-configs :=
+    for $index-config in $index-configs
+      return
+        if (setup:at-least-version("6.0-1")) then
+          xdmp:apply(
+            $function,
+            $index-config/db:scalar-type,
+            $index-config/db:parent-namespace-uri,
+            $index-config/db:parent-localname/fn:string(.),
+            $index-config/db:namespace-uri,
+            $index-config/db:localname/fn:string(.),
+            fn:string($index-config/db:collation[../db:scalar-type = 'string']),
+            ($index-config/db:range-value-positions/xs:boolean(.), false())[1],
+            ($index-config/db:invalid-values, "reject")[1]
+          )
+        else
+          xdmp:apply(
+            $function,
+            $index-config/db:scalar-type,
+            $index-config/db:parent-namespace-uri,
+            $index-config/db:parent-localname/fn:string(.),
+            $index-config/db:namespace-uri,
+            $index-config/db:localname/fn:string(.),
+            fn:string($index-config/db:collation[../db:scalar-type = 'string']),
+            ($index-config/db:range-value-positions/xs:boolean(.), false())[1]
+          )
+  return $validated-index-configs
 };
 
 declare function setup:validate-range-element-attribute-indexes(
@@ -1932,7 +1996,21 @@ declare function setup:add-path-namespaces(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-path-namespace($admin-config, $database, $db-config/db:path-namespaces/db:path-namespace)
+  if ($db-config/db:path-namespaces/db:path-namespace) then
+    xdmp:eval('
+      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+      declare namespace db="http://marklogic.com/xdmp/database";
+      declare variable $admin-config external;
+      declare variable $database external;
+      declare variable $db-config external;
+      admin:database-add-path-namespace($admin-config, $database, $db-config/db:path-namespaces/db:path-namespace)',
+      (
+        xs:QName("admin-config"), $admin-config,
+        xs:QName("database"), $database,
+        xs:QName("db-config"), $db-config
+      ))
+  else
+    $admin-config  
 };
 
 declare function setup:validate-path-namespaces(
@@ -1995,7 +2073,21 @@ declare function setup:add-range-path-indexes(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-range-path-index($admin-config, $database, $db-config/db:range-path-indexes/db:range-path-index)
+  if ($db-config/db:range-path-indexes/db:range-path-index) then
+    xdmp:eval('
+      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+      declare namespace db="http://marklogic.com/xdmp/database";
+      declare variable $admin-config external;
+      declare variable $database external;
+      declare variable $db-config external;
+      admin:database-add-range-path-index($admin-config, $database, $db-config/db:range-path-indexes/db:range-path-index)',
+      (
+        xs:QName("admin-config"), $admin-config,
+        xs:QName("database"), $database,
+        xs:QName("db-config"), $db-config
+      ))
+  else
+    $admin-config 
 };
 
 declare function setup:validate-range-path-indexes(
@@ -2211,9 +2303,31 @@ declare function setup:add-range-field-indexes(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-range-field-index(setup:remove-existing-range-field-indexes($admin-config, $database),
+  setup:add-range-field-indexes-helper(setup:remove-existing-range-field-indexes($admin-config, $database),
     $database, 
-    $db-config/db:range-field-indexes/db:range-field-index)
+    $db-config)
+};
+
+declare function setup:add-range-field-indexes-helper(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database)) as element(configuration)
+{
+  if ($db-config/db:range-field-indexes/db:range-field-index) then
+    xdmp:eval('
+      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+      declare namespace db="http://marklogic.com/xdmp/database";
+      declare variable $admin-config external;
+      declare variable $database external;
+      declare variable $db-config external;
+      admin:database-add-range-field-index($admin-config, $database, $db-config/db:range-field-indexes/db:range-field-index)',
+      (
+        xs:QName("admin-config"), $admin-config,
+        xs:QName("database"), $database,
+        xs:QName("db-config"), $db-config
+      ))
+  else
+    $admin-config 
 };
 
 declare function setup:remove-existing-geospatial-element-indexes(
