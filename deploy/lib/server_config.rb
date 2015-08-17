@@ -1233,26 +1233,27 @@ In order to proceed please type: #{expected_response}
       # send the target db, and the destination directory
       save_files_to_fs(target_db, "#{tmp_dir}/src")
 
-	  # check if this is a REST project to capture REST configuration
-	  if (port != nil)
+      # check if this is a REST project to capture REST configuration
+      if (port != nil)
 
-		  # make sure that REST	options directory exists
-		  if Dir.exists? @properties['ml.rest-options.dir']
+        # make sure that REST	options directory exists
+        if Dir.exists? @properties['ml.rest-options.dir']
 
-			# set up the options
-			FileUtils.cp_r(
-			  "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
-			  @properties['ml.rest-options.dir']
-			)
-			FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
+          # set up the options
+          FileUtils.cp_r(
+            "#{tmp_dir}/src/#{@properties['ml.group']}/" + target_db.sub("-modules", "") + "/rest-api/.",
+            @properties['ml.rest-options.dir']
+          )
+          FileUtils.rm_rf("#{tmp_dir}/src/#{@properties['ml.group']}/")
 
-			# Make sure REST properties are in accurate format, so you can directly deploy them again..
-			r = go("http://#{@hostname}:#{port}/v1/config/properties", "get")
-			r.body = parse_json(r.body)
-			File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
-		  else
-			raise HelpException.new("capture", "attempting --app-builder REST capture into non-REST project, you may try capture with --modules-db to only capture modules without the REST configuration")
-		  end
+          # Make sure REST properties are in accurate format, so you can directly deploy them again..
+          r = go("http://#{@hostname}:#{port}/v1/config/properties", "get")
+          r.body = parse_json(r.body)
+          File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
+
+        else
+          raise HelpException.new("capture", "attempting --app-builder REST capture into non-REST project, you may try capture with --modules-db to only capture modules without the REST configuration")
+        end
       end
 
       # If we have an application/custom directory, we've probably done a capture
@@ -1294,9 +1295,18 @@ private
     dirs = execute_query %Q{
       xquery version "1.0-ml";
 
-      for $uri in cts:uris()
-      order by $uri
-      return $uri
+      try {
+        for $uri in cts:uris()
+        order by $uri
+        return $uri
+        
+      } catch ($ignore) {
+        (: In case URI lexicon has not been enabled :)
+        for $doc in collection()
+        let $uri := xdmp:node-uri($doc)
+        order by $uri
+        return $uri
+      }
     },
     { :db_name => target_db }
 
@@ -1308,16 +1318,16 @@ private
     if ['5', '6'].include? @properties['ml.server-version']
       # In ML5 and ML6, the response was a bunch of text. Split on the newlines.
       dirs.body.split(/\r?\n/).each do |uri|
-        if (uri.end_with?("/"))
-          # create the directory so that it will exist when we try to save files
-          Dir.mkdir("#{target_dir}" + uri)
-        else
-          r = execute_query %Q{
-            fn:doc("#{uri}")
-          },
-          { :db_name => target_db }
+        r = execute_query %Q{
+          fn:doc("#{uri}")
+        },
+        { :db_name => target_db }
 
-          File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(r.body) }
+        path = "#{target_dir}#{uri}"
+        parentdir = File.dirname path
+        FileUtils.mkdir_p(parentdir) unless File.exists?(parentdir)
+        if ! uri.end_with?("/")
+          File.open("#{path}", 'wb') { |file| file.write(r.body) }
         end
       end
     else
@@ -1330,14 +1340,14 @@ private
 
       JSON.parse(dirs.body).each do |item|
         uri = item['result']
-        if (uri.end_with?("/"))
-          # create the directory so that it will exist when we try to save files
-          Dir.mkdir("#{target_dir}" + uri)
-        else
-		  r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{uri}", "get")
-		  file_content = r.body
-		  File.open("#{target_dir}#{uri}", 'wb') { |file| file.write(file_content) }
-		end
+        r = go("#{@protocol}://#{@hostname}:#{@bootstrap_port}/qconsole/endpoints/view.xqy?dbid=#{db_id}&uri=#{URI.escape(uri).gsub(/\$/, '%24')}", "get")
+
+        path = "#{target_dir}#{uri}"
+        parentdir = File.dirname path
+        FileUtils.mkdir_p(parentdir) unless File.exists?(parentdir)
+        if ! uri.end_with?("/")
+          File.open("#{path}", 'wb') { |file| file.write(r.body) }
+        end
       end
     end
   end
