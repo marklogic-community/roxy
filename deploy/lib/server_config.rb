@@ -921,6 +921,8 @@ In order to proceed please type: #{expected_response}
   def test
     if @environment == "prod"
       logger.error "There is no Test database on the Production server"
+    elsif ! @properties["ml.test-port"] || ! @properties["ml.test-content-db"]
+      logger.error "Testing is not properly configured"
     else
       if find_arg(['--skip-suite-teardown']).present?
         suiteTearDown = "&runsuiteteardown=false"
@@ -1429,13 +1431,13 @@ private
     @properties['ml.test-content-db'].present? &&
     @properties['ml.test-port'].present? &&
     !@properties['ml.do-not-deploy-tests'].split(",").include?(@environment) &&
-    @properties['ml.test-modules-db'] == target_db
+    conditional_prop('ml.test-modules-db', 'ml.app-modules-db') == target_db
   end
 
   def modules_databases
-    dbs = [@properties['ml.modules-db']]
+    dbs = [@properties['ml.app-modules-db']]
     dbs << @properties['ml.test-modules-db'] if @properties['ml.test-modules-db'].present? &&
-                                                @properties['ml.test-modules-db'] != @properties['ml.modules-db']
+                                                @properties['ml.test-modules-db'] != @properties['ml.app-modules-db']
     dbs
   end
 
