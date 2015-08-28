@@ -32,8 +32,10 @@ class Help
         corb          Runs Corb against the given environment
         deploy        Loads modules, data, cpf configuration into the given environment
         load          Loads a file or folder into the given environment
+        merge         Merges a database on the given environment
         mlcp          Runs MLCP against the given environment
         recordloader  Runs RecordLoader against the given environment
+        reindex       Reindexes a database on the given environment
         settings      Lists all supported settings for a given environment
         test          Runs xquery unit tests against the given environment
         xqsync        Runs XQSync against the given environment
@@ -263,6 +265,32 @@ class Help
                     if a name is specified, then only that extension will be deployed
         transform   # deploys your rest extensions to the server in the given environment
                     if a name is specified, then only that transform will be deployed
+    DOC
+  end
+
+  def self.merge
+    <<-DOC.strip_heredoc
+      Usage: ml {env} merge WHAT [options]
+
+      General options:
+        -v, [--verbose]  # Verbose output
+
+      Please choose a WHAT below.
+
+        content     # Merges your content db in the given environment
+    DOC
+  end
+
+  def self.reindex
+    <<-DOC.strip_heredoc
+      Usage: ml {env} reindex WHAT [options]
+
+      General options:
+        -v, [--verbose]  # Verbose output
+
+      Please choose a WHAT below.
+
+        content     # Reindexes your content db in the given environment
     DOC
   end
 
