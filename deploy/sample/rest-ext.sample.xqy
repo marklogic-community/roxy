@@ -12,12 +12,13 @@ declare namespace rapi = "http://marklogic.com/rest-api";
  : This means that the get function will take two parameters, a string and an int.
  :
  : To report errors in your extension, use fn:error(). For details, see
- : http://docs.marklogic.com/6.0/guide/rest-dev/transforms#id_50497, but here's
+ : http://docs.marklogic.com/guide/rest-dev/transforms#id_50497, but here's
  : an example from the docs:
  : fn:error(
  :   (),
- :   "RESTAPI-EXTNERR",
- :   ("415","Raven","xml",xdmp:quote(<word>nevermore</word>)))
+ :   "RESTAPI-SRVEXERR",
+ :   ("415", "tsk tsk", "whoops")
+ : )
  :)
 
 (:
