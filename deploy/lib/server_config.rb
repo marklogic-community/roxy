@@ -1435,9 +1435,9 @@ private
       # TODO: take content-forests-per-host into account properly, just taking first by default
       forests = quote_arglist(find_arg(['--forests']) || "#{@properties["ml.content-db"]},#{@properties["ml.content-db"]}-001-1,#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]},,#{@properties["ml.app-modules-db"]}")
       # TODO: include dav, xdbc, odbc servers?
-      servers = quote_arglist(find_arg(['--servers']) || "#{@properties["ml.app-name"]}")
+      servers = quote_arglist(find_arg(['--servers']) || "#{@properties["ml.app-name"]},#{@properties["ml.app-name"]}-xdbc,#{@properties["ml.app-name"]}-odbc,#{@properties["ml.app-name"]}-test,#{@properties["ml.app-name"]}-webdav")
       mimes = quote_arglist(find_arg(['--mime-types']) || "##none##")
-      users = quote_arglist(find_arg(['--users']) || "#{@properties["ml.app-name-user"]},#{@properties["ml.default-user"]}")
+      users = quote_arglist(find_arg(['--users']) || "#{@properties["ml.app-name"]}-user,#{@properties["ml.default-user"]}")
       roles = quote_arglist(find_arg(['--roles']) || "#{@properties["ml.app-role"]}")
     end
 
