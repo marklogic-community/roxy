@@ -5,8 +5,8 @@ module namespace yourNSAlias = "http://marklogic.com/rest-api/resource/extension
 declare namespace roxy = "http://marklogic.com/roxy";
 declare namespace rapi = "http://marklogic.com/rest-api";
 
-(: 
- : To add parameters to the functions, specify them in the params annotations. 
+(:
+ : To add parameters to the functions, specify them in the params annotations.
  : Example
  :   declare %roxy:params("uri=xs:string", "priority=xs:int") yourNSAlias:get(...)
  : This means that the get function will take two parameters, a string and an int.
@@ -22,7 +22,7 @@ function yourNSAlias:get(
 ) as document-node()*
 {
   map:put($context, "output-types", "application/xml"),
-  xdmp:set-response-code(200, "OK"),
+  map:put($context, "output-status", (200, "OK")),
   document { "GET called on the ext service extension" }
 };
 
@@ -37,7 +37,7 @@ function yourNSAlias:put(
 ) as document-node()?
 {
   map:put($context, "output-types", "application/xml"),
-  xdmp:set-response-code(200, "OK"),
+  map:put($context, "output-status", (201, "Created")),
   document { "PUT called on the ext service extension" }
 };
 
@@ -53,7 +53,7 @@ function yourNSAlias:post(
 ) as document-node()*
 {
   map:put($context, "output-types", "application/xml"),
-  xdmp:set-response-code(200, "OK"),
+  map:put($context, "output-status", (201, "Created")),
   document { "POST called on the ext service extension" }
 };
 
@@ -67,6 +67,6 @@ function yourNSAlias:delete(
 ) as document-node()?
 {
   map:put($context, "output-types", "application/xml"),
-  xdmp:set-response-code(200, "OK"),
+  map:put($context, "output-status", (200, "OK")),
   document { "DELETE called on the ext service extension" }
 };
