@@ -1993,7 +1993,7 @@ private
       needs_rescan = false
       sub_me.each do |k,v|
         if v.match(/\$\{basedir\}/)
-          sub_me[k] = ServerConfig.expand_path(v.sub("${basedir}", Dir.pwd))
+          sub_me[k] = ServerConfig.expand_path(v.gsub("${basedir}", Dir.pwd))
         else
           matches = v.scan(/\$\{([^}]+)\}/)
           if matches.length > 0
@@ -2235,8 +2235,10 @@ private
     }
   end
 
-  def build_config(config_file)
-    config = File.read(config_file)
+  def build_config(config_files)
+    configs = []
+    config_files.split(",").each do |config_file|
+      config = File.read(config_file)
 
     # Build the triggers db if it is provided
     if @properties['ml.triggers-db'].present?
@@ -2376,7 +2378,10 @@ private
     config.gsub!("{", "{{")
     config.gsub!("}", "}}")
 
-    config
+      configs << config
+    end
+
+    %Q{(#{configs.join(", ")})}
   end
   
   def replace_properties(contents, name)
