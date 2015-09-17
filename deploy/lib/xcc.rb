@@ -27,13 +27,13 @@ module Net
     def set_path(path)
       @path = path
     end
-    
+
     alias_method :original_write_header, :write_header
-    
+
     def use_xcc(bool)
       @use_xcc = bool
     end
-    
+
     def write_header(sock, ver, path)
       if @use_xcc
         buf = "#{@method} #{path} XDBC/1.0\r\n"
@@ -80,6 +80,7 @@ module Roxy
     EXECUTE = "E"
     ER = ["E", "R"]
     RU = ["R", "U"]
+    ERU = ["E", "R", "U"]
   end
 
   class Xcc < MLClient

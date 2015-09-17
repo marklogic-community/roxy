@@ -870,7 +870,7 @@ In order to proceed please type: #{expected_response}
     batch = @environment != "local" && batch_override.blank? || batch_override.to_b
 
     options[:batch_commit] = batch
-    options[:permissions] = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER) unless options[:permissions]
+    options[:permissions] = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ERU) unless options[:permissions]
     xcc.load_files(File.expand_path(dir), options)
   end
 
