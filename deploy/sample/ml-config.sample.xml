@@ -169,6 +169,9 @@
         <forest-id name="${content-db}"/>
         @ml.forest-data-dir-xml
       </forests>
+      
+      <!-- See sample/default-docs-config.sample.xml for default settings and indexes of Documents database -->
+      
       <uri-lexicon>true</uri-lexicon>
       <collection-lexicon>true</collection-lexicon>
       <directory-creation>manual</directory-creation>
