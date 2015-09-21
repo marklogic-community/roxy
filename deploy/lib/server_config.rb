@@ -1672,7 +1672,7 @@ private
     transform = find_arg(['--file'])
     path = @properties['ml.rest-transforms.dir']
     if !transform.blank?
-      path += "/#{transformname}"
+      path += "/#{transform}"
     end
 
     # Deploy transforms to the REST API server
