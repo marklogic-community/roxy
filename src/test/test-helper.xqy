@@ -283,16 +283,60 @@ declare function helper:assert-throws-error($function as xdmp:function)
 
 declare function helper:assert-throws-error($function as xdmp:function, $error-code as xs:string?)
 {
-  helper:assert-throws-error($function, "no-params-please", $error-code)
+  helper:assert-throws-error($function, (), $error-code)
 };
 
-declare function helper:assert-throws-error($function as xdmp:function, $params as item()*, $error-code as xs:string?)
+declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $error-code as xs:string?)
 {
+  helper:assert-throws-error($function, $param1, (), $error-code)
+};
+
+declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $error-code as xs:string?)
+{
+  helper:assert-throws-error($function, $param1, $param2, (), $error-code)
+};
+
+declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $param3 as item()*, $error-code as xs:string?)
+{
+  helper:assert-throws-error($function, $param1, $param2, $param3, (), $error-code)
+};
+
+declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $param3 as item()*, $param4 as item()*, $error-code as xs:string?)
+{
+  helper:assert-throws-error($function, $param1, $param2, $param3, $param4, (), $error-code)
+};
+
+declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $param3 as item()*, $param4 as item()*, $param5 as item()*, $error-code as xs:string?)
+{
+  helper:assert-throws-error($function, $param1, $param2, $param3, $param4, $param5, (), $error-code)
+};
+
+declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $param3 as item()*, $param4 as item()*, $param5 as item()*, $param6 as item()*, $error-code as xs:string?)
+{
+  helper:assert-throws-error_($function, json:to-array((json:to-array($param1), json:to-array($param2), json:to-array($param3), json:to-array($param4), json:to-array($param5), json:to-array($param6))), $error-code)
+};
+
+declare private function helper:assert-throws-error_($function as xdmp:function, $params as json:array, $error-code as xs:string?)
+{
+  let $size := json:array-size($params)
   try {
-    if (fn:count($params) eq 1 and $params instance of xs:string and $params = "no-params-please") then
+    if ($size eq 0) then
       xdmp:apply($function)
-    else
-      xdmp:apply($function, $params),
+    else if ($size eq 1) then
+      xdmp:apply($function, json:array-values($params[1]))
+    else if ($size eq 2) then
+      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]))
+    else if ($size eq 3) then
+      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]))
+    else if ($size eq 4) then
+      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]))
+    else if ($size eq 5) then
+      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]), json:array-values($params[5]))
+    else if ($size eq 6) then
+      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]), json:array-values($params[5]), json:array-values($params[6]))
+    else (: arbitrary fall-back :)
+      xdmp:apply($function, json:array-values($params))
+    ,
     fn:error(xs:QName("ASSERT-THROWS-ERROR-FAILED"), "It did not throw an error")
   }
   catch($ex) {
