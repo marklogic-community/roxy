@@ -1208,8 +1208,13 @@ In order to proceed please type: #{expected_response}
     logger.debug runme
     logger.info ""
 
-    system runme
-
+    # PATH change only important for Windows, so always using ; and \
+    env_variables = {
+      "PATH" => "#{ENV['PATH']};#{mlcp_home}\\bin", 
+      "HADOOP_HOME" => mlcp_home
+    }
+    system(env_variables, runme)
+    
     logger.info ""
 
     ARGV.clear
