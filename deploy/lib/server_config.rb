@@ -23,6 +23,7 @@ require 'xcc'
 require 'MLClient'
 require 'date'
 require 'ml_rest'
+require 'yaml'
 
 class ExitException < Exception; end
 
@@ -2419,9 +2420,35 @@ private
     properties["environment"] = environment if environment
     properties["ml.environment"] = environment if environment
 
+    # Read deploy/{env}.properties
     env_properties_file = ServerConfig.expand_path("#{prop_file_location}/#{environment}.properties")
-
     properties.merge!(ServerConfig.load_properties(env_properties_file, "ml.")) if File.exists? env_properties_file
+
+    # Read {env}.json
+    json_properties_file = ServerConfig.expand_path("#{prop_file_location}/../#{environment}.json")
+    if File.exists? json_properties_file
+      #{
+      #  "ml-version": "8",
+      #  "ml-host": "ml8-ml1",
+      #  "ml-admin-user": "admin",
+      #  "ml-admin-pass": "admin",
+      #  "ml-app-user": "admin",
+      #  "ml-app-pass": "admin",
+      #  "ml-http-port": "8123",
+      #  "ml-xcc-port": "8124",
+      #  "node-port": "9123"
+      #}
+      json_props = YAML.load_file(json_properties_file) 
+      properties["ml.server-version"] = json_props["ml-version"]
+      properties["ml.#{environment}-server"] = json_props["ml-host"]
+      properties["ml.user"] = json_props["ml-admin-user"]
+      properties["ml.password"] = json_props["ml-admin-pass"]
+      properties["ml.default-user"] = json_props["ml-app-user"]
+      properties["ml.appuser-password"] = json_props["ml-app-pass"]
+      properties["ml.app-port"] = json_props["ml-http-port"]
+      properties["ml.xcc-port"] = json_props["ml-xcc-port"] || json_props["ml-http-port"]
+    end
+    properties["ml.install-xcc"] = "false" if properties["ml.app-port"] == properties["ml.xcc-port"]
 
     properties = ServerConfig.substitute_properties(properties, properties, "ml.")
 
