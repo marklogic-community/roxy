@@ -123,7 +123,7 @@ class MLClient
       raise ExitException.new("--no-prompt parameter prevents prompting for input")
     else
       print(*args)
-      gets.strip
+      STDIN.gets.strip
     end
   end
 
@@ -133,7 +133,7 @@ class MLClient
         raise ExitException.new("--no-prompt parameter prevents prompting for username")
       else
         print "Login for admin user: "
-        @ml_username = gets.chomp
+        @ml_username = STDIN.gets.chomp
       end
     end
     if (@ml_password == "") then

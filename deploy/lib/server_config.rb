@@ -305,7 +305,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       puts 'Required option --server-version=[version] not specified with valid value.
 
   What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
-      server_version = gets.chomp.to_i
+      server_version = STDIN.gets.chomp.to_i
       server_version = 8 if server_version == 0
       server_version
     end
@@ -321,7 +321,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       # TODO:
       # 3 field range index
       # 4 geospatial index
-      type = gets.chomp.to_i
+      type = STDIN.gets.chomp.to_i
       if type == 1
         build_element_index
       elsif type == 2
@@ -344,7 +344,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
         puts "#{i} #{t}"
         i += 1
       end
-      scalar = gets.chomp.to_i
+      scalar = STDIN.gets.chomp.to_i
       scalar_types[scalar - 1]
     end
   end
@@ -354,7 +354,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       raise ExitException.new("--no-prompt parameter prevents prompting for input")
     else
       puts "What is the collation URI (leave blank for the root collation)?"
-      collation = gets.chomp
+      collation = STDIN.gets.chomp
       collation = "http://marklogic.com/collation/" if collation.blank?
       collation
     end
@@ -365,7 +365,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       raise ExitException.new("--no-prompt parameter prevents prompting for input")
     else
       puts "Turn on range value positions? [y/N]"
-      positions = gets.chomp.downcase
+      positions = STDIN.gets.chomp.downcase
       if positions == "y"
         positions = "true"
       else
@@ -389,13 +389,13 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     else
       scalar_type = request_type
       puts "What is the parent element's namespace URI?"
-      p_uri = gets.chomp
+      p_uri = STDIN.gets.chomp
       puts "What is the parent element's localname?"
-      p_localname = gets.chomp
+      p_localname = STDIN.gets.chomp
       puts "What is the attribute's namespace URI?"
-      uri = gets.chomp
+      uri = STDIN.gets.chomp
       puts "What is the attribute's localname?"
-      localname = gets.chomp
+      localname = STDIN.gets.chomp
       collation = request_collation if scalar_type == "string"
       positions = request_range_value_positions
       index = "        <range-element-attribute-index>
@@ -410,7 +410,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
       properties = ServerConfig.properties
       puts "Add this index to #{properties["ml.config.file"]}? [y/N]\n" + index
-      approve = gets.chomp.downcase
+      approve = STDIN.gets.chomp.downcase
       if approve == "y"
         inject_index("<range-element-attribute-indexes>", index)
         puts "Index added"
@@ -424,9 +424,9 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     else
       scalar_type = request_type
       puts "What is the element's namespace URI?"
-      uri = gets.chomp
+      uri = STDIN.gets.chomp
       puts "What is the element's localname?"
-      localname = gets.chomp
+      localname = STDIN.gets.chomp
       collation = request_collation if scalar_type == "string" # string
       positions = request_range_value_positions
       index = "        <range-element-index>
@@ -438,7 +438,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
           </range-element-index>"
       properties = ServerConfig.properties
       puts "Add this index to #{properties["ml.config.file"]}? [y/N]\n" + index
-      approve = gets.chomp.downcase
+      approve = STDIN.gets.chomp.downcase
       if approve == "y"
         inject_index("<range-element-indexes>", index)
         puts "Index added"
@@ -736,7 +736,7 @@ In order to proceed please type: #{expected_response}
       if @@no_prompt
         raise ExitException.new("--no-prompt parameter prevents prompting for input")
       else
-        response = gets.chomp unless @@no_prompt
+        response = STDIN.gets.chomp unless @@no_prompt
         if response != expected_response
           logger.info "\nAborting wipe on #{@environment}"
           return
@@ -1219,12 +1219,12 @@ In order to proceed please type: #{expected_response}
       # ml will error on invalid environment
       # ask user for admin username and password
       puts "What is the admin username?"
-      user = gets.chomp
+      user = STDIN.gets.chomp
       puts "What is the admin password?"
       # we don't want to install highline
       # we can't rely on STDIN.noecho with older ruby versions
       system "stty -echo"
-      password = gets.chomp
+      password = STDIN.gets.chomp
       system "stty echo"
 
       # Create or update environment properties file
