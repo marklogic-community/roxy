@@ -80,7 +80,7 @@ module Roxy
             if @no_prompt
               raise ExitException.new("--no-prompt parameter prevents prompting for input. Use -f to force.")
             else
-              answer = gets().downcase.strip
+              answer = STDIN.gets.downcase.strip
               return if answer != "y" && answer != "yes"
             end
           end

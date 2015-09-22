@@ -64,7 +64,7 @@ module Roxy
         print "will make it much easier to fix problems if something goes wrong.\n"
 
         print "\nAre you ready to proceed? [y/N]\n"
-        confirm = gets.chomp
+        confirm = STDIN.gets.chomp
 
         if confirm.match(/^y(es)?$/i)
           @logger.info "Upgrading to the #{branch} branch from #{fork}/roxy"
