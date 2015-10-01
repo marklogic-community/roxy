@@ -1699,7 +1699,14 @@ private
 
   def clean_modules
     logger.info "Cleaning #{@properties['ml.modules-db']} on #{@hostname}"
-    execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.modules-db']}"))}
+
+    r = execute_query %Q{
+      for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.modules-db']}"))
+      return
+        try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+    }
+    r.body = parse_json(r.body)
+    logger.info r.body
 
     if @properties['ml.test-modules-db'].present? && @properties['ml.test-modules-db'] != @properties['ml.modules-db']
       logger.info "Cleaning #{@properties['ml.test-modules-db']} on #{@hostname}"
