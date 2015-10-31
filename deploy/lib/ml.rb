@@ -39,7 +39,7 @@ if @profile then
     RubyProf.start
   rescue LoadError
     print("Error: Please install the ruby-prof gem to enable profiling\n> gem install ruby-prof\n")
-    exit
+    exit 1
   end
 end
 
@@ -54,7 +54,7 @@ end
 
 if ARGV.length == 1 && need_help?
   Help.doHelp(@logger, :usage)
-  exit
+  exit 2
 end
 
 if RUBY_VERSION < "1.8.7"
@@ -125,7 +125,7 @@ begin
         ServerConfig.no_prompt = @no_prompt
         result = ServerConfig.send command
         if !result
-          exit!
+          exit 3
         end
       end
       break
@@ -154,7 +154,7 @@ begin
           :no_prompt => @no_prompt
         ).send(command)
         if !result
-          exit!
+          exit 4
         end
       else
         Help.doHelp(@logger, :usage, "Unknown command #{command}!")
@@ -166,32 +166,32 @@ rescue Net::HTTPServerException => e
   case e.response
   when Net::HTTPUnauthorized then
     @logger.error "Invalid login credentials for #{@properties["environment"]} environment!!"
-    exit!
+    exit 5
   else
     @logger.error e
     @logger.error e.response.body
-    exit!
+    exit 6
   end
 rescue Net::HTTPFatalError => e
   @logger.error e
   @logger.error e.response.body
-  exit!
+  exit 7
 rescue DanglingVarsException => e
   @logger.error "WARNING: The following configuration variables could not be validated:"
   e.vars.each do |k,v|
     @logger.error "#{k}=#{v}"
   end
-  exit!
+  exit 8
 rescue HelpException => e
   Help.doHelp(@logger, e.command, e.message)
-  exit!
+  exit 9
 rescue ExitException => e
   @logger.error e
-  exit!
+  exit 10
 rescue Exception => e
   @logger.error e
   @logger.error e.backtrace
-  exit!
+  exit 11
 end
 
 if @profile then

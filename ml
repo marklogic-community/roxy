@@ -155,7 +155,7 @@ then
 else
   if [ -e deploy/lib/ml.rb ]
   then
-    ruby -I deploy -I deploy/lib deploy/lib/ml.rb $* || exit 1
+    ruby -I deploy -I deploy/lib deploy/lib/ml.rb $* || exit $?
   else
     printf "\nERROR: You must run this command inside a valid Roxy Project. Use 'ml new' to create a project.\n\n"
     usage
