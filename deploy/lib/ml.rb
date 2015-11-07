@@ -31,7 +31,7 @@ EXIT_RESCUE_HTTP_FATAL = 8
 EXIT_RESCUE_DANGLING_VARS = 9
 EXIT_RESCUE_HELP_EXCEPTION = 10
 EXIT_RESCUE_EXIT_EXCEPTION = 11
-EXIT_RESCUE_EXCPTION = 12
+EXIT_RESCUE_EXCEPTION = 12
 
 if is_jar?
   require ServerConfig.expand_path("./deploy/app_specific")
@@ -204,7 +204,7 @@ rescue ExitException => e
 rescue Exception => e
   @logger.error e
   @logger.error e.backtrace
-  exit EXIT_RESCUE_EXCPTION
+  exit EXIT_RESCUE_EXCEPTION
 end
 
 if @profile then
