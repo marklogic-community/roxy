@@ -555,7 +555,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     end
     return true
   end
-  
+
   def merge_db(target_db)
     logger.info "Merging #{target_db} on #{@hostname}"
 
@@ -584,19 +584,19 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     end
     return true
   end
-  
+
   def reindex_db(target_db)
     logger.info "Reindexing #{target_db} on #{@hostname}"
 
     r = execute_query %Q{
       xquery version "1.0-ml";
 
-      import module namespace admin = "http://marklogic.com/xdmp/admin" 
+      import module namespace admin = "http://marklogic.com/xdmp/admin"
         at "/MarkLogic/admin.xqy";
 
       admin:save-configuration-without-restart(
         admin:database-set-reindexer-timestamp(
-          admin:get-configuration(), 
+          admin:get-configuration(),
           xdmp:database("#{target_db}"),
           xdmp:request-timestamp()
         )
@@ -1151,7 +1151,7 @@ In order to proceed please type: #{expected_response}
     jars = Dir.glob(ServerConfig.expand_path("#{mlcp_home}/lib/*.jar"))
     confdir = ServerConfig.expand_path("#{mlcp_home}/conf")
     classpath = "#{confdir}#{path_separator}#{jars.join(path_separator)}"
-    
+
     vmargs = %Q{"-DCONTENTPUMP_HOME=#{mlcp_home}" -Dfile.encoding=UTF-8 -Dxcc.txn.compatible=true "-Djava.library.path=#{mlcp_home}/lib/native" #{@properties['ml.mlcp-vmargs']} }
 
     ARGV.each do |arg|
@@ -1372,7 +1372,7 @@ private
         for $uri in cts:uris()
         order by $uri
         return $uri
-        
+
       } catch ($ignore) {
         (: In case URI lexicon has not been enabled :)
         for $doc in collection()
@@ -1529,23 +1529,23 @@ private
     folders_to_ignore = @properties['ml.ignore-folders']
 
     if @properties['ml.save-commit-info'] == 'true'
-      
+
       if File.exists? ".svn"
         svn_info_file = File.new("#{xquery_dir}/svn-info.xml", "w")
         svn_info_file.puts(`svn info --xml`)
         svn_info_file.close
         @logger.info "Saved commit info as #{xquery_dir}/svn-info.xml"
-      
+
       elsif File.exists? ".git"
         git_info_file = File.new("#{xquery_dir}/git-info.xml", "w")
         git_info_file.puts(`git log -1 --pretty=format:"<entry><id>%H</id><author>%an</author><date>%ai</date><subject>%s</subject><body>%b</body></entry>"`)
         git_info_file.close
         @logger.info "Saved commit info as #{xquery_dir}/git-info.xml"
-      
+
       else
         @logger.warn "Only SVN and GIT supported for save-commit-info"
       end
-    
+
     end
 
     modules_databases.each do |dest_db|
@@ -1708,18 +1708,33 @@ private
 
   def clean_modules
     logger.info "Cleaning #{@properties['ml.modules-db']} on #{@hostname}"
-    execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.modules-db']}"))}
+
+    r = execute_query %Q{
+      for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.modules-db']}"))
+      return
+        try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+    }
+    r.body = parse_json(r.body)
+    logger.info r.body
 
     if @properties['ml.test-modules-db'].present? && @properties['ml.test-modules-db'] != @properties['ml.modules-db']
       logger.info "Cleaning #{@properties['ml.test-modules-db']} on #{@hostname}"
-      execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.test-modules-db']}"))}
+      r = execute_query %Q{
+        for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.test-modules-db']}"))
+        return
+          try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+      }
     end
   end
 
   def clean_schemas
     if @properties['ml.schemas-db']
       logger.info "Cleaning #{@properties['ml.schemas-db']} on #{@hostname}"
-      execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.schemas-db']}"))}
+      r = execute_query %Q{
+        for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.schemas-db']}"))
+        return
+          try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+      }
     else
       logger.error "No schemas db is configured"
     end
@@ -1728,7 +1743,11 @@ private
   def clean_triggers
     if @properties['ml.triggers-db']
       logger.info "Cleaning #{@properties['ml.triggers-db']} on #{@hostname}"
-      execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.triggers-db']}"))}
+      r = execute_query %Q{
+        for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.triggers-db']}"))
+        return
+          try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+      }
     else
       logger.error "No triggers db is configured"
     end
@@ -2053,7 +2072,7 @@ private
 
     value
   end
-  
+
   def triggers_db_xml
     %Q{
       <database>
@@ -2064,7 +2083,7 @@ private
       </database>
     }
   end
-  
+
   def triggers_assignment
     %Q{
       <assignment>
@@ -2085,7 +2104,7 @@ private
       </xdbc-server>
     }
   end
-  
+
   def odbc_server
     odbc_auth_method = conditional_prop('ml.odbc-authentication-method', 'ml.authentication-method')
     %Q{
@@ -2098,7 +2117,7 @@ private
       </odbc-server>
     }
   end
-  
+
   def schemas_db_xml
     %Q{
       <database>
@@ -2117,7 +2136,7 @@ private
       </assignment>
     }
   end
-  
+
   def test_content_db_xml
     %Q{
       <database import="@ml.content-db">
@@ -2128,7 +2147,7 @@ private
       </database>
     }
   end
-  
+
   def test_content_db_assignment
     %Q{
       <assignment>
@@ -2136,7 +2155,7 @@ private
       </assignment>
     }
   end
-  
+
   def test_appserver
     # The modules database for the test server can be different from the app one
     test_modules_db = conditional_prop('ml.test-modules-db', 'ml.app-modules-db')
@@ -2154,7 +2173,7 @@ private
       </http-server>
     }
   end
-  
+
   def test_modules_db_xml
     %Q{
       <database import="@ml.modules-db">
@@ -2173,7 +2192,7 @@ private
       </assignment>
     }
   end
-  
+
   def rest_appserver
     rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
     rest_auth_method = conditional_prop('ml.rest-authentication-method', 'ml.authentication-method')
@@ -2184,10 +2203,10 @@ private
       rest_url_rewriter = @properties['ml.rest-url-rewriter']
     elsif @server_version > 7
       rest_url_rewriter = '/MarkLogic/rest-api/rewriter.xml'
-    else 
+    else
       rest_url_rewriter = '/MarkLogic/rest-api/rewriter.xqy'
     end
-    
+
     %Q{
       <http-server import="@ml.app-name">
         <http-server-name>@ml.app-name-rest</http-server-name>
@@ -2202,10 +2221,10 @@ private
       </http-server>
     }
   end
-  
+
   def rest_modules_db_xml
     rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
-    
+
     %Q{
       <database>
         <database-name>#{rest_modules_db}</database-name>
@@ -2215,17 +2234,17 @@ private
       </database>
     }
   end
-  
+
   def rest_modules_db_assignment
     rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
-    
+
     %Q{
       <assignment>
         <forest-name>#{rest_modules_db}</forest-name>
       </assignment>
     }
   end
-  
+
   def ssl_certificate_xml
     %Q{
       <certificate>
@@ -2247,7 +2266,7 @@ private
 
     # Build the triggers db if it is provided
     if @properties['ml.triggers-db'].present?
-      
+
       if @properties['ml.triggers-db'] != @properties['ml.app-modules-db']
         config.gsub!("@ml.triggers-db-xml", triggers_db_xml)
         config.gsub!("@ml.triggers-assignment", triggers_assignment)
@@ -2260,7 +2279,7 @@ private
         %Q{
         <triggers-database name="@ml.triggers-db"/>
         })
-      
+
     else
       config.gsub!("@ml.triggers-db-xml", "")
       config.gsub!("@ml.triggers-assignment", "")
@@ -2281,7 +2300,7 @@ private
 
     # Build the schemas db if it is provided
     if @properties['ml.schemas-db'].present?
-      
+
       if @properties['ml.schemas-db'] != @properties['ml.app-modules-db']
         config.gsub!("@ml.schemas-db-xml", schemas_db_xml)
         config.gsub!("@ml.schemas-assignment", schemas_assignment)
@@ -2309,7 +2328,7 @@ private
       config.gsub!("@ml.test-content-db-xml", test_content_db_xml)
       config.gsub!("@ml.test-content-db-assignment", test_content_db_assignment)
       config.gsub!("@ml.test-appserver", test_appserver)
-      
+
     else
       config.gsub!("@ml.test-content-db-xml", "")
       config.gsub!("@ml.test-content-db-assignment", "")
@@ -2319,10 +2338,10 @@ private
     # Build the test modules db if it is different from the app modules db
     if @properties['ml.test-modules-db'].present? &&
        @properties['ml.test-modules-db'] != @properties['ml.app-modules-db']
-       
+
       config.gsub!("@ml.test-modules-db-xml", test_modules_db_xml)
       config.gsub!("@ml.test-modules-db-assignment", test_modules_db_assignment)
-      
+
     else
       config.gsub!("@ml.test-modules-db-xml", "")
       config.gsub!("@ml.test-modules-db-assignment", "")
@@ -2332,7 +2351,7 @@ private
 
       # Set up a REST API app server, distinct from the main application.
       config.gsub!("@ml.rest-appserver", rest_appserver)
-      
+
       if @properties['ml.rest-modules-db'].present? &&
          @properties['ml.rest-modules-db'] != @properties['ml.app-modules-db']
          config.gsub!("@ml.rest-modules-db-xml", rest_modules_db_xml)
@@ -2370,15 +2389,15 @@ private
     else
       config.gsub!("@ml.rewrite-resolves-globally", "")
     end
-    
+
     if @properties['ml.ssl-certificate-template'].present?
       config.gsub!("@ml.ssl-certificate-xml", ssl_certificate_xml)
     else
       config.gsub!("@ml.ssl-certificate-xml", "")
     end
-    
+
     replace_properties(config, File.basename(config_file))
-    
+
     # escape unresolved braces, they have special meaning in XQuery
     config.gsub!("{", "{{")
     config.gsub!("}", "}}")
@@ -2388,7 +2407,7 @@ private
 
     %Q{(#{configs.join(", ")})}
   end
-  
+
   def replace_properties(contents, name)
     # make sure to apply descending order to replace @ml.foo-bar before @ml.foo
     @properties.sort {|x,y| y <=> x}.each do |k, v|
@@ -2396,11 +2415,11 @@ private
       n = k.sub("ml.", "")
       contents.gsub!("@{#{n}}", v)
       contents.gsub!("${#{n}}", v)
-      
+
       # backwards compat, old syntax: @ml.app-name
       contents.gsub!("@#{k}", v)
     end
-    
+
     # warn for unresolved properties
     contents.scan(/[@$]\{[^}]+\}/).each do |match|
       logger.warn("Unresolved property #{match} in #{name}")
