@@ -23,6 +23,7 @@ require 'xcc'
 require 'MLClient'
 require 'date'
 require 'ml_rest'
+require 'tmpdir'
 
 class ExitException < Exception; end
 
@@ -1154,23 +1155,23 @@ In order to proceed please type: #{expected_response}
     vmargs = %Q{"-DCONTENTPUMP_HOME=#{mlcp_home}" -Dfile.encoding=UTF-8 -Dxcc.txn.compatible=true "-Djava.library.path=#{mlcp_home}/lib/native" #{@properties['ml.mlcp-vmargs']} }
 
     ARGV.each do |arg|
-      if arg == "-option_file"
+      if arg == "-options_file"
         # remove flag from ARGV
         index = ARGV.index(arg)
         ARGV.slice!(index)
 
         # capture and remove value from ARGV
-        option_file = ARGV[index]
+        options_file = ARGV[index]
         ARGV.slice!(index)
 
         # find and read file if exists
-        option_file = ServerConfig.expand_path("#{@@path}/#{option_file}")
-        if File.exist? option_file
-          logger.debug "Reading options file #{option_file}.."
-          options = File.read option_file
+        options_file = File.expand_path("#{options_file}")
+        if File.exist? options_file
+          logger.debug "Reading options file #{options_file}.."
+          options = File.read options_file
 
           # substitute properties
-          replace_properties(options, File.basename(option_file))
+          replace_properties(options, File.basename(options_file))
 
           logger.debug "Options after resolving properties:"
           lines = options.split(/[\n\r]+/).reject { |line| line.empty? || line.match("^#") }
@@ -1179,10 +1180,14 @@ In order to proceed please type: #{expected_response}
             logger.debug line
           end
 
-          # and insert the properties back into ARGV
-          ARGV[index,0] = lines
+          # and write updated options to a tmpfile, to pass them through to MLCP
+          tmpdir = Dir.mktmpdir
+          tmpfile = "#{tmpdir}#{File.basename(options_file)}"
+          logger.debug tmpfile
+          File.write(tmpfile, options)
+          ARGV[index,0] = ['-options_file', tmpfile]
         else
-          raise "Option file #{option_file} not found."
+          raise "Options file #{options_file} not found."
         end
       end
     end
