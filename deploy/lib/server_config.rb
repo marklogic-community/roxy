@@ -1382,6 +1382,10 @@ private
   def filter_to_newer_files(files, options)
     logger.info "Filtering to files which are newer locally than on the server"
 
+    if @server_version < 6
+      raise ExitException.new("Can only filter files on MarkLogic 6 and later")
+    end
+
     files.select { |file_uri|
       target_uri = xcc.build_target_uri(file_uri, options)
 
