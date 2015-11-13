@@ -1386,14 +1386,19 @@ private
       raise ExitException.new("Can only filter files on MarkLogic 6 and later")
     end
 
-    files.select { |file_uri|
-      target_uri = xcc.build_target_uri(file_uri, options)
+    uris = files.map { |f| xcc.build_target_uri(f, options) }
 
+    stamps_db = uris.map do |target_uri|
       q = %Q{"" || xdmp:timestamp-to-wallclock(xdmp:document-timestamp("#{target_uri}"))}
       result = execute_query q, :db_name => @properties["ml.content-db"]
-      stamp_in_db = parse_json(result.body)
+      parse_json(result.body)
+    end
 
-      stamp_locally = File.mtime(file_uri).getgm.iso8601(5).tr('Z','')
+    stamps_local = files.map { |file_uri| File.mtime(file_uri).getgm.iso8601(5).tr('Z','') }
+
+    files_with_stamps = files.zip(stamps_local, stamps_db)
+
+    filtered = files_with_stamps.select do |file_uri, stamp_locally, stamp_in_db|
 
       newer = (stamp_locally > stamp_in_db || stamp_in_db.strip.empty?)
 
@@ -1402,7 +1407,9 @@ private
       end
 
       newer
-    }
+    end
+
+    filtered.map { |f, stamp1, stamp2| f}
   end
 
   def save_files_to_fs(target_db, target_dir)
