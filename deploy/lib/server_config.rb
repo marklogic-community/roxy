@@ -1387,12 +1387,13 @@ private
     end
 
     uris = files.map { |f| xcc.build_target_uri(f, options) }
+    uris_as_string = uris.map{|i| "\"#{i}\""}.join(",")
+    q = %Q{for $u in (#{uris_as_string}) return "" || xdmp:timestamp-to-wallclock(xdmp:document-timestamp($u))}
 
-    stamps_db = uris.map do |target_uri|
-      q = %Q{"" || xdmp:timestamp-to-wallclock(xdmp:document-timestamp("#{target_uri}"))}
-      result = execute_query q, :db_name => @properties["ml.content-db"]
-      parse_json(result.body)
-    end
+    result = execute_query q, :db_name => @properties["ml.content-db"]
+    stamps_db = parse_json(result.body).split("\n")
+
+    print stamps_db.class
 
     stamps_local = files.map { |file_uri| File.mtime(file_uri).getgm.iso8601(5).tr('Z','') }
 
