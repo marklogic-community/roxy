@@ -403,9 +403,9 @@ class Help
       Usage: ml {env} mlcp [options]
 
       Runs MLCP with given command-line options agains selected environment.
-      MLCP supports options files natively using the -option_file parameter.
+      MLCP supports options files natively using the -options_file parameter.
       The path to the MLCP options file must be an absolute path or a relative
-      path from the deploy directory.
+      path from the root of the project directory.
       See http://docs.marklogic.com/guide/ingestion/content-pump#chapter
 
       General options:
@@ -415,7 +415,7 @@ class Help
       Roxy applies variable substitution within option files. You may use variables like:
 
       -input_file_path
-      @ml.data.dir/
+      ${data.dir}
     DOC
   end
 

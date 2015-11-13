@@ -24,6 +24,7 @@ require 'MLClient'
 require 'date'
 require 'ml_rest'
 require 'time'
+require 'tmpdir'
 
 class ExitException < Exception; end
 
@@ -1171,23 +1172,23 @@ In order to proceed please type: #{expected_response}
     vmargs = %Q{"-DCONTENTPUMP_HOME=#{mlcp_home}" -Dfile.encoding=UTF-8 -Dxcc.txn.compatible=true "-Djava.library.path=#{mlcp_home}/lib/native" #{@properties['ml.mlcp-vmargs']} }
 
     ARGV.each do |arg|
-      if arg == "-option_file"
+      if arg == "-options_file"
         # remove flag from ARGV
         index = ARGV.index(arg)
         ARGV.slice!(index)
 
         # capture and remove value from ARGV
-        option_file = ARGV[index]
+        options_file = ARGV[index]
         ARGV.slice!(index)
 
         # find and read file if exists
-        option_file = ServerConfig.expand_path("#{@@path}/#{option_file}")
-        if File.exist? option_file
-          logger.debug "Reading options file #{option_file}.."
-          options = File.read option_file
+        options_file = File.expand_path("#{options_file}")
+        if File.exist? options_file
+          logger.debug "Reading options file #{options_file}.."
+          options = File.read options_file
 
           # substitute properties
-          replace_properties(options, File.basename(option_file))
+          replace_properties(options, File.basename(options_file))
 
           logger.debug "Options after resolving properties:"
           lines = options.split(/[\n\r]+/).reject { |line| line.empty? || line.match("^#") }
@@ -1196,10 +1197,14 @@ In order to proceed please type: #{expected_response}
             logger.debug line
           end
 
-          # and insert the properties back into ARGV
-          ARGV[index,0] = lines
+          # and write updated options to a tmpfile, to pass them through to MLCP
+          tmpdir = Dir.mktmpdir
+          tmpfile = "#{tmpdir}#{File.basename(options_file)}"
+          logger.debug tmpfile
+          File.write(tmpfile, options)
+          ARGV[index,0] = ['-options_file', tmpfile]
         else
-          raise "Option file #{option_file} not found."
+          raise "Options file #{options_file} not found."
         end
       end
     end
@@ -1742,18 +1747,33 @@ private
 
   def clean_modules
     logger.info "Cleaning #{@properties['ml.modules-db']} on #{@hostname}"
-    execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.modules-db']}"))}
+
+    r = execute_query %Q{
+      for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.modules-db']}"))
+      return
+        try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+    }
+    r.body = parse_json(r.body)
+    logger.info r.body
 
     if @properties['ml.test-modules-db'].present? && @properties['ml.test-modules-db'] != @properties['ml.modules-db']
       logger.info "Cleaning #{@properties['ml.test-modules-db']} on #{@hostname}"
-      execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.test-modules-db']}"))}
+      r = execute_query %Q{
+        for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.test-modules-db']}"))
+        return
+          try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+      }
     end
   end
 
   def clean_schemas
     if @properties['ml.schemas-db']
       logger.info "Cleaning #{@properties['ml.schemas-db']} on #{@hostname}"
-      execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.schemas-db']}"))}
+      r = execute_query %Q{
+        for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.schemas-db']}"))
+        return
+          try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+      }
     else
       logger.error "No schemas db is configured"
     end
@@ -1762,7 +1782,11 @@ private
   def clean_triggers
     if @properties['ml.triggers-db']
       logger.info "Cleaning #{@properties['ml.triggers-db']} on #{@hostname}"
-      execute_query %Q{xdmp:forest-clear(xdmp:forest("#{@properties['ml.triggers-db']}"))}
+      r = execute_query %Q{
+        for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.triggers-db']}"))
+        return
+          try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
+      }
     else
       logger.error "No triggers db is configured"
     end
