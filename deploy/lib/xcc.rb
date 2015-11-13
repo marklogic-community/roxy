@@ -158,13 +158,6 @@ module Roxy
       1
     end
 
-    private
-
-    def go(url, verb, headers = {}, params = nil, body = nil)
-      headers['User-Agent'] = "Roxy RubyXCC/#{RUBY_XCC_VERSION}  MarkXDBC/#{XCC_VERSION}"
-      super(url, verb, headers, params, body, true)
-    end
-
     def build_target_uri(file_uri, options)
       target_uri = file_uri.sub(options[:remove_prefix] || "", "")
       if options[:add_prefix]
