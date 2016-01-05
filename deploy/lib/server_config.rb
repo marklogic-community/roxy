@@ -1388,7 +1388,7 @@ private
 
     uris = files.map { |f| xcc.build_target_uri(f, options) }
     stamps_db = get_db_timestamps(uris)
-    stamps_local = files.map { |file_uri| File.mtime(file_uri).getgm.iso8601(5).tr('Z','') }
+    stamps_local = files.map { |file_uri| File.mtime(file_uri).getgm.iso8601(5) }
 
     files_with_stamps = files.zip(stamps_local, stamps_db)
 
@@ -1408,7 +1408,7 @@ private
 
   def get_db_timestamps(uris)
     uris_as_string = uris.map{|i| "\"#{i}\""}.join(",")
-    q = %Q{for $u in (#{uris_as_string}) return "" || xdmp:timestamp-to-wallclock(xdmp:document-timestamp($u))}
+    q = %Q{for $u in (#{uris_as_string}) return "" || adjust-dateTime-to-timezone(xdmp:timestamp-to-wallclock(xdmp:document-timestamp($u)), xs:dayTimeDuration("PT0H"))}
 
     result = execute_query q, :db_name => @properties["ml.content-db"]
     parse_json(result.body).split("\n")
