@@ -21,7 +21,6 @@
         <task-database name="@ml.content-db"/>
         <task-modules name="@ml.app-modules-db"/>
         <task-user name="@ml.app-name-user"/>
-        <task-host name="@ml.server"/>
       </scheduled-task>
       <scheduled-task>
         <task-path>/some/hourly-task.xqy</task-path>
@@ -32,7 +31,6 @@
         <task-database name="@ml.content-db"/>
         <task-modules name="@ml.app-modules-db"/>
         <task-user name="@ml.app-name-user"/>
-        <task-host name="@ml.server"/>
       </scheduled-task>
       <scheduled-task>
         <task-path>/some/minutely-task.xqy</task-path>
@@ -42,7 +40,6 @@
         <task-database name="@ml.content-db"/>
         <task-modules name="@ml.app-modules-db"/>
         <task-user name="@ml.app-name-user"/>
-        <task-host name="@ml.server"/>
       </scheduled-task>
       <scheduled-task>
         <task-path>/some/monthly-task.xqy</task-path>
@@ -54,7 +51,6 @@
         <task-database name="@ml.content-db"/>
         <task-modules name="@ml.app-modules-db"/>
         <task-user name="@ml.app-name-user"/>
-        <task-host name="@ml.server"/>
       </scheduled-task>
       <scheduled-task>
         <task-path>/some/once-task.xqy</task-path>
@@ -64,7 +60,6 @@
         <task-database name="@ml.content-db"/>
         <task-modules name="@ml.app-modules-db"/>
         <task-user name="@ml.app-name-user"/>
-        <task-host name="@ml.server"/>
       </scheduled-task>
       <scheduled-task>
         <task-path>/some/weekly-task.xqy</task-path>
@@ -80,7 +75,6 @@
         <task-database name="@ml.content-db"/>
         <task-modules name="@ml.app-modules-db"/>
         <task-user name="@ml.app-name-user"/>
-        <task-host name="@ml.server"/>
       </scheduled-task>
     </scheduled-tasks>
   </task-server>
