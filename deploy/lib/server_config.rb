@@ -852,7 +852,14 @@ In order to proceed please type: #{expected_response}
       }
     else
       #logger.debug %Q{#{setup} setup:do-wipe(#{config})}
-      r = execute_query %Q{#{setup} setup:do-wipe(#{config})}
+
+      wipe_changes = find_arg(['--wipe-changes'])
+
+      if wipe_changes == nil
+        wipe_changes = ""
+      end
+
+      r = execute_query %Q{#{setup} setup:do-wipe(#{config}, "#{wipe_changes}")})}
     end
     logger.debug "code: #{r.code.to_i}"
 
