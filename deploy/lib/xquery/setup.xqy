@@ -491,6 +491,7 @@ declare function setup:do-setup($import-config as element(configuration)+) as it
       setup:create-amps($import-config),
       setup:apply-database-settings($import-config),
       setup:configure-databases($import-config),
+      setup:configure-indexes($import-config),
       setup:create-appservers($import-config),
       setup:apply-appservers-settings($import-config),
       setup:create-scheduled-tasks($import-config),
