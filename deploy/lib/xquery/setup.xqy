@@ -472,33 +472,37 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
 declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string) as item()*
 {
   let $options := if(fn:empty($options) or $options eq "") then ("all") else fn:tokenize($options, ",")
-  let $_ := xdmp:log("OPTIONS: ")
-  let $_ := xdmp:log($options)
+
+  let $optionsMap := map:map()
+  let $_ :=
+    for $each in $options
+      return map:put($optionsMap, $each, fn:true())
+
   return
   try
   {
     let $import-config := setup:rewrite-config($import-config)
     return (
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "ssl"))) then setup:create-ssl-certificate-templates($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "privileges"))) then setup:create-privileges($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "roles"))) then setup:create-roles($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "users"))) then setup:create-users($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "external-security"))) then setup:create-external-security($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "external-security"))) then setup:apply-external-security-settings($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "mimetypes"))) then setup:create-mimetypes($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "groups"))) then setup:create-groups($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "groups"))) then setup:configure-groups($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "hosts"))) then setup:configure-hosts($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "forests"))) then setup:create-forests($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "databases"))) then setup:create-databases($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "databases"))) then setup:attach-forests($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "amps"))) then setup:create-amps($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "databases"))) then setup:apply-database-settings($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "databases"))) then setup:configure-databases($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "indexes"))) then setup:configure-indexes($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "appservers"))) then setup:create-appservers($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "appservers"))) then setup:apply-appservers-settings($import-config) else (),
-      if(fn:exists(fn:index-of($options, "all")) or fn:exists(fn:index-of($options, "tasks"))) then setup:create-scheduled-tasks($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "ssl")) then setup:create-ssl-certificate-templates($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "privileges")) then setup:create-privileges($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "roles")) then setup:create-roles($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "users")) then setup:create-users($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "external-security")) then setup:create-external-security($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "external-security")) then setup:apply-external-security-settings($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "mimetypes")) then setup:create-mimetypes($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "groups")) then setup:create-groups($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "groups")) then setup:configure-groups($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "hosts")) then setup:configure-hosts($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "forests")) then setup:create-forests($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "databases")) then setup:create-databases($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "databases")) then setup:attach-forests($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "amps")) then setup:create-amps($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "databases")) then setup:apply-database-settings($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "databases")) then setup:configure-databases($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "indexes")) then setup:configure-indexes($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "appservers")) then setup:create-appservers($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "appservers")) then setup:apply-appservers-settings($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "tasks")) then setup:create-scheduled-tasks($import-config) else (),
       if ($restart-needed) then
         "note: restart required"
       else ()
