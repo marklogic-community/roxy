@@ -469,9 +469,11 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
   return setup:suppress-comments($config)
 };
 
-declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string*) as item()*
+declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string) as item()*
 {
-  let $options := if(fn:empty($options)) then ("all") else ()
+  let $options := if(fn:empty($options) or $options eq "") then ("all") else fn:tokenize($options, ",")
+  let $_ := xdmp:log("OPTIONS: ")
+  let $_ := xdmp:log($options)
   return
   try
   {
@@ -1556,6 +1558,8 @@ declare function setup:configure-indexes($import-config as element(configuration
   let $database-name := setup:get-database-name-from-database-config($db-config)
   where fn:not($database-name = 'filesystem')
   return
+  let $database := xdmp:database($database-name)
+  let $admin-config := admin:get-configuration()
 
   let $admin-config := setup:remove-existing-range-path-indexes($admin-config, $database)
   let $admin-config := setup:remove-existing-path-namespaces($admin-config, $database)

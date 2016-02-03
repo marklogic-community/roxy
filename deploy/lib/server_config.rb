@@ -700,9 +700,13 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     end
 
     apply_changes = find_arg(['--apply-changes'])
+    logger.info apply_changes
+    if apply_changes == nil
+      apply_changes = "\"\""
+    end
 
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-setup(#{config}, fn:tokenize(#{apply_changes}, ","))}
+    r = execute_query %Q{#{setup} setup:do-setup(#{config}, #{apply_changes})}
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_json(r.body)
