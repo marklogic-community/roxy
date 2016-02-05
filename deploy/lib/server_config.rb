@@ -23,6 +23,7 @@ require 'xcc'
 require 'MLClient'
 require 'date'
 require 'ml_rest'
+require 'time'
 require 'tmpdir'
 
 class ExitException < Exception; end
@@ -948,9 +949,25 @@ In order to proceed please type: #{expected_response}
     batch_override = find_arg(['--batch'])
     batch = @environment != "local" && batch_override.blank? || batch_override.to_b
 
+    incremental = find_arg(['--incremental']).to_b
+
     options[:batch_commit] = batch
     options[:permissions] = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER) unless options[:permissions]
-    xcc.load_files(File.expand_path(dir), options)
+
+    path = File.expand_path(dir)
+
+    if (!File.exists?(path))
+      logger.error "#{path} does not exist"
+      return 0
+    end
+
+    files = get_files(path, options)
+
+    if incremental
+      files = filter_to_newer_files(files, options)
+    end
+
+    xcc.load_files(files, options)
   end
 
   #
@@ -1366,6 +1383,41 @@ Provides listings of various kinds of settings supported within ml-config.xml.
   end
 
 private
+
+  def filter_to_newer_files(files, options)
+    logger.info "Filtering to files which are newer locally than on the server"
+
+    if @server_version < 6
+      raise ExitException.new("Can only filter files on MarkLogic 6 and later")
+    end
+
+    uris = files.map { |f| xcc.build_target_uri(f, options) }
+    stamps_db = get_db_timestamps(uris)
+    stamps_local = files.map { |file_uri| File.mtime(file_uri).getgm.iso8601(5) }
+
+    files_with_stamps = files.zip(stamps_local, stamps_db)
+
+    filtered = files_with_stamps.select do |file_uri, stamp_locally, stamp_in_db|
+
+      newer = (stamp_locally > stamp_in_db || stamp_in_db.strip.empty?)
+
+      if (!newer)
+        logger.debug "Ignoring #{file_uri} as server version is newer"
+      end
+
+      newer
+    end
+
+    filtered.map { |f, stamp1, stamp2| f}
+  end
+
+  def get_db_timestamps(uris)
+    uris_as_string = uris.map{|i| "\"#{i}\""}.join(",")
+    q = %Q{for $u in (#{uris_as_string}) return "" || adjust-dateTime-to-timezone(xdmp:timestamp-to-wallclock(xdmp:document-timestamp($u)), xs:dayTimeDuration("PT0H"))}
+
+    result = execute_query q, :db_name => @properties["ml.content-db"]
+    parse_json(result.body).split("\n")
+  end
 
   def save_files_to_fs(target_db, target_dir)
     # Get the list of URIs. We get them in order because Ruby's Dir.mkdir

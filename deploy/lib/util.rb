@@ -102,6 +102,36 @@ def file_exists?(filename)
   end
 end
 
+def get_files(path, options = {}, data = [])
+  ignore_extensions = ['..', '.', '.svn', '.git', '.ds_store', 'thumbs.db']
+
+  if File.directory?(path)
+    Dir.foreach(path) do |entry|
+      next if ignore_extensions.include?(entry.downcase)
+      full_path = File.join(path, entry)
+      skip = false
+
+      options[:ignore_list].each do |ignore|
+        if full_path.match(ignore)
+          skip = true
+          break
+        end
+      end if options[:ignore_list]
+
+      next if skip == true
+
+      if File.directory?(full_path)
+        get_files(full_path, options, data)
+      else
+        data << full_path.encode("UTF-8")
+      end
+    end
+  else
+    data = [path.encode("UTF-8")]
+  end
+  data
+end
+
 class String
   unless respond_to? :try
     def try(method)
@@ -136,7 +166,7 @@ class Object
   def to_b
     present? && ['true', 'TRUE', 'yes', 'YES', 'y', 'Y', 't', 'T'].include?(self)
   end
-  
+
   def optional_require(feature)
     begin
       require feature

@@ -248,10 +248,12 @@ class Help
       Usage: ml {env} deploy WHAT [options]
 
       General options:
-        -v, [--verbose]  # Verbose output
-        --batch=(yes|no) # enable or disable batch commit. By default
-                           batch is disabled for the local environment
-                           and enabled for all others.
+        -v, [--verbose]        # Verbose output
+        --batch=(yes|no)       # enable or disable batch commit. By default
+                                 batch is disabled for the local environment
+                                 and enabled for all others.
+        --incremental=(yes|no) # For content, only deploy files which are
+                                 newer locally than on the server
 
       Please choose a WHAT below.
 
