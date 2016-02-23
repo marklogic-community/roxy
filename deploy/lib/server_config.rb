@@ -952,7 +952,7 @@ In order to proceed please type: #{expected_response}
     incremental = find_arg(['--incremental']).to_b
 
     options[:batch_commit] = batch
-    options[:permissions] = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER) unless options[:permissions]
+    options[:permissions] = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ERU) unless options[:permissions]
 
     path = File.expand_path(dir)
 
@@ -1227,11 +1227,11 @@ In order to proceed please type: #{expected_response}
 
     # PATH change only important for Windows, so always using ; and \
     env_variables = {
-      "PATH" => "#{ENV['PATH']};#{mlcp_home}\\bin", 
+      "PATH" => "#{ENV['PATH']};#{mlcp_home}\\bin",
       "HADOOP_HOME" => mlcp_home
     }
     system(env_variables, runme)
-    
+
     logger.info ""
 
     ARGV.clear
