@@ -80,6 +80,7 @@ module Roxy
     EXECUTE = "E"
     ER = ["E", "R"]
     RU = ["R", "U"]
+    ERU = ["E", "R", "U"]
   end
 
   class Xcc < MLClient
