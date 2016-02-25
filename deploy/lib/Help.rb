@@ -225,9 +225,16 @@ class Help
 
       General options:
         -v, [--verbose]  # Verbose output
+        --apply-changes=[WHAT]
 
       Bootstraps your application to the MarkLogic server in the given
       environment.
+
+      --apply-changes allows for a granular application of changes to a given
+      environment. Multiple changes may be specified, seperated by commas.
+      Changes may include:
+        ssl, privileges, roles, users, external-security, mimetypes, groups,
+        hosts, forests, databases, amps, indexes, appservers, tasks
     DOC
   end
 
@@ -237,9 +244,16 @@ class Help
 
       General options:
         -v, [--verbose]  # Verbose output
+        --apply-changes=[WHAT]
 
       Removes all traces of your application on the MarkLogic serverin the given
       environment.
+
+      --apply-changes allows for a granular application of changes to a given
+      environment. Multiple changes may be specified, seperated by commas.
+      Changes may include:
+        ssl, privileges, roles, users, external-security, mimetypes, groups,
+        hosts, forests, databases, amps, indexes, appservers, tasks
     DOC
   end
 
