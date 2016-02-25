@@ -487,6 +487,7 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "privileges")) then setup:create-privileges($import-config) else (),
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "roles")) then setup:create-roles($import-config) else (),
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "users")) then setup:create-users($import-config) else (),
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "users") or map:contains($optionsMap, "roles")) then setup:associate-users-with-roles($import-config) else (),
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "external-security")) then setup:create-external-security($import-config) else (),
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "external-security")) then setup:apply-external-security-settings($import-config) else (),
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "mimetypes")) then setup:create-mimetypes($import-config) else (),
@@ -4482,6 +4483,31 @@ declare function setup:validate-roles(
       setup:validation-fail(fn:concat("Missing role: ", $role-name))
 };
 
+declare function setup:associate-users-with-roles($import-config as element(configuration))
+{
+  for $user in $import-config/sec:users/sec:user
+    let $user-name as xs:string := $user/sec:user-name
+    let $role-names as xs:string* := $user/sec:role-names/*
+
+    let $eval-options :=
+      <options xmlns="xdmp:eval">
+        <database>{$default-security}</database>
+        <isolation>different-transaction</isolation>
+      </options>
+
+    return
+      if ($role-names) then
+        xdmp:eval(
+          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+           declare variable $user-name as xs:string external;
+           declare variable $role-names as element() external;
+           sec:user-set-roles($user-name, $role-names/*)',
+          (xs:QName("user-name"), $user-name,
+           xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
+          $eval-options)
+      else ()
+};
+
 declare function setup:create-users($import-config as element(configuration))
 {
   for $user in $import-config/sec:users/sec:user
@@ -4517,17 +4543,6 @@ declare function setup:create-users($import-config as element(configuration))
         (xs:QName("user-name"), $user-name,
          xs:QName("password"), fn:string($password)),
         $eval-options),
-
-      if ($role-names) then
-        xdmp:eval(
-          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-           declare variable $user-name as xs:string external;
-           declare variable $role-names as element() external;
-           sec:user-set-roles($user-name, $role-names/*)',
-          (xs:QName("user-name"), $user-name,
-           xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
-          $eval-options)
-      else (),
 
       if ($permissions) then
         xdmp:eval(
@@ -4581,7 +4596,7 @@ declare function setup:create-users($import-config as element(configuration))
         (xs:QName("user-name"), $user-name,
          xs:QName("description"), fn:string($description),
          xs:QName("password"), $password,
-         xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>,
+         xs:QName("role-names"), <w/>,
          xs:QName("permissions"), <w/>,
          xs:QName("collections"), <w>{for $c in $collections return <w>{$c}</w>}</w>),
         $eval-options),
