@@ -1617,7 +1617,7 @@ private
       ignore_us << "^#{test_config_file}$"
       ignore_us << "^#{folders_to_ignore}$" unless folders_to_ignore.blank?
 
-      src_permissions = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ER)
+      src_permissions = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ERU)
 
       if ['rest', 'hybrid'].include? @properties["ml.app-type"]
         # This app uses the REST API, so grant permissions to the rest roles. This allows REST extensions to call
