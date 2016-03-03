@@ -1133,7 +1133,8 @@ In order to proceed please type: #{expected_response}
   end
 
   def corb
-    encoded_password = url_encode(@properties['ml.password'])
+    password_prompt
+    encoded_password = url_encode(@ml_password)
     connection_string = %Q{xcc://#{@properties['ml.user']}:#{encoded_password}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
     collection_name = find_arg(['--collection']) || '""'
     xquery_module = find_arg(['--modules'])
@@ -1240,11 +1241,11 @@ In order to proceed please type: #{expected_response}
 
     # PATH change only important for Windows, so always using ; and \
     env_variables = {
-      "PATH" => "#{ENV['PATH']};#{mlcp_home}\\bin", 
+      "PATH" => "#{ENV['PATH']};#{mlcp_home}\\bin",
       "HADOOP_HOME" => mlcp_home
     }
     system(env_variables, runme)
-    
+
     logger.info ""
 
     ARGV.clear
