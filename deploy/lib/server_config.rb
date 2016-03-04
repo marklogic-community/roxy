@@ -1008,6 +1008,8 @@ In order to proceed please type: #{expected_response}
         clean_schemas
       when 'cpf'
         clean_cpf
+      when 'triggers'
+        clean_triggers
       else
         raise HelpException.new("clean", "Invalid WHAT")
     end
@@ -1889,8 +1891,13 @@ private
       triggers_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
       query = %Q{#{triggers_code} triggers:load-from-config(#{triggers_config})}
       logger.debug(query)
-      r = execute_query(query, :db_name => @properties["ml.content-db"])
+      r = execute_query(query, :db_name => @properties["ml.triggers-db"])
     end
+  end
+
+  def clean_triggers
+    cpf_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
+    r = execute_query %Q{#{cpf_code} cpf:clean-triggers()}, :db_name => @properties["ml.triggers-db"]
   end
 
   def xcc
