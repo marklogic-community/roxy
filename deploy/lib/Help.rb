@@ -281,6 +281,7 @@ class Help
                     if a name is specified, then only that extension will be deployed
         transform   # deploys your rest extensions to the server in the given environment
                     if a name is specified, then only that transform will be deployed
+        triggers    # deploys triggers from deploy/triggers-config.xml to your triggers database
     DOC
   end
 
@@ -331,10 +332,11 @@ class Help
 
       Please choose a WHAT below.
 
-        modules # removes all data from the modules db in the given environment
-        content # removes all data from the content db in the given environment
-        schemas # removes all data from the schemas db in the given environment
-        cpf     # removes your cpf config from the server in the given environment
+        modules  # removes all data from the modules db in the given environment
+        content  # removes all data from the content db in the given environment
+        schemas  # removes all data from the schemas db in the given environment
+        cpf      # removes your cpf config from the server in the given environment
+        triggers # removes all triggers from your triggers database
     DOC
   end
 
