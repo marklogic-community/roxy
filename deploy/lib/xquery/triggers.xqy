@@ -88,3 +88,10 @@ declare function triggers:resolve-permissions($perms as element(sec:permission)*
       <sec:role-id>{xdmp:role($perm/sec:role-name)}</sec:role-id>
     </sec:permission>
 };
+
+declare function triggers:clean-triggers()
+{
+  for $trigger in /trgr:trigger
+  return
+    xdmp:document-delete(fn:base-uri($trigger))
+};

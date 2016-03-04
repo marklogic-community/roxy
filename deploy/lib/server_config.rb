@@ -1896,8 +1896,8 @@ private
   end
 
   def clean_triggers
-    cpf_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
-    r = execute_query %Q{#{cpf_code} cpf:clean-triggers()}, :db_name => @properties["ml.triggers-db"]
+    triggers_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
+    r = execute_query %Q{#{triggers_code} triggers:clean-triggers()}, :db_name => @properties["ml.triggers-db"]
   end
 
   def xcc
