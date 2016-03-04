@@ -699,8 +699,14 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       config = get_config
     end
 
+    apply_changes = find_arg(['--apply-changes'])
+
+    if apply_changes == nil
+      apply_changes = ""
+    end
+
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-setup(#{config})}
+    r = execute_query %Q{#{setup} setup:do-setup(#{config}, "#{apply_changes}")}
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_json(r.body)
@@ -846,7 +852,14 @@ In order to proceed please type: #{expected_response}
       }
     else
       #logger.debug %Q{#{setup} setup:do-wipe(#{config})}
-      r = execute_query %Q{#{setup} setup:do-wipe(#{config})}
+
+      wipe_changes = find_arg(['--apply-changes'])
+
+      if wipe_changes == nil
+        wipe_changes = ""
+      end
+
+      r = execute_query %Q{#{setup} setup:do-wipe(#{config}, "#{wipe_changes}")}
     end
     logger.debug "code: #{r.code.to_i}"
 
@@ -1120,7 +1133,8 @@ In order to proceed please type: #{expected_response}
   end
 
   def corb
-    encoded_password = url_encode(@properties['ml.password'])
+    password_prompt
+    encoded_password = url_encode(@ml_password)
     connection_string = %Q{xcc://#{@properties['ml.user']}:#{encoded_password}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
     collection_name = find_arg(['--collection']) || '""'
     xquery_module = find_arg(['--modules'])
