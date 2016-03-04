@@ -1,0 +1,34 @@
+<triggers xmlns:trgr="http://marklogic.com/xdmp/triggers">
+  <trgr:trigger>
+    <trgr:name>CreateTrigger</trgr:name>
+    <trgr:description>Trigger to enrich XML ingested via MLCP</trgr:description>
+    <trgr:data-event>
+      <trgr:directory-scope>
+        <trgr:uri>/myDir/</trgr:uri>
+        <trgr:depth>1</trgr:depth>
+      </trgr:directory-scope>
+      <trgr:document-content>
+        <trgr:update-kind>modify</trgr:update-kind>
+      </trgr:document-content>
+      <trgr:when>pre-commit</trgr:when>
+    </trgr:data-event>
+    <trgr:module>
+      <trgr:database name="roxy-modules"/>
+      <trgr:root>/modules/</trgr:root>
+      <trgr:path>log-create.xqy</trgr:path>
+    </trgr:module>
+    <trgr:enabled>true</trgr:enabled>
+    <trgr:permissions>
+      <sec:permission>
+        <sec:capability>read</sec:capability>
+        <sec:role-name>reader</sec:role-name>
+      </sec:permission>,
+      <sec:permission>
+        <sec:capability>update</sec:capability>
+        <sec:role-name>writer</sec:role-name>
+      </sec:permission>
+    </trgr:permissions>
+    <trgr:recursive>false</trgr:recursive>
+    <trgr:task-priority>normal</trgr:task-priority>
+  </trgr:trigger>
+</triggers>

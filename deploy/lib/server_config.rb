@@ -937,6 +937,8 @@ In order to proceed please type: #{expected_response}
         deploy_schemas
       when 'cpf'
         deploy_cpf
+      when 'triggers'
+        deploy_triggers
       else
         raise HelpException.new("deploy", "Invalid WHAT")
     end
@@ -1866,6 +1868,29 @@ private
   def clean_cpf
     cpf_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/cpf.xqy")
     r = execute_query %Q{#{cpf_code} cpf:clean-cpf()}, :db_name => @properties["ml.content-db"]
+  end
+
+  def deploy_triggers
+    logger.info "Deploying Triggers"
+    if !@properties["ml.triggers-db"]
+      raise ExitException.new("Deploy triggers requires a triggers database")
+    end
+
+    if !File.exist?(ServerConfig.expand_path("#{@@path}/triggers-config.xml"))
+      logger.error <<-ERR.strip_heredoc
+        Before you can deploy triggers, you must define a configuration. Steps:
+        1. Copy deploy/sample/triggers-config.sample.xml to deploy/triggers-config.xml
+        2. Edit deploy/triggers-config.xml to specify your trigger(s)
+        3. Run 'ml <env> deploy triggers')
+      ERR
+    else
+      triggers_config = File.read ServerConfig.expand_path("#{@@path}/triggers-config.xml")
+      replace_properties(triggers_config, "triggers-config.xml")
+      triggers_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
+      query = %Q{#{triggers_code} triggers:load-from-config(#{triggers_config})}
+      logger.debug(query)
+      r = execute_query(query, :db_name => @properties["ml.content-db"])
+    end
   end
 
   def xcc
