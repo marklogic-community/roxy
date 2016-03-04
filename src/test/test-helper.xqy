@@ -319,39 +319,40 @@ declare function helper:assert-throws-error($function as xdmp:function, $param1 
 declare private function helper:assert-throws-error_($function as xdmp:function, $params as json:array, $error-code as xs:string?)
 {
   let $size := json:array-size($params)
-  try {
-    if ($size eq 0) then
-      xdmp:apply($function)
-    else if ($size eq 1) then
-      xdmp:apply($function, json:array-values($params[1]))
-    else if ($size eq 2) then
-      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]))
-    else if ($size eq 3) then
-      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]))
-    else if ($size eq 4) then
-      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]))
-    else if ($size eq 5) then
-      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]), json:array-values($params[5]))
-    else if ($size eq 6) then
-      xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]), json:array-values($params[5]), json:array-values($params[6]))
-    else (: arbitrary fall-back :)
-      xdmp:apply($function, json:array-values($params))
-    ,
-    fn:error(xs:QName("ASSERT-THROWS-ERROR-FAILED"), "It did not throw an error")
-  }
-  catch($ex) {
-    if ($ex/error:name eq "ASSERT-THROWS-ERROR-FAILED") then
-      xdmp:rethrow()
-    else if ($error-code) then
-      if ($ex/error:code eq $error-code or $ex/error:name eq $error-code) then
-        helper:success()
+  return
+    try {
+      if ($size eq 0) then
+        xdmp:apply($function)
+      else if ($size eq 1) then
+        xdmp:apply($function, json:array-values($params[1]))
+      else if ($size eq 2) then
+        xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]))
+      else if ($size eq 3) then
+        xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]))
+      else if ($size eq 4) then
+        xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]))
+      else if ($size eq 5) then
+        xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]), json:array-values($params[5]))
+      else if ($size eq 6) then
+        xdmp:apply($function, json:array-values($params[1]), json:array-values($params[2]), json:array-values($params[3]), json:array-values($params[4]), json:array-values($params[5]), json:array-values($params[6]))
+      else (: arbitrary fall-back :)
+        xdmp:apply($function, json:array-values($params))
+      ,
+      fn:error(xs:QName("ASSERT-THROWS-ERROR-FAILED"), "It did not throw an error")
+    }
+    catch($ex) {
+      if ($ex/error:name eq "ASSERT-THROWS-ERROR-FAILED") then
+        xdmp:rethrow()
+      else if ($error-code) then
+        if ($ex/error:code eq $error-code or $ex/error:name eq $error-code) then
+          helper:success()
+        else
+        (
+          fn:error(xs:QName("ASSERT-THROWS-ERROR-FAILED"), fn:concat("Error code was: ", $ex/error:code, " not: ", $error-code))
+        )
       else
-      (
-        fn:error(xs:QName("ASSERT-THROWS-ERROR-FAILED"), fn:concat("Error code was: ", $ex/error:code, " not: ", $error-code))
-      )
-    else
-      helper:success()
-  }
+        helper:success()
+    }
 };
 
 declare function helper:easy-url($url) as xs:string
