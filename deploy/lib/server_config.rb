@@ -1878,16 +1878,19 @@ private
       raise ExitException.new("Deploy triggers requires a triggers database")
     end
 
-    if !File.exist?(ServerConfig.expand_path("#{@@path}/triggers-config.xml"))
+    target_config = ServerConfig.expand_path(ServerConfig.properties["ml.triggers.file"])
+
+    if !File.exist?(target_config)
       logger.error <<-ERR.strip_heredoc
         Before you can deploy triggers, you must define a configuration. Steps:
-        1. Copy deploy/sample/triggers-config.sample.xml to deploy/triggers-config.xml
-        2. Edit deploy/triggers-config.xml to specify your trigger(s)
+        1. Copy deploy/sample/triggers-config.sample.xml to #{target_config}
+          The location of this file is controlled by the triggers.file property.
+        2. Edit #{target_config} to specify your trigger(s)
         3. Run 'ml <env> deploy triggers')
       ERR
     else
-      triggers_config = File.read ServerConfig.expand_path("#{@@path}/triggers-config.xml")
-      replace_properties(triggers_config, "triggers-config.xml")
+      triggers_config = File.read target_config
+      replace_properties(triggers_config, target_config)
       triggers_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
       query = %Q{#{triggers_code} triggers:load-from-config(#{triggers_config})}
       logger.debug(query)
