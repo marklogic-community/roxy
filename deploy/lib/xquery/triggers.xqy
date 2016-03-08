@@ -49,11 +49,7 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
       xdmp:default-permissions()
     )[1]
   let $recursive as xs:boolean := ($trgr/trgr:recursive, fn:true())[1]
-  let $priority as xs:string? := $trgr/trgr:task-priority
-  let $_ :=
-    if (fn:empty($priority) or $priority = ("normal", "higher")) then ()
-    else
-      fn:error(xs:QName("PRIORITY-VALUE"), 'Task priority must be "normal" or "higher".')
+  let $priority as xs:string := ($trgr/trgr:task-priority, "normal")[1]
   return
     if (fn:exists(/trgr:trigger/trgr:trigger-name[. = $name])) then
       (: trigger already exists. update it :)
