@@ -32,7 +32,7 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
   let $triggers-db := xdmp:database()
   for $trgr in $config/trgr:trigger
   let $name := $trgr/trgr:name
-  let $desc as xs:string := $trgr/trgr:description
+  let $desc as xs:string? := $trgr/trgr:description
   let $event := triggers:get-event($trgr)
   let $module :=
     (: Convert from database name to id :)
@@ -54,7 +54,7 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
     if (fn:exists(/trgr:trigger/trgr:trigger-name[. = $name])) then
       (: trigger already exists. update it :)
       (
-        trgr:trigger-set-description($name, $desc),
+        if ($desc) then trgr:trigger-set-description($name, $desc) else (),
         trgr:trigger-set-event($name, $event),
         trgr:trigger-set-module($name, $module),
         if ($enabled) then trgr:trigger-enable($name)
@@ -72,7 +72,7 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
         $enabled,
         $permissions,
         $recursive,
-        ($priority, "normal")[1]
+        $priority
       )
 };
 
