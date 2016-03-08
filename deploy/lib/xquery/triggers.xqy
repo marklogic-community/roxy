@@ -33,8 +33,9 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
   for $trgr in $config/trgr:trigger
   let $name := $trgr/trgr:name
   let $desc as xs:string := $trgr/trgr:description
-  let $data-event := $trgr/trgr:data-event
+  let $event := triggers:get-event($trgr)
   let $module :=
+    (: Convert from database name to id :)
     <trgr:module>
       <trgr:database>{xdmp:database($trgr/trgr:module/trgr:database/fn:string())}</trgr:database>
       {
@@ -58,7 +59,7 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
       (: trigger already exists. update it :)
       (
         trgr:trigger-set-description($name, $desc),
-        trgr:trigger-set-event($name, $data-event),
+        trgr:trigger-set-event($name, $event),
         trgr:trigger-set-module($name, $module),
         if ($enabled) then trgr:trigger-enable($name)
         else trgr:trigger-disable($name),
@@ -70,7 +71,7 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
       (: new trigger. create it. :)
       trgr:create-trigger(
         $name, $desc,
-        $data-event,
+        $event,
         $module,
         $enabled,
         $permissions,
@@ -87,6 +88,24 @@ declare function triggers:resolve-permissions($perms as element(sec:permission)*
       {$perm/sec:capability}
       <sec:role-id>{xdmp:role($perm/sec:role-name)}</sec:role-id>
     </sec:permission>
+};
+
+declare function triggers:get-event($trgr)
+{
+  let $data-event := $trgr/trgr:data-event
+  let $db-online-event :=
+    if ($trgr/trgr:database-online-event) then
+      <trgr:database-online-event>
+        <trgr:user>{xdmp:user($trgr/trgr:database-online-event/trgr:user-name)}</trgr:user>
+      </trgr:database-online-event>
+    else ()
+  return
+    if (fn:exists($data-event)) then
+      $data-event
+    else if (fn:exists($db-online-event)) then
+      $db-online-event
+    else
+      fn:error(xs:QName("EVENT-REQUIRED"), "A trigger must have a data-event or database-online-event")
 };
 
 declare function triggers:clean-triggers()
