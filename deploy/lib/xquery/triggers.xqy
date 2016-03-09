@@ -36,18 +36,14 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
   let $event := triggers:get-event($trgr)
   let $module :=
     (: Convert from database name to id :)
-    <trgr:module>
-      <trgr:database>{xdmp:database($trgr/trgr:module/trgr:database/fn:string())}</trgr:database>
-      {
-        $trgr/trgr:module/* except $trgr/trgr:module/trgr:database
-      }
-    </trgr:module>
+    trgr:trigger-module(
+      xdmp:database($trgr/trgr:module/trgr:database/fn:string()),
+      $trgr/trgr:module/trgr:root,
+      $trgr/trgr:module/trgr:path
+    )
   let $enabled as xs:boolean := $trgr/trgr:enabled
   let $permissions as element()* :=
-    (
-      triggers:resolve-permissions($trgr/trgr:permissions/sec:permission),
-      xdmp:default-permissions()
-    )[1]
+    triggers:resolve-permissions($trgr/trgr:permissions/sec:permission)
   let $recursive as xs:boolean := ($trgr/trgr:recursive, fn:true())[1]
   let $priority as xs:string := ($trgr/trgr:task-priority, "normal")[1]
   return
@@ -77,16 +73,21 @@ declare function triggers:load-from-config($config as element(trgr:triggers))
 };
 
 declare function triggers:resolve-permissions($perms as element(sec:permission)*)
+  as element()*
 {
-  for $perm in $perms
+  let $permissions :=
+    for $perm in $perms
+    return
+      xdmp:permission(xdmp:role($perm/sec:role-name/fn:string()), $perm/sec:capability/fn:string())
   return
-    <sec:permission>
-      {$perm/sec:capability}
-      <sec:role-id>{xdmp:role($perm/sec:role-name)}</sec:role-id>
-    </sec:permission>
+    if ($permissions) then
+      $permissions
+    else
+      xdmp:default-permissions()
 };
 
-declare function triggers:get-event($trgr)
+declare function triggers:get-event($trgr as element(trgr:trigger))
+  as element()
 {
   let $data-event := $trgr/trgr:data-event
   let $db-online-event :=
