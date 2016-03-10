@@ -4008,7 +4008,7 @@ declare function setup:create-scheduled-task(
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
         setup:get-user-id($task/gr:task-user/@name),
-        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-host/@name/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "hourly") then
       admin:group-hourly-scheduled-task(
@@ -4019,7 +4019,7 @@ declare function setup:create-scheduled-task(
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
         setup:get-user-id($task/gr:task-user/@name),
-        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-host/@name/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "minutely") then
       admin:group-minutely-scheduled-task(
@@ -4029,7 +4029,7 @@ declare function setup:create-scheduled-task(
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
         setup:get-user-id($task/gr:task-user/@name),
-        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-host/@name/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "monthly") then
       admin:group-monthly-scheduled-task(
@@ -4041,7 +4041,7 @@ declare function setup:create-scheduled-task(
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
         setup:get-user-id($task/gr:task-user/@name),
-        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-host/@name/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "once") then
       admin:group-one-time-scheduled-task(
@@ -4051,7 +4051,7 @@ declare function setup:create-scheduled-task(
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
         setup:get-user-id($task/gr:task-user/@name),
-        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-host/@name/xdmp:host(.),
         $task/gr:task-priority)
     else if ($task/gr:task-type eq "weekly") then
       admin:group-weekly-scheduled-task(
@@ -4063,7 +4063,7 @@ declare function setup:create-scheduled-task(
         admin:database-get-id($admin-config, $task/gr:task-database/@name),
         admin:database-get-id($admin-config, $task/gr:task-modules/@name),
         setup:get-user-id($task/gr:task-user/@name),
-        $task/gr:task-host/xdmp:host(.),
+        $task/gr:task-host/@name/xdmp:host(.),
         $task/gr:task-priority)
     else ()
 };
@@ -4109,7 +4109,7 @@ declare function setup:get-scheduled-task(
            [if ($task/gr:task-minute) then gr:task-minute = $task/gr:task-minute else fn:true()]
            [if ($task/gr:task-month-day) then gr:task-month-day = $task/gr:task-month-day else fn:true()]
            [if ($task/gr:task-days/gr:task-day) then fn:not(gr:task-days/gr:task-day != $task/gr:task-days/gr:task-day) else fn:true()]
-           [if ($task/gr:task-host) then gr:task-host = $task/gr:task-host/xdmp:host(.) else fn:true()]
+           [if ($task/gr:task-host) then gr:task-host = $task/gr:task-host/@name/xdmp:host(.) else fn:true()]
            [if ($task/gr:task-priority) then gr:task-priority = $task/gr:task-priority else fn:true()]:)
 };
 
