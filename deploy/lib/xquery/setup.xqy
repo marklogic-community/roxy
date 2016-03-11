@@ -894,9 +894,8 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
       else (),
 
       (: Remove credentials :)
-      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "credentials")) then setup:wipe-credentials() then
-        return
-          setup:wipe-credentials()
+      if(map:contains($optionsMap, "all") or map:contains($optionsMap, "credentials")) then
+        setup:wipe-credentials()
       else (),
 
       (: remove orphaned amps :)
@@ -4213,7 +4212,7 @@ declare function setup:create-credentials(
         if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("7.0-0"))) then
           fn:error(
               xs:QName("VERSION_NOT_SUPPORTED"),
-              fn:concat("MarkLogic ", xdmp:version(), " does not support external security. Use 7.0-0 or higher."))
+              fn:concat("MarkLogic ", xdmp:version(), " does not support AWS Credentials. Use 7.0-0 or higher."))
         else
           xdmp:rethrow()
       }
@@ -4247,7 +4246,7 @@ declare function setup:wipe-credentials()
         if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("7.0-0"))) then
           fn:error(
               xs:QName("VERSION_NOT_SUPPORTED"),
-              fn:concat("MarkLogic ", xdmp:version(), " does not support external security. Use 7.0-0 or higher."))
+              fn:concat("MarkLogic ", xdmp:version(), " does not support AWS credentials. Use 7.0-0 or higher."))
         else
           xdmp:rethrow()
       }
