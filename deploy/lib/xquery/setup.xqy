@@ -895,7 +895,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
 
       (: Remove credentials :)
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "credentials")) then
-        setup:wipe-credentials()
+        setup:wipe-credentials($import-config)
       else (),
 
       (: remove orphaned amps :)
@@ -4191,65 +4191,72 @@ declare function setup:create-credentials(
       <database>{$default-security}</database>
     </options>
 
-  let $accessKey := ($import-config/sec:credentials/sec:aws-access-key/string(), "")[1]
-  let $secretKey := ($import-config/sec:credentials/sec:aws-secret-key/string(), "")[1]
-
   return
-      try {
-        xdmp:eval(
-          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-           declare variable $accessKey as xs:string external;
-           declare variable $secretKey as xs:string external;
+    if(fn:exists($import-config/sec:credentials)) then
+      let $accessKey := ($import-config/sec:credentials/sec:aws-access-key/string(), "")[1]
+      let $secretKey := ($import-config/sec:credentials/sec:aws-secret-key/string(), "")[1]
 
-           sec:credentials-set-aws(
-             $accessKey,
-             $secretKey)',
-          (xs:QName("accessKey"), $accessKey,
-           xs:QName("secretKey"), $secretKey),
-          $eval-options)
-      }
-      catch($ex) {
-        if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("7.0-0"))) then
-          fn:error(
-              xs:QName("VERSION_NOT_SUPPORTED"),
-              fn:concat("MarkLogic ", xdmp:version(), " does not support AWS Credentials. Use 7.0-0 or higher."))
-        else
-          xdmp:rethrow()
-      }
+      return
+          try {
+            xdmp:eval(
+              'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+               declare variable $accessKey as xs:string external;
+               declare variable $secretKey as xs:string external;
+
+               sec:credentials-set-aws(
+                 $accessKey,
+                 $secretKey)',
+              (xs:QName("accessKey"), $accessKey,
+               xs:QName("secretKey"), $secretKey),
+              $eval-options)
+          }
+          catch($ex) {
+            if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("7.0-0"))) then
+              fn:error(
+                  xs:QName("VERSION_NOT_SUPPORTED"),
+                  fn:concat("MarkLogic ", xdmp:version(), " does not support AWS Credentials. Use 7.0-0 or higher."))
+            else
+              xdmp:rethrow()
+          }
+    else ()
 };
 
-declare function setup:wipe-credentials()
+declare function setup:wipe-credentials(
+$import-config as element(configuration)
+  )
 {
   let $eval-options :=
     <options xmlns="xdmp:eval">
       <database>{$default-security}</database>
     </options>
 
-  let $accessKey := ""
-  let $secretKey := ""
-
   return
-      try {
-        xdmp:eval(
-          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-           declare variable $accessKey as xs:string external;
-           declare variable $secretKey as xs:string external;
+    if(fn:exists($import-config/sec:credentials)) then
+      let $accessKey := ""
+      let $secretKey := ""
+      return
+        try {
+          xdmp:eval(
+            'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+             declare variable $accessKey as xs:string external;
+             declare variable $secretKey as xs:string external;
 
-           sec:credentials-set-aws(
-             $accessKey,
-             $secretKey)',
-          (xs:QName("accessKey"), $accessKey,
-           xs:QName("secretKey"), $secretKey),
-          $eval-options)
-      }
-      catch($ex) {
-        if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("7.0-0"))) then
-          fn:error(
-              xs:QName("VERSION_NOT_SUPPORTED"),
-              fn:concat("MarkLogic ", xdmp:version(), " does not support AWS credentials. Use 7.0-0 or higher."))
-        else
-          xdmp:rethrow()
-      }
+             sec:credentials-set-aws(
+               $accessKey,
+               $secretKey)',
+            (xs:QName("accessKey"), $accessKey,
+             xs:QName("secretKey"), $secretKey),
+            $eval-options)
+        }
+        catch($ex) {
+          if ($ex/error:code = "XDMP-UNDFUN" and fn:not(setup:at-least-version("7.0-0"))) then
+            fn:error(
+                xs:QName("VERSION_NOT_SUPPORTED"),
+                fn:concat("MarkLogic ", xdmp:version(), " does not support AWS credentials. Use 7.0-0 or higher."))
+          else
+            xdmp:rethrow()
+        }
+    else ()
 };
 
 declare function setup:create-external-security(
