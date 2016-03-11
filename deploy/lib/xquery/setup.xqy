@@ -4191,8 +4191,8 @@ declare function setup:create-credentials(
       <database>{$default-security}</database>
     </options>
 
-  let $accessKey := $import-config/sec:credentials/sec:aws-access-key/string()
-  let $secretKey := $import-config/sec:credentials/sec:aws-secret-key/string()
+  let $accessKey := ($import-config/sec:credentials/sec:aws-access-key/string(), "")[1]
+  let $secretKey := ($import-config/sec:credentials/sec:aws-secret-key/string(), "")[1]
 
   return
       try {
