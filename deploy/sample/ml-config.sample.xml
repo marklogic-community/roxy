@@ -1,7 +1,7 @@
 <configuration default-group="${group}">
   <!--
     default-group applies to databases
-    
+
     ${group} defaults to "Default", you can override in build.properties or {env}.properties
     Note: if you change ml.group, make sure to assign hosts to it! See <hosts> below.
   -->
@@ -169,9 +169,9 @@
         <forest-id name="${content-db}"/>
         @ml.forest-data-dir-xml
       </forests>
-      
+
       <!-- See sample/default-docs-config.sample.xml for default settings and indexes of Documents database -->
-      
+
       <uri-lexicon>true</uri-lexicon>
       <collection-lexicon>true</collection-lexicon>
       <directory-creation>manual</directory-creation>
@@ -541,5 +541,11 @@
       <ldap-password/>
     </external-security>
   </external-securities>
+-->
+<!--
+  <credentials xmlns="http://marklogic.com/xdmp/security">
+    <aws-access-key>1234abc</aws-access-key>
+    <aws-secret-key>1234abc</aws-secret-key>
+  </credentials>
 -->
 </configuration>
