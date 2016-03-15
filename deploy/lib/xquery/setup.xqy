@@ -1714,7 +1714,7 @@ declare function setup:add-fields-R(
                 $field/db:field-name,
                 for $path in $field/db:field-path
                 return
-                  admin:database-field-path($path/db:path, ($path/weight, 1.0)[1]))
+                  admin:database-field-path($path/db:path, ($path/db:weight, 1.0)[1]))
               )',
             (xs:QName("admin-config"), $admin-config,
              xs:QName("database"), $database,
