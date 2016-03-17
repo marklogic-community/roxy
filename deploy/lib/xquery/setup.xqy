@@ -3153,13 +3153,16 @@ declare function setup:configure-groups($import-config as element(configuration)
       if ($setting/@value) then
         xdmp:value($setting/@value)
       else
-        fn:data(xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test)))
+        xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test))
     let $min-version as xs:string? := $setting/@min-version
     where (fn:exists($value))
     return
       if (fn:empty($min-version) or setup:at-least-version($min-version)) then
         xdmp:set($admin-config,
-          xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $group-id, $value)")))
+          if ($setting/@function eq ="add") then
+            setup:apply-groups-setting-add($admin-config, $group-id, $setting, $value)
+          else
+            xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $group-id, fn:data($value))")))
       else
         fn:error(
           xs:QName("VERSION_NOT_SUPPORTED"),
@@ -3173,6 +3176,52 @@ declare function setup:configure-groups($import-config as element(configuration)
     fn:concat("Group ", $group-name, " settings applied succesfully.")
   )
 };
+
+declare function setup:apply-groups-setting-add($admin-config as element(configuration), $group-id as xs:unsignedLong, $setting, $values as element()*) as element(configuration) {
+  if (fn:exists($values)) then
+    let $old-values := xdmp:value(fn:concat("admin:group-get-", $setting, "s", "($admin-config, $group-id)"))
+    let $admin-config :=
+      (: First delete any values that matches the first child element, prefix must be unique :)
+      xdmp:value(
+        fn:concat(
+          "admin:group-delete-", $setting, "($admin-config, $group-id,",
+          "(",
+          fn:string-join(
+            (
+              for $value in $values
+              let $old-value := $old-values[./node()[1] eq $value/node()[1]]
+              return
+                if (fn:exists($old-value)) then
+                  fn:concat("admin:group-", $setting, "(", fn:string-join((for $child in $old-value/node() return fn:concat('"', $child, '"')), ","), ")")
+                else
+                  ()
+            ),
+            ","
+          ),
+          ")",
+          ")"
+        )
+      )
+    return
+      xdmp:value(
+        fn:concat(
+          "admin:group-add-", $setting, "($admin-config, $group-id,",
+          "(",
+          fn:string-join(
+            (
+              for $value in $values
+              return fn:concat("admin:group-", $setting, "(", fn:string-join((for $child in $value/node() return fn:concat('"', $child, '"')), ","), ")")
+            ),
+            ","
+          ),
+          ")",
+          ")"
+        )
+      )
+  else
+    $admin-config
+};
+
 
 declare function setup:validate-groups-settings($import-config as element(configuration)) as item()*
 {
