@@ -110,11 +110,11 @@ declare variable $group-settings :=
     <!--TODO: setting>audit-role-restriction</setting>
     <setting>audit-uri-restriction</setting>
     <setting>audit-user-restriction</setting-->
-    <setting function="add" keys="namespace-uri location">module-location</setting>
-    <setting function="add" keys="prefix namespace-uri">namespace</setting>
-    <setting function="add" keys="namespace-uri schema-location">schema</setting>
-    <setting function="add" keys="event-id">trace-event</setting>
-    <setting function="add" keys="namespace-uri">using-namespace</setting>
+    <setting min-version="7.0-0" function="add" keys="namespace-uri location">module-location</setting>
+    <setting min-version="7.0-0" function="add" keys="prefix namespace-uri">namespace</setting>
+    <setting min-version="7.0-0" function="add" keys="namespace-uri schema-location">schema</setting>
+    <setting min-version="7.0-0" function="add" keys="event-id">trace-event</setting>
+    <setting min-version="7.0-0" function="add" keys="namespace-uri">using-namespace</setting>
   </settings>;
 
 declare variable $host-settings :=
