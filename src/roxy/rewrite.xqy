@@ -38,12 +38,15 @@ return
     try
     {
       xdmp:eval('
-        import module namespace conf = "http://marklogic.com/rest-api/endpoints/config"
-          at "/MarkLogic/rest-api/endpoints/config.xqy";
+        xquery version "1.0-ml";
+
+        import module namespace rewriter = "http://marklogic.com/roxy/rewriter" at "/roxy/lib/rewriter-lib.xqy";
+
         declare variable $method external;
         declare variable $uri external;
         declare variable $path external;
-        (conf:rewrite($method, $uri, $path), $uri)[1]',
+
+        (rewriter:rewrite($method, $uri, $path), $uri)[1]',
         (xs:QName("method"), $method,
          xs:QName("uri"), $uri,
          xs:QName("path"), $path))
