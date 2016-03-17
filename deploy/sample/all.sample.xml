@@ -1,57 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<search:options xmlns:search="http://marklogic.com/appservices/search">
-  <search:search-option>unfiltered</search:search-option>
-  <search:page-length>10</search:page-length>
-  <search:term apply="term">
-    <search:empty apply="all-results"/>
-    <search:term-option>punctuation-insensitive</search:term-option>
-    <search:term-option>stemmed</search:term-option>
-  </search:term>
-  <search:grammar>
-    <search:quotation>"</search:quotation>
-    <search:implicit>
+<options xmlns="http://marklogic.com/appservices/search">
+  <search-option>unfiltered</search-option>
+  <page-length>10</page-length>
+  
+  <term apply="term">
+    <empty apply="all-results"/>
+    <term-option>punctuation-insensitive</term-option>
+    <term-option>stemmed</term-option>
+  </term>
+  
+  <grammar>
+    <quotation>"</quotation>
+    <implicit>
       <cts:and-query strength="20" xmlns:cts="http://marklogic.com/cts"/>
-    </search:implicit>
-    <search:starter strength="30" apply="grouping" delimiter=")">(</search:starter>
-    <search:starter strength="40" apply="prefix" element="cts:not-query">-</search:starter>
-    <search:joiner strength="10" apply="infix" element="cts:or-query" tokenize="word">OR</search:joiner>
-    <search:joiner strength="20" apply="infix" element="cts:and-query" tokenize="word">AND</search:joiner>
-    <search:joiner strength="30" apply="infix" element="cts:near-query" tokenize="word">NEAR</search:joiner>
-    <search:joiner strength="30" apply="near2" consume="2" element="cts:near-query">NEAR/</search:joiner>
-    <search:joiner strength="50" apply="constraint">:</search:joiner>
-    <search:joiner strength="50" apply="constraint" compare="LT" tokenize="word">LT</search:joiner>
-    <search:joiner strength="50" apply="constraint" compare="LE" tokenize="word">LE</search:joiner>
-    <search:joiner strength="50" apply="constraint" compare="GT" tokenize="word">GT</search:joiner>
-    <search:joiner strength="50" apply="constraint" compare="GE" tokenize="word">GE</search:joiner>
-    <search:joiner strength="50" apply="constraint" compare="NE" tokenize="word">NE</search:joiner>
-  </search:grammar>
-  <search:sort-order direction="descending">
-    <search:score/>
-  </search:sort-order>
-  <search:transform-results apply="snippet">
-    <search:preferred-elements><search:element ns="" name="body"/></search:preferred-elements>
-    <search:max-matches>1</search:max-matches>
-    <search:max-snippet-chars>150</search:max-snippet-chars>
-    <search:per-match-tokens>20</search:per-match-tokens>
-  </search:transform-results>
-  <search:return-query>1</search:return-query>
-  <search:operator name="results">
-    <search:state name="compact">
-      <search:transform-results apply="snippet">
-        <search:preferred-elements><search:element ns="" name="body"/></search:preferred-elements>
-        <search:max-matches>1</search:max-matches>
-        <search:max-snippet-chars>150</search:max-snippet-chars>
-        <search:per-match-tokens>20</search:per-match-tokens>
-      </search:transform-results>
-    </search:state>
-    <search:state name="detailed">
-      <search:transform-results apply="snippet">
-        <search:preferred-elements><search:element ns="" name="body"/></search:preferred-elements>
-        <search:max-matches>2</search:max-matches>
-        <search:max-snippet-chars>400</search:max-snippet-chars>
-        <search:per-match-tokens>30</search:per-match-tokens>
-      </search:transform-results>
-    </search:state>
-  </search:operator>
-  <annotation xmlns="http://marklogic.com/appservices/search">Delta options here</annotation>
-</search:options>
+    </implicit>
+    <starter strength="30" apply="grouping" delimiter=")">(</starter>
+    <starter strength="40" apply="prefix" element="cts:not-query">-</starter>
+    <joiner strength="10" apply="infix" element="cts:or-query" tokenize="word">OR</joiner>
+    <joiner strength="20" apply="infix" element="cts:and-query" tokenize="word">AND</joiner>
+    <joiner strength="30" apply="infix" element="cts:near-query" tokenize="word">NEAR</joiner>
+    <joiner strength="30" apply="near2" consume="2" element="cts:near-query">NEAR/</joiner>
+    <joiner strength="50" apply="constraint">:</joiner>
+    <joiner strength="50" apply="constraint" compare="LT" tokenize="word">LT</joiner>
+    <joiner strength="50" apply="constraint" compare="LE" tokenize="word">LE</joiner>
+    <joiner strength="50" apply="constraint" compare="GT" tokenize="word">GT</joiner>
+    <joiner strength="50" apply="constraint" compare="GE" tokenize="word">GE</joiner>
+    <joiner strength="50" apply="constraint" compare="NE" tokenize="word">NE</joiner>
+  </grammar>
+  
+  <sort-order direction="descending">
+    <score/>
+  </sort-order>
+  
+  <transform-results apply="snippet">
+    <preferred-elements><element ns="" name="body"/></preferred-elements>
+    <max-matches>1</max-matches>
+    <max-snippet-chars>150</max-snippet-chars>
+    <per-match-tokens>20</per-match-tokens>
+  </transform-results>
+  
+  <return-query>1</return-query>
+  
+  <operator name="results">
+    <state name="compact">
+      <transform-results apply="snippet">
+        <preferred-elements><element ns="" name="body"/></preferred-elements>
+        <max-matches>1</max-matches>
+        <max-snippet-chars>150</max-snippet-chars>
+        <per-match-tokens>20</per-match-tokens>
+      </transform-results>
+    </state>
+    <state name="detailed">
+      <transform-results apply="snippet">
+        <preferred-elements><element ns="" name="body"/></preferred-elements>
+        <max-matches>2</max-matches>
+        <max-snippet-chars>400</max-snippet-chars>
+        <per-match-tokens>30</per-match-tokens>
+      </transform-results>
+    </state>
+  </operator>
+
+</options>

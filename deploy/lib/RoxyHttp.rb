@@ -32,7 +32,16 @@ module Net
       @path = path
     end
   end
-  
+
+  # Give a little love to those folks stuck on ruby 1.8.7
+  class HTTPResponse
+    unless method_defined?(:body=)
+      def body=(value)
+        @body = value
+      end
+    end
+  end
+
   module HTTPHeader
     @@nonce_count = -1
     CNONCE = Digest::MD5.hexdigest "%x" % (Time.now.to_i + rand(65535))
@@ -318,7 +327,7 @@ module Roxy
           @http.ca_file         = ca_file
         end
       end
-      
+
       # open connection
       @http.start
     end

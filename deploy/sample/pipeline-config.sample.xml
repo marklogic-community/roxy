@@ -31,15 +31,15 @@
       </scope>
 -->
       <context>
-        <modules-database>@ml.modules-db</modules-database>
+        <modules-database>${modules-db}</modules-database>
         <root>/</root>
       </context>
-      <restart-user>@ml.app-name-user</restart-user>
+      <restart-user>${app-name}-user</restart-user>
       <!-- Permissions are optional -->
       <permissions>
         <permission>
           <capability>execute</capability>
-          <role-name>@ml.app-role</role-name>
+          <role-name>${app-role}</role-name>
         </permission>
       </permissions>
     </domain>

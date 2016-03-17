@@ -20,6 +20,19 @@ require 'util'
 require 'upgrader'
 require 'scaffold'
 
+#Return Codes
+EXIT_LOAD_PROF_GEM = 3
+EXIT_SHOW_HELP = 0
+EXIT_SERVER_CONFIG_SEND = 4
+EXIT_SERVER_CONFIG_NEW = 5
+EXIT_RESCUE_HTTP_CREDS = 6
+EXIT_RESCUE_HTTP_ERROR = 7
+EXIT_RESCUE_HTTP_FATAL = 8
+EXIT_RESCUE_DANGLING_VARS = 9
+EXIT_RESCUE_HELP_EXCEPTION = 10
+EXIT_RESCUE_EXIT_EXCEPTION = 11
+EXIT_RESCUE_EXCEPTION = 12
+
 if is_jar?
   require ServerConfig.expand_path("./deploy/app_specific")
 else
@@ -39,7 +52,7 @@ if @profile then
     RubyProf.start
   rescue LoadError
     print("Error: Please install the ruby-prof gem to enable profiling\n> gem install ruby-prof\n")
-    exit
+    exit EXIT_LOAD_PROF_GEM
   end
 end
 
@@ -54,7 +67,7 @@ end
 
 if ARGV.length == 1 && need_help?
   Help.doHelp(@logger, :usage)
-  exit
+  exit EXIT_SHOW_HELP
 end
 
 if RUBY_VERSION < "1.8.7"
@@ -125,7 +138,7 @@ begin
         ServerConfig.no_prompt = @no_prompt
         result = ServerConfig.send command
         if !result
-          exit!
+          exit EXIT_SERVER_CONFIG_SEND
         end
       end
       break
@@ -154,7 +167,7 @@ begin
           :no_prompt => @no_prompt
         ).send(command)
         if !result
-          exit!
+          exit EXIT_SERVER_CONFIG_NEW
         end
       else
         Help.doHelp(@logger, :usage, "Unknown command #{command}!")
@@ -166,32 +179,32 @@ rescue Net::HTTPServerException => e
   case e.response
   when Net::HTTPUnauthorized then
     @logger.error "Invalid login credentials for #{@properties["environment"]} environment!!"
-    exit!
+    exit EXIT_RESCUE_HTTP_CREDS
   else
     @logger.error e
     @logger.error e.response.body
-    exit!
+    exit EXIT_RESCUE_HTTP_ERROR
   end
 rescue Net::HTTPFatalError => e
   @logger.error e
   @logger.error e.response.body
-  exit!
+  exit EXIT_RESCUE_HTTP_FATAL
 rescue DanglingVarsException => e
   @logger.error "WARNING: The following configuration variables could not be validated:"
   e.vars.each do |k,v|
     @logger.error "#{k}=#{v}"
   end
-  exit!
+  exit EXIT_RESCUE_DANGLING_VARS
 rescue HelpException => e
   Help.doHelp(@logger, e.command, e.message)
-  exit!
+  exit EXIT_RESCUE_HELP_EXCEPTION
 rescue ExitException => e
   @logger.error e
-  exit!
+  exit EXIT_RESCUE_EXIT_EXCEPTION
 rescue Exception => e
   @logger.error e
   @logger.error e.backtrace
-  exit!
+  exit EXIT_RESCUE_EXCEPTION
 end
 
 if @profile then

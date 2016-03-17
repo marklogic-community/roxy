@@ -1078,6 +1078,7 @@
     <role>
       <role-name>@ml.app-role</role-name>
       <description>A role for users of the @ml.app-name application</description>
+      <compartment>roxy</compartment>
       <role-names>
       </role-names>
       <permissions>

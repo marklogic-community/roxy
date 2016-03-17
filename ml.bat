@@ -2,6 +2,11 @@
 
 set RUBYFOUND=
 for %%e in (%PATHEXT%) do (
+  for %%X in (jruby%%e) do (
+    if not defined RUBYFOUND (
+      set RUBYFOUND=%%~$PATH:X
+    )
+  )
   for %%X in (ruby%%e) do (
     if not defined RUBYFOUND (
       set RUBYFOUND=%%~$PATH:X
@@ -150,7 +155,7 @@ goto end
     goto :loop2
   )
 
-  ruby -Ideploy -Ideploy\lib -Ideploy\test deploy\test\test_main.rb
+  %RUBYFOUND% -Ideploy -Ideploy\lib -Ideploy\test deploy\test\test_main.rb
 
   REM Restore original env variable value
   set ROXY_TEST_SERVER_VERSION=%ROXY_TEST_SERVER_VERSION_ORG%
@@ -159,7 +164,7 @@ goto end
 
 :rubydeployer
   if NOT EXIST deploy\lib\ml.rb GOTO missingdeploy
-  ruby -Ideploy -Ideploy\lib deploy\lib\ml.rb %*
+  %RUBYFOUND% -Ideploy -Ideploy\lib deploy\lib\ml.rb %*
   goto end
 
 :missingdeploy

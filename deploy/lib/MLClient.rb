@@ -32,6 +32,11 @@ class MLClient
     @request = {}
     
     @@no_prompt = options[:no_prompt]
+    @@http_connection_retry_count = options[:http_connection_retry_count]
+    @@http_connection_open_timeout = options[:http_connection_open_timeout]
+    @@http_connection_read_timeout = options[:http_connection_read_timeout]
+    @@http_connection_retry_delay = options[:http_connection_retry_delay]
+    
   end
 
   def MLClient.logger()
@@ -49,7 +54,11 @@ class MLClient
   def get_http
     if (!@http)
       @http = Roxy::Http.new({
-        :logger => logger
+        :logger => logger,
+        :http_connection_retry_count => @@http_connection_retry_count,
+        :http_connection_open_timeout => @@http_connection_open_timeout,
+        :http_connection_read_timeout => @@http_connection_read_timeout,
+        :http_connection_retry_delay => @@http_connection_retry_delay
       })
     end
     @http
@@ -114,7 +123,7 @@ class MLClient
       raise ExitException.new("--no-prompt parameter prevents prompting for input")
     else
       print(*args)
-      gets.strip
+      STDIN.gets.strip
     end
   end
 
@@ -124,7 +133,7 @@ class MLClient
         raise ExitException.new("--no-prompt parameter prevents prompting for username")
       else
         print "Login for admin user: "
-        @ml_username = gets.chomp
+        @ml_username = STDIN.gets.chomp
       end
     end
     if (@ml_password == "") then

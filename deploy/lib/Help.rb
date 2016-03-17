@@ -32,23 +32,25 @@ class Help
         corb          Runs Corb against the given environment
         deploy        Loads modules, data, cpf configuration into the given environment
         load          Loads a file or folder into the given environment
+        merge         Merges a database on the given environment
         mlcp          Runs MLCP against the given environment
         recordloader  Runs RecordLoader against the given environment
+        reindex       Reindexes a database on the given environment
         settings      Lists all supported settings for a given environment
         test          Runs xquery unit tests against the given environment
         xqsync        Runs XQSync against the given environment
     DOC
-    
+
     help += app_specific || ''
 
     help += <<-DOC.strip_heredoc
 
       All commands can be run with -h or --help for more information.
     DOC
-    
+
     help
   end
-  
+
   def self.app_specific
     #stub
   end
@@ -164,7 +166,8 @@ class Help
       Usage: ml {env} info [options]
 
       General options:
-        -v, [--verbose]  # Verbose output
+        --format                           # Output format can be (json | xml).
+        -v, [--verbose]                    # Verbose output
 
       Displays the properties for the given environment
     DOC
@@ -222,9 +225,16 @@ class Help
 
       General options:
         -v, [--verbose]  # Verbose output
+        --apply-changes=[WHAT]
 
       Bootstraps your application to the MarkLogic server in the given
       environment.
+
+      --apply-changes allows for a granular application of changes to a given
+      environment. Multiple changes may be specified, seperated by commas.
+      Changes may include:
+        ssl, privileges, roles, users, external-security, mimetypes, groups,
+        hosts, forests, databases, amps, indexes, appservers, tasks
     DOC
   end
 
@@ -234,9 +244,16 @@ class Help
 
       General options:
         -v, [--verbose]  # Verbose output
+        --apply-changes=[WHAT]
 
       Removes all traces of your application on the MarkLogic serverin the given
       environment.
+
+      --apply-changes allows for a granular application of changes to a given
+      environment. Multiple changes may be specified, seperated by commas.
+      Changes may include:
+        ssl, privileges, roles, users, external-security, mimetypes, groups,
+        hosts, forests, databases, amps, indexes, appservers, tasks
     DOC
   end
 
@@ -245,10 +262,12 @@ class Help
       Usage: ml {env} deploy WHAT [options]
 
       General options:
-        -v, [--verbose]  # Verbose output
-        --batch=(yes|no) # enable or disable batch commit. By default
-                           batch is disabled for the local environment
-                           and enabled for all others.
+        -v, [--verbose]        # Verbose output
+        --batch=(yes|no)       # enable or disable batch commit. By default
+                                 batch is disabled for the local environment
+                                 and enabled for all others.
+        --incremental=(yes|no) # For content, only deploy files which are
+                                 newer locally than on the server
 
       Please choose a WHAT below.
 
@@ -262,6 +281,32 @@ class Help
                     if a name is specified, then only that extension will be deployed
         transform   # deploys your rest extensions to the server in the given environment
                     if a name is specified, then only that transform will be deployed
+    DOC
+  end
+
+  def self.merge
+    <<-DOC.strip_heredoc
+      Usage: ml {env} merge WHAT [options]
+
+      General options:
+        -v, [--verbose]  # Verbose output
+
+      Please choose a WHAT below.
+
+        content     # Merges your content db in the given environment
+    DOC
+  end
+
+  def self.reindex
+    <<-DOC.strip_heredoc
+      Usage: ml {env} reindex WHAT [options]
+
+      General options:
+        -v, [--verbose]  # Verbose output
+
+      Please choose a WHAT below.
+
+        content     # Reindexes your content db in the given environment
     DOC
   end
 
@@ -372,8 +417,9 @@ class Help
       Usage: ml {env} mlcp [options]
 
       Runs MLCP with given command-line options agains selected environment.
-      MLCP supports options files natively using the -option_file parameter.
-      The path must a relative or absolute path to a MLCP options file.
+      MLCP supports options files natively using the -options_file parameter.
+      The path to the MLCP options file must be an absolute path or a relative
+      path from the root of the project directory.
       See http://docs.marklogic.com/guide/ingestion/content-pump#chapter
 
       General options:
@@ -383,7 +429,7 @@ class Help
       Roxy applies variable substitution within option files. You may use variables like:
 
       -input_file_path
-      ${ml.data.dir}/
+      ${data.dir}
     DOC
   end
 
@@ -474,10 +520,10 @@ class Help
     <<-DOC.strip_heredoc
       Usage: ml {env} capture --modules-db=[name of modules database]
 		Captures the source for an existing application
-		
+
 	  modules-db: (required)
         The modules database of the application.
-	  
+
 	  ml {env} capture --app-builder=[name of Application Builder-based application]
         Captures the source and REST API configuration for an existing
         Application Builder-based application.

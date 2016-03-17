@@ -77,7 +77,7 @@ Use one of these three options to get started.
 You can download Roxy using git
 `$ git clone git://github.com/marklogic/roxy.git`
 
-#### Grab an zipped version
+#### Grab a zipped version
 If you prefer to grab the archive simply download the latest release from our [Releases Page](https://github.com/marklogic/roxy/releases)
 
 #### Install the Shell script or Batch File
@@ -94,7 +94,7 @@ Download the [ml](https://github.com/marklogic/roxy/raw/master/ml) file
 ### Configure your application
 1. Open a command prompt in the root folder of Roxy.
 2. Run ml init to create sample configuration files.  
-  *You must specify the --server-version option with a value of 4, 5, 6 or 7*.  
+  *You must specify the --server-version option with a value of 6, 7, or 8*.  
   *You must specify the --app-type with a value or bare, rest, hybrid, or mvc*.
 
   `$ ml init app-name --server-version=7 --app-type=rest`

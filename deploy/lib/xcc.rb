@@ -27,13 +27,13 @@ module Net
     def set_path(path)
       @path = path
     end
-    
+
     alias_method :original_write_header, :write_header
-    
+
     def use_xcc(bool)
       @use_xcc = bool
     end
-    
+
     def write_header(sock, ver, path)
       if @use_xcc
         buf = "#{@method} #{path} XDBC/1.0\r\n"
@@ -80,19 +80,24 @@ module Roxy
     EXECUTE = "E"
     ER = ["E", "R"]
     RU = ["R", "U"]
+    ERU = ["E", "R", "U"]
   end
 
   class Xcc < MLClient
 
     attr_reader :hostname, :port
 
-    IGNORE_EXTENSIONS = ['..', '.', '.svn', '.git', '.ds_store', 'thumbs.db']
-
     def initialize(options)
       super(options)
       @hostname = options[:xcc_server]
       @port = options[:xcc_port]
-      @http = Roxy::Http.new :logger => logger
+      @http = Roxy::Http.new({
+        :logger => logger,
+        :http_connection_retry_count => options[:http_connection_retry_count],
+        :http_connection_open_timeout => options[:http_connection_open_timeout],
+        :http_connection_read_timeout => options[:http_connection_read_timeout],
+        :http_connection_retry_delay => options[:http_connection_retry_delay]
+      })
       @request = {}
       @gmt_offset = Time.now.gmt_offset
     end
@@ -110,34 +115,30 @@ module Roxy
       r = go "http://#{options[:host]}:#{options[:port]}/eval", "post", headers, params
     end
 
-    def load_files(path, options = {})
-      if File.exists?(path)
-        headers = {
-          'Content-Type' => "text/xml",
-          'Accept' => "text/html, text/xml, image/gif, image/jpeg, application/vnd.marklogic.sequence, application/vnd.marklogic.document, */*"
-        }
+    def load_files(files, options = {})
 
-        data = get_files(path, options)
-        size = data.size
+      headers = {
+        'Content-Type' => "text/xml",
+        'Accept' => "text/html, text/xml, image/gif, image/jpeg, application/vnd.marklogic.sequence, application/vnd.marklogic.document, */*"
+      }
 
-        batch_commit = options[:batch_commit] == true
-        logger.debug "Using Batch commit: #{batch_commit}"
-        data.each_with_index do |file_uri, i|
-          commit = ((false == batch_commit) || (i >= (size - 1)))
+      size = files.size
 
-          target_uri = build_target_uri(file_uri, options)
-          url = build_load_uri(target_uri, options, commit)
-          logger.debug "loading: #{file_uri} => #{target_uri}"
+      batch_commit = options[:batch_commit] == true
+      logger.debug "Using Batch commit: #{batch_commit}"
+      files.each_with_index do |file_uri, i|
+        commit = ((false == batch_commit) || (i >= (size - 1)))
 
-          r = go url, "put", headers, nil, prep_body(file_uri, commit)
-          logger.error(r.body) unless r.code.to_i == 200
-        end
+        target_uri = build_target_uri(file_uri, options)
+        url = build_load_uri(target_uri, options, commit)
+        logger.debug "loading: #{file_uri} => #{target_uri}"
 
-        return data.length
-      else
-        logger.error "#{path} does not exist"
+        r = go url, "put", headers, nil, prep_body(file_uri, commit)
+        logger.error(r.body) unless r.code.to_i == 200
       end
-      0
+
+      return files.length
+
     end
 
     def load_buffer(uri, buffer, options)
@@ -158,41 +159,6 @@ module Roxy
       1
     end
 
-    private
-
-    def go(url, verb, headers = {}, params = nil, body = nil)
-      headers['User-Agent'] = "Roxy RubyXCC/#{RUBY_XCC_VERSION}  MarkXDBC/#{XCC_VERSION}"
-      super(url, verb, headers, params, body, true)
-    end
-
-    def get_files(path, options = {}, data = [])
-      if File.directory?(path)
-        Dir.foreach(path) do |entry|
-          next if IGNORE_EXTENSIONS.include?(entry.downcase)
-          full_path = File.join(path, entry)
-          skip = false
-
-          options[:ignore_list].each do |ignore|
-            if full_path.match(ignore)
-              skip = true
-              break
-            end
-          end if options[:ignore_list]
-
-          next if skip == true
-
-          if File.directory?(full_path)
-            get_files(full_path, options, data)
-          else
-            data << full_path
-          end
-        end
-      else
-        data = [path]
-      end
-      data
-    end
-
     def build_target_uri(file_uri, options)
       target_uri = file_uri.sub(options[:remove_prefix] || "", "")
       if options[:add_prefix]
@@ -200,6 +166,13 @@ module Roxy
         target_uri = prefix + target_uri
       end
       target_uri
+    end
+
+private
+
+    def go(url, verb, headers = {}, params = nil, body = nil)
+      headers['User-Agent'] = "Roxy RubyXCC/#{RUBY_XCC_VERSION}  MarkXDBC/#{XCC_VERSION}"
+      super(url, verb, headers, params, body, true)
     end
 
     def build_load_uri(target_uri, options, commit)
