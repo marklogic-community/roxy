@@ -3164,7 +3164,7 @@ declare function setup:configure-groups($import-config as element(configuration)
     return
       if (fn:empty($min-version) or setup:at-least-version($min-version)) then
         xdmp:set($admin-config,
-          if ($setting/@function eq ="add") then
+          if ($setting/@function eq "add") then
             setup:apply-groups-setting-add($admin-config, $group-id, $setting, $value)
           else
             xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $group-id, fn:data($value))")))
