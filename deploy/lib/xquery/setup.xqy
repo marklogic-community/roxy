@@ -1110,17 +1110,16 @@ declare function setup:create-forests-from-config(
   let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group-id)
   let $host-name as xs:string? := $forest-config/as:host-name[fn:string-length(fn:string(.)) > 0]
   let $host-id := if ($host-name) then xdmp:host($host-name) else $hosts[1]
-  let $hostnr := fn:index-of($hosts, $host-id)
-  let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
-  let $replicas :=
-    $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
   return
     setup:create-forest(
       $forest-name,
       $data-directory,
       $host-id,
       if (fn:count($hosts) gt 1) then
-        setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, 1, fn:false())
+        let $hostnr := fn:index-of($hosts, $host-id)
+        let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+        let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+        return setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, 1, fn:false())
       else ()
     )
 
