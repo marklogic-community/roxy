@@ -493,6 +493,26 @@
   <groups>
     <group>
       <group-name>roxy-self-test</group-name>
+      <!-- Begin - issue-585 -->
+      <module-location>
+        <namespace-uri>http://roxy/modules/dummy</namespace-uri>
+        <location>/roxy/dummy.xqy</location>
+      </module-location>
+      <namespace>
+        <prefix>prefix1</prefix>
+        <namespace-uri>http://roxy/namespaces/prefix1</namespace-uri>
+      </namespace>
+      <schema>
+        <namespace-uri>http://roxy/schemas/dummy</namespace-uri>
+        <schema-location>/roxy/dummy.xsd</schema-location>
+      </schema>
+      <trace-event>
+        <event-id>roxy-dummy-event</event-id>
+      </trace-event>
+      <using-namespace>
+        <namespace-uri>http://roxy/namespaces/prefix2</namespace-uri>
+      </using-namespace>
+      <!-- End - issue-585 -->
 
       <list-cache-size>2048</list-cache-size>
       <list-cache-partitions>1</list-cache-partitions>
@@ -540,10 +560,10 @@
       <s3-domain>s3.amazonaws.com</s3-domain>
       <s3-protocol>http</s3-protocol>
       <s3-server-side-encryption>none</s3-server-side-encryption>
-      
+
       <!-- Diagnostics -->
       <trace-events-activated>true</trace-events-activated>
-      
+
       <!-- Auditing -->
       <audit-enabled>true</audit-enabled>
       <rotate-audit-files>daily</rotate-audit-files>
