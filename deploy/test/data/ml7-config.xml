@@ -490,9 +490,29 @@
   <odbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     @ml.odbc-server
   </odbc-servers>
-  <groups>
+  <groups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <group>
       <group-name>roxy-self-test</group-name>
+      <!-- Begin - issue-585 -->
+      <module-location>
+        <namespace-uri>http://roxy/modules/dummy</namespace-uri>
+        <location>/roxy/dummy.xqy</location>
+      </module-location>
+      <namespace>
+        <prefix>prefix1</prefix>
+        <namespace-uri>http://roxy/namespaces/prefix1</namespace-uri>
+      </namespace>
+      <schema>
+        <namespace-uri>http://roxy/schemas/dummy</namespace-uri>
+        <schema-location>/roxy/dummy.xsd</schema-location>
+      </schema>
+      <trace-event>
+        <event-id>roxy-dummy-event</event-id>
+      </trace-event>
+      <using-namespace>
+        <namespace-uri>http://roxy/namespaces/prefix2</namespace-uri>
+      </using-namespace>
+      <!-- End - issue-585 -->
 
       <list-cache-size>2048</list-cache-size>
       <list-cache-partitions>1</list-cache-partitions>
@@ -532,7 +552,7 @@
       <background-io-limit>0</background-io-limit>
       <metering-enabled>true</metering-enabled>
       <performance-metering-enabled>true</performance-metering-enabled>
-      <performance-metering-period>1</performance-metering-period>
+      <performance-metering-period>60</performance-metering-period>
       <performance-metering-retain-raw>7</performance-metering-retain-raw>
       <performance-metering-retain-hourly>30</performance-metering-retain-hourly>
       <performance-metering-retain-daily>90</performance-metering-retain-daily>
@@ -540,10 +560,10 @@
       <s3-domain>s3.amazonaws.com</s3-domain>
       <s3-protocol>http</s3-protocol>
       <s3-server-side-encryption>none</s3-server-side-encryption>
-      
+
       <!-- Diagnostics -->
       <trace-events-activated>true</trace-events-activated>
-      
+
       <!-- Auditing -->
       <audit-enabled>true</audit-enabled>
       <rotate-audit-files>daily</rotate-audit-files>
