@@ -490,7 +490,7 @@
   <odbc-servers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     @ml.odbc-server
   </odbc-servers>
-  <groups>
+  <groups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
     <group>
       <group-name>roxy-self-test</group-name>
       <!-- Begin - issue-585 -->
@@ -552,7 +552,7 @@
       <background-io-limit>0</background-io-limit>
       <metering-enabled>true</metering-enabled>
       <performance-metering-enabled>true</performance-metering-enabled>
-      <performance-metering-period>1</performance-metering-period>
+      <performance-metering-period>60</performance-metering-period>
       <performance-metering-retain-raw>7</performance-metering-retain-raw>
       <performance-metering-retain-hourly>30</performance-metering-retain-hourly>
       <performance-metering-retain-daily>90</performance-metering-retain-daily>
