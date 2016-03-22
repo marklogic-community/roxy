@@ -5504,7 +5504,6 @@ declare function setup:at-least-version($target)
         fn:format-number(xs:int(fn:replace($target, "^\d+\.\d+\-\d+\.(\d+)$", "$1")), "000") (: x.x-x.X :)
       else "000"
     )
-  let $_ := xdmp:log(($current-formatted, $target-formatted, fn:compare($current-formatted, $target-formatted)))
   return fn:compare($current-formatted, $target-formatted) >= 0
 };
 
