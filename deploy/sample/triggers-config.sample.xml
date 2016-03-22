@@ -8,15 +8,10 @@
         <trgr:depth>1</trgr:depth>
       </trgr:directory-scope>
       <trgr:document-content>
-        <trgr:update-kind>modify</trgr:update-kind>
+        <trgr:update-kind>create</trgr:update-kind>
       </trgr:document-content>
       <trgr:when>pre-commit</trgr:when>
     </trgr:data-event>
-    <!--
-    <trgr:database-online-event>
-      <trgr:user-name>admin</trgr:user-name>
-    </trgr:database-online-event>
-    -->
     <trgr:module>
       <trgr:database>${modules-db}</trgr:database>
       <trgr:root>/triggers/</trgr:root>
@@ -27,7 +22,7 @@
       <sec:permission>
         <sec:capability>read</sec:capability>
         <sec:role-name>${app-role}</sec:role-name>
-      </sec:permission>,
+      </sec:permission>
       <sec:permission>
         <sec:capability>update</sec:capability>
         <sec:role-name>${app-role}</sec:role-name>
@@ -36,6 +31,7 @@
     <trgr:recursive>false</trgr:recursive>
     <trgr:task-priority>normal</trgr:task-priority>
   </trgr:trigger>
+
   <trgr:trigger>
     <trgr:name>OnlineTrigger</trgr:name>
     <trgr:description>Online Event trigger</trgr:description>
@@ -52,7 +48,7 @@
       <sec:permission>
         <sec:capability>read</sec:capability>
         <sec:role-name>${app-role}</sec:role-name>
-      </sec:permission>,
+      </sec:permission>
       <sec:permission>
         <sec:capability>update</sec:capability>
         <sec:role-name>${app-role}</sec:role-name>
