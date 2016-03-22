@@ -95,8 +95,14 @@ describe ServerConfig do
           })
 
         @s.bootstrap.must_equal true
+#        sleep(10)
         @s.validate_install.must_equal true
       end
+    end
+
+    it "should deploy triggers" do
+      @s.deploy_triggers.must_equal true
+      @s.clean_triggers.must_equal true
     end
 
     after do

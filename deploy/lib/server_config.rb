@@ -1002,8 +1002,6 @@ In order to proceed please type: #{expected_response}
         clean_content
       when 'modules'
         clean_modules
-      when 'triggers'
-        clean_triggers
       when 'schemas'
         clean_schemas
       when 'cpf'
@@ -1398,6 +1396,44 @@ Provides listings of various kinds of settings supported within ml-config.xml.
       }
     end
     return true
+  end
+
+  def deploy_triggers
+    logger.info "Deploying Triggers"
+    if !@properties["ml.triggers-db"]
+      raise ExitException.new("Deploy triggers requires a triggers database")
+    end
+
+    target_config = ServerConfig.expand_path(ServerConfig.properties["ml.triggers.file"])
+
+    if !File.exist?(target_config)
+      logger.error <<-ERR.strip_heredoc
+        Before you can deploy triggers, you must define a configuration. Steps:
+        1. Copy deploy/sample/triggers-config.sample.xml to #{target_config}
+          The location of this file is controlled by the triggers.file property.
+        2. Edit #{target_config} to specify your trigger(s)
+        3. Run 'ml <env> deploy triggers')
+      ERR
+      return false
+    else
+      triggers_config = File.read target_config
+      replace_properties(triggers_config, target_config)
+      triggers_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
+      query = %Q{#{triggers_code} triggers:load-from-config(#{triggers_config})}
+      logger.debug(query)
+      r = execute_query(query, :db_name => @properties["ml.triggers-db"])
+      return true
+    end
+  end
+
+  def clean_triggers
+    if @properties['ml.triggers-db']
+      triggers_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
+      r = execute_query %Q{#{triggers_code} triggers:clean-triggers()}, :db_name => @properties["ml.triggers-db"]
+      return true
+    else
+      logger.error "No triggers db is configured"
+    end
   end
 
 private
@@ -1815,19 +1851,6 @@ private
     end
   end
 
-  def clean_triggers
-    if @properties['ml.triggers-db']
-      logger.info "Cleaning #{@properties['ml.triggers-db']} on #{@hostname}"
-      r = execute_query %Q{
-        for $id in xdmp:database-forests(xdmp:database("#{@properties['ml.triggers-db']}"))
-        return
-          try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
-      }
-    else
-      logger.error "No triggers db is configured"
-    end
-  end
-
   def deploy_content
     count = load_data @properties["ml.data.dir"],
                       :remove_prefix => @properties["ml.data.dir"],
@@ -1870,37 +1893,6 @@ private
   def clean_cpf
     cpf_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/cpf.xqy")
     r = execute_query %Q{#{cpf_code} cpf:clean-cpf()}, :db_name => @properties["ml.content-db"]
-  end
-
-  def deploy_triggers
-    logger.info "Deploying Triggers"
-    if !@properties["ml.triggers-db"]
-      raise ExitException.new("Deploy triggers requires a triggers database")
-    end
-
-    target_config = ServerConfig.expand_path(ServerConfig.properties["ml.triggers.file"])
-
-    if !File.exist?(target_config)
-      logger.error <<-ERR.strip_heredoc
-        Before you can deploy triggers, you must define a configuration. Steps:
-        1. Copy deploy/sample/triggers-config.sample.xml to #{target_config}
-          The location of this file is controlled by the triggers.file property.
-        2. Edit #{target_config} to specify your trigger(s)
-        3. Run 'ml <env> deploy triggers')
-      ERR
-    else
-      triggers_config = File.read target_config
-      replace_properties(triggers_config, target_config)
-      triggers_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
-      query = %Q{#{triggers_code} triggers:load-from-config(#{triggers_config})}
-      logger.debug(query)
-      r = execute_query(query, :db_name => @properties["ml.triggers-db"])
-    end
-  end
-
-  def clean_triggers
-    triggers_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/triggers.xqy")
-    r = execute_query %Q{#{triggers_code} triggers:clean-triggers()}, :db_name => @properties["ml.triggers-db"]
   end
 
   def xcc
