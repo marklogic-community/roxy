@@ -1407,6 +1407,7 @@ Provides listings of various kinds of settings supported within ml-config.xml.
     target_config = ServerConfig.expand_path(ServerConfig.properties["ml.triggers.file"])
 
     if !File.exist?(target_config)
+      logger.error "ml.triggers.file=#{ServerConfig.properties['ml.triggers.file']}"
       logger.error <<-ERR.strip_heredoc
         Before you can deploy triggers, you must define a configuration. Steps:
         1. Copy deploy/sample/triggers-config.sample.xml to #{target_config}
@@ -1422,6 +1423,7 @@ Provides listings of various kinds of settings supported within ml-config.xml.
       query = %Q{#{triggers_code} triggers:load-from-config(#{triggers_config})}
       logger.debug(query)
       r = execute_query(query, :db_name => @properties["ml.triggers-db"])
+      logger.info "... triggers deployed"
       return true
     end
   end
