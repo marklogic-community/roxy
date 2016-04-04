@@ -99,11 +99,6 @@ describe ServerConfig do
       end
     end
 
-    it "should deploy triggers" do
-      @s.deploy_triggers.must_equal true
-      @s.clean_triggers.must_equal true
-    end
-
     after do
       @logger.info "Wiping self-test deployment.."
       @s.wipe
