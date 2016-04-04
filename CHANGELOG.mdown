@@ -1,6 +1,59 @@
 # Roxy Changes
 This file describes changes made to Roxy per release
 
+## 1.7.3
+
+### New Features
+* [#109](https://github.com/marklogic/roxy/issues/109) Configure triggers
+* [#146](https://github.com/marklogic/roxy/issues/146) Apply default phrase-throughs, phrase-arounds, query-throughs
+* [#414](https://github.com/marklogic/roxy/issues/414) Allow users to set properties via OS environment variables
+* [#420](https://github.com/marklogic/roxy/issues/420) Improved self-test
+* [#426](https://github.com/marklogic/roxy/issues/426) Improved MLCP documentation
+* [#427](https://github.com/marklogic/roxy/issues/427) Help folks stuck on Ruby 1.8.7
+* [#429](https://github.com/marklogic/roxy/issues/429) Added support for triple-positions
+* [#437](https://github.com/marklogic/roxy/issues/437) Export properties for a given environment
+* [#441](https://github.com/marklogic/roxy/issues/441) Capture svn info / git commit on deploy modules
+* [#445](https://github.com/marklogic/roxy/issues/445) Support changing external security, add bind-method
+* [#446](https://github.com/marklogic/roxy/issues/446) Add support for compartment security
+* [#450](https://github.com/marklogic/roxy/issues/450) Add support for external names (LDAP)
+* [#452](https://github.com/marklogic/roxy/issues/452) Allow capturing modules without URI lexicon
+* [#456](https://github.com/marklogic/roxy/issues/456) Restart cluster instead of host by default
+* [#460](https://github.com/marklogic/roxy/issues/460) Add merge command for full merge
+* [#466](https://github.com/marklogic/roxy/issues/466) Add distinct property for rest-modules-db
+* [#467](https://github.com/marklogic/roxy/issues/467) Allow same prop replace syntax in props and ml-config
+* [#469](https://github.com/marklogic/roxy/issues/469) Separate out the configuration part for unittesting in server_config.rb
+* [#470](https://github.com/marklogic/roxy/issues/470) Make http timeout configurable
+* [#493](https://github.com/marklogic/roxy/issues/493) Add support for multiple config files
+* [#499](https://github.com/marklogic/roxy/issues/499) Speedup Bootstraping of Configuration with Large Number of Indexes
+* [#538](https://github.com/marklogic/roxy/issues/538) Username/Password not found issue with corb
+* [#543](https://github.com/marklogic/roxy/issues/543) Unable to redirect output from the "ml" script using stanard methods
+* [#581](https://github.com/marklogic/roxy/issues/581) set S3 credentials property through Roxy
+
+### Resolved Issues
+* [#162](https://github.com/marklogic/roxy/issues/162) Fixed http 500 response in hybrid apps
+* [#189](https://github.com/marklogic/roxy/issues/189) Framework tests now work with ssh
+* [#254](https://github.com/marklogic/roxy/issues/254) Test command now works if triggers db not defined
+* [#256](https://github.com/marklogic/roxy/issues/256) Fixed deploy content problem on Windows with non-ASCII filenames
+* [#269](https://github.com/marklogic/roxy/issues/269) Improved capture
+* [#298](https://github.com/marklogic/roxy/issues/298) Fixed capture of modules-db
+* [#431](https://github.com/marklogic/roxy/issues/431) Fixed problem with triggers-db = modules-db
+* [#457](https://github.com/marklogic/roxy/issues/457) Create database in non-bootstrap hosts can fail
+* [#459](https://github.com/marklogic/roxy/issues/459) latest version of mlcp does not see log4j.propeties in mlcp/conf folder
+* [#462](https://github.com/marklogic/roxy/issues/462) Groups in ml-config are not preserved
+* [#463](https://github.com/marklogic/roxy/issues/463) Cannot add servers with identical name in multiple groups
+* [#468](https://github.com/marklogic/roxy/issues/468) Group not propagated for servers/databases using @import
+* [#495](https://github.com/marklogic/roxy/issues/495) Problem using ml new without --server-version
+* [#497](https://github.com/marklogic/roxy/issues/497) adding scheduled task to ml-config causes lexval error on bootstrap
+* [#503](https://github.com/marklogic/roxy/issues/503) helper:assert-throws-error, xdmp:apply, varargs
+* [#504](https://github.com/marklogic/roxy/issues/504) ml errors when run in cygwin
+* [#506](https://github.com/marklogic/roxy/issues/506) undefined local variable or method `transformname'
+* [#508](https://github.com/marklogic/roxy/issues/508) var expansion in mlcp options file not working (properly)
+* [#509](https://github.com/marklogic/roxy/issues/509) Could not create a Roxy.jar
+* [#511](https://github.com/marklogic/roxy/issues/511) xdmp:set-response-code does not seem to work with ML 8.0-3
+* [#514](https://github.com/marklogic/roxy/issues/514) XDMP-MUSTHAVEUPDATE when deploying modules with account that doesnt have admin role
+* [#520](https://github.com/marklogic/roxy/issues/520) Self-tests no longer running because of http timeout settings
+* [#557](https://github.com/marklogic/roxy/issues/557) Roxy ignores weight setting
+
 ## 1.7.2
 
 ### New Features
