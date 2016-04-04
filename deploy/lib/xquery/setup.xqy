@@ -1104,7 +1104,7 @@ declare function setup:create-forests-from-config(
   let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
   let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group-id)
   let $host-name as xs:string? := $forest-config/as:host-name[fn:string-length(fn:string(.)) > 0]
-  let $host-id := if ($host-name) then xdmp:host($host-name) else $hosts[1]
+  let $host-id := if ($host-name) then xdmp:host($host-name) else ($hosts, $default-host)[1]
   let $hostnr := fn:index-of($hosts, $host-id)
   let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
   let $replicas :=
@@ -5586,7 +5586,6 @@ declare function setup:at-least-version($target)
         fn:format-number(xs:int(fn:replace($target, "^\d+\.\d+\-\d+\.(\d+)$", "$1")), "000") (: x.x-x.X :)
       else "000"
     )
-  let $_ := xdmp:log(($current-formatted, $target-formatted, fn:compare($current-formatted, $target-formatted)))
   return fn:compare($current-formatted, $target-formatted) >= 0
 };
 

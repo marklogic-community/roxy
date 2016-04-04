@@ -1,0 +1,60 @@
+<trgr:triggers xmlns:trgr="http://marklogic.com/xdmp/triggers" xmlns:sec="http://marklogic.com/xdmp/security">
+  <trgr:trigger>
+    <trgr:name>CreateTrigger</trgr:name>
+    <trgr:description>Trigger to enrich XML ingested via MLCP</trgr:description>
+    <trgr:data-event>
+      <trgr:directory-scope>
+        <trgr:uri>/myDir/</trgr:uri>
+        <trgr:depth>1</trgr:depth>
+      </trgr:directory-scope>
+      <trgr:document-content>
+        <trgr:update-kind>create</trgr:update-kind>
+      </trgr:document-content>
+      <trgr:when>pre-commit</trgr:when>
+    </trgr:data-event>
+    <trgr:module>
+      <trgr:database>${modules-db}</trgr:database>
+      <trgr:root>/triggers/</trgr:root>
+      <trgr:path>log-create.xqy</trgr:path>
+    </trgr:module>
+    <trgr:enabled>true</trgr:enabled>
+    <trgr:permissions>
+      <sec:permission>
+        <sec:capability>read</sec:capability>
+        <sec:role-name>${app-role}</sec:role-name>
+      </sec:permission>
+      <sec:permission>
+        <sec:capability>update</sec:capability>
+        <sec:role-name>${app-role}</sec:role-name>
+      </sec:permission>
+    </trgr:permissions>
+    <trgr:recursive>false</trgr:recursive>
+    <trgr:task-priority>normal</trgr:task-priority>
+  </trgr:trigger>
+
+  <trgr:trigger>
+    <trgr:name>OnlineTrigger</trgr:name>
+    <trgr:description>Online Event trigger</trgr:description>
+    <trgr:database-online-event>
+      <trgr:user-name>admin</trgr:user-name>
+    </trgr:database-online-event>
+    <trgr:module>
+      <trgr:database>${modules-db}</trgr:database>
+      <trgr:root>/triggers/</trgr:root>
+      <trgr:path>log-create.xqy</trgr:path>
+    </trgr:module>
+    <trgr:enabled>true</trgr:enabled>
+    <trgr:permissions>
+      <sec:permission>
+        <sec:capability>read</sec:capability>
+        <sec:role-name>${app-role}</sec:role-name>
+      </sec:permission>
+      <sec:permission>
+        <sec:capability>update</sec:capability>
+        <sec:role-name>${app-role}</sec:role-name>
+      </sec:permission>
+    </trgr:permissions>
+    <trgr:recursive>false</trgr:recursive>
+    <trgr:task-priority>normal</trgr:task-priority>
+  </trgr:trigger>
+</trgr:triggers>
