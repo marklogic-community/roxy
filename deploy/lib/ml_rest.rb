@@ -73,6 +73,37 @@ module Roxy
       end
     end
 
+    def install_options(path)
+      @logger.info("Loading REST options in #{path}")
+      if (File.exists?(path))
+        Dir.foreach(path) do |item|
+          next if item == '.' or item == '..'
+
+          file = open("#{path}/#{item}", "rb")
+          ext = File.extname(item)
+          basename = File.basename(item, ext)
+
+          headers = {}
+          if (ext == '.xml')
+            headers['Content-Type'] = 'application/xml'
+          elsif (ext == '.json')
+            headers['Content-Type'] = 'application/json'
+          else
+            @logger.error("Unrecognized REST options format: #{item}")
+          end
+
+          contents = file.read
+
+          r = go("http://#{@hostname}:#{@port}/v1/config/query/#{basename}", "put", headers, nil, contents)
+          if (r.code.to_i < 200 && r.code.to_i > 206)
+            @logger.error("code: #{r.code.to_i} body:#{r.body}")
+          end
+        end
+      else
+        @logger.error "#{path} does not exist"
+      end
+    end
+
     def install_extensions(path)
       if (File.exists?(path))
 
@@ -82,35 +113,35 @@ module Roxy
         data.each_with_index do |d, i|
           file = open(d, "rb")
           contents = file.read
-          
+
           file_ext = File.extname(d)[1..-1]
           file_name = File.basename(d, ".*")
-          
+
           is_sjs = (file_ext == "sjs")
           is_xsl = file_ext.include?("xsl")
           next if is_xsl # XSLT rest extension not supported
 
           @logger.debug "Deploying #{File.basename(d)}"
-          
+
           headers = {
             'Content-Type' => (is_sjs ? 'application/vnd.marklogic-javascript' : 'application/xquery')
           }
           params = []
-          
+
           extensionName = file_name
-          
+
           if (is_sjs)
-            
+
             contents.scan(/@name\s+(\b\w*\b)/).each do |m|
                if (!m[0].nil? || !m[0].to_s.empty?)
                  extensionName = m[0]
                end
             end
-            
+
             contents.scan(/exports+[.]+(GET|PUT|POST|DELETE)/).each do |m|
               params << "method=#{m[0].downcase}"
             end
-            
+
             # look for annotations of this form:
             # /**
             #  * @param {string} myString The string
@@ -123,22 +154,22 @@ module Roxy
                 args << ":#{m[2]}=xs:#{m[1]}"
               end
               if (!m[0].nil? || !m[0].to_s.empty?)
-                args.each do |arg|  
+                args.each do |arg|
                   params << "#{m[0].downcase}#{arg}"
                 end
                 args = []
               end
             end
-            
+
           else
             # XQuery
-            
+
             extensionName = $1 if contents =~ /module\s*namespace\s*[\w\-]+\s*=\s*"http:\/\/marklogic.com\/rest-api\/resource\/([^"]+)"/
-            
+
             contents.scan(/function\s+[^:]+:(get|put|post|delete)/).each do |m|
               params << "method=#{m[0]}"
             end
-            
+
             # look for annotations of this form:
             # %roxy:params("argname=type", "anotherarg=type")
             contents.scan(/declare\s+(\%\w+:\w+\(([\"\w\-\=\,\s:?*+]*)\))*\s*function\s+[^:]+:(get|put|post|delete)/m).each do |m|
@@ -158,19 +189,19 @@ module Roxy
                 end
               end
             end
-          
+
           end
-          
+
           @logger.debug "extensionName: #{extensionName}"
           @logger.debug "headers: #{headers}"
           @logger.debug "params: #{params}"
-          
+
           url = "http://#{@hostname}:#{@port}/v1/config/resources/#{extensionName}"
           if (params.length > 0)
             url << "?" << params.join("&")
           end
           @logger.debug "loading: #{d}"
-          
+
           r = go(url, "put", headers, nil, contents)
           if (r.code.to_i < 200 && r.code.to_i > 206)
             @logger.error("code: #{r.code.to_i} body:#{r.body}")
@@ -189,26 +220,26 @@ module Roxy
 
         data.each_with_index do |d, i|
           @logger.debug "Deploying #{File.basename(d)}"
-          
+
           file = open(d, "rb")
           contents = file.read
-          
+
           file_ext = File.extname(d)[1..-1]
           file_name = File.basename(d, ".*")
-          
+
           is_sjs = (file_ext == "sjs")
           is_xsl = file_ext.include?("xsl")
           is_xqy = file_ext.include?("xq")
-          
+
           headers = {
             'Content-Type' => (is_sjs ? 'application/vnd.marklogic-javascript' : (is_xsl ? 'application/xslt+xml': 'application/xquery'))
           }
-          
+
           transformName = file_name
           params = []
-          
+
           if (is_sjs)
-            
+
             # look for annotations of this form:
             # /**
             #  * @param {string} myString The string
@@ -221,15 +252,15 @@ module Roxy
                 args << ":#{m[2]}=xs:#{m[1]}"
               end
               if (!m[0].nil? || !m[0].to_s.empty?)
-                args.each do |arg|  
+                args.each do |arg|
                   params << "#{m[0].downcase}#{arg}"
                 end
                 args = []
               end
             end
-            
+
           elsif (is_xsl)
-            
+
             # look for annotations of this form:
             # %roxy:params("argname=type", "anotherarg=type")
             contents.scan(/<!--\s*(\%\w+:\w+\(([\"\w\-\=\,\s:?*+]*)\))*\s*-->/m).each do |m|
@@ -250,7 +281,7 @@ module Roxy
             end
 
           else # XQuery
-            
+
             # look for annotations of this form:
             # %roxy:params("argname=type", "anotherarg=type")
             contents.scan(/declare\s+(\%\w+:\w+\(([\"\w\-\=\,\s:?*+]*)\))*\s*function/m).each do |m|

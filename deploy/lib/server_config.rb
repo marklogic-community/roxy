@@ -1752,21 +1752,27 @@ private
         return
       end
 
-      if (@properties.has_key?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
-        prop_path = "#{@properties['ml.rest-options.dir']}/properties.xml"
-        if (File.exist?(prop_path))
-          mlRest.install_properties(ServerConfig.expand_path(prop_path))
-        end
-        load_data "#{@properties['ml.rest-options.dir']}/options",
-            :add_prefix => "/#{@properties['ml.group']}/#{@properties['ml.app-name']}/rest-api",
-            :remove_prefix => @properties['ml.rest-options.dir'],
-            :db => rest_modules_db
-      else
-        logger.info "\nNo REST API options found in: #{@properties['ml.rest-options.dir']}";
-      end
-
+      deploy_rest_config(rest_modules_db)
       deploy_ext()
       deploy_transform()
+    end
+  end
+
+  def deploy_rest_config (rest_modules_db)
+    if (@properties.has_key?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
+
+      prop_path = "#{@properties['ml.rest-options.dir']}/properties.xml"
+      if (File.exist?(prop_path))
+        mlRest.install_properties(ServerConfig.expand_path(prop_path))
+      end
+
+      options_path = "#{@properties['ml.rest-options.dir']}/options"
+      if (File.exist?(options_path))
+        mlRest.install_options(ServerConfig.expand_path(options_path))
+      end
+
+    else
+      logger.info "\nNo REST API options found in: #{@properties['ml.rest-options.dir']}";
     end
   end
 
