@@ -17,6 +17,7 @@ module Roxy
       @request = {}
       @gmt_offset = Time.now.gmt_offset
       @server_version = options[:server_version]
+      @rest_protocol = "http#{options[:use_https_for_rest] ? 's' : ''}"
 
     end
 
@@ -60,7 +61,7 @@ module Roxy
             end
             # Properties is in the correct format
             # @logger.debug "methods: #{methods}"
-            url = "http://#{@hostname}:#{@port}/v1/config/properties"
+            url = "#{@rest_protocol}://#{@hostname}:#{@port}/v1/config/properties"
 
             r = go(url, "put", headers, nil, contents)
             if (r.code.to_i < 200 && r.code.to_i > 206)
@@ -196,7 +197,7 @@ module Roxy
           @logger.debug "headers: #{headers}"
           @logger.debug "params: #{params}"
 
-          url = "http://#{@hostname}:#{@port}/v1/config/resources/#{extensionName}"
+          url = "#{@rest_protocol}://#{@hostname}:#{@port}/v1/config/resources/#{extensionName}"
           if (params.length > 0)
             url << "?" << params.join("&")
           end
@@ -305,7 +306,7 @@ module Roxy
           @logger.debug "transformName: #{transformName}"
           @logger.debug "headers: #{headers}"
           @logger.debug "params: #{params}"
-          url = "http://#{@hostname}:#{@port}/v1/config/transforms/#{transformName}"
+          url = "#{@rest_protocol}://#{@hostname}:#{@port}/v1/config/transforms/#{transformName}"
           if (params.length > 0)
             url << "?" << params.join("&")
           end
