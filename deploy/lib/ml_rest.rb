@@ -95,7 +95,7 @@ module Roxy
 
           contents = file.read
 
-          r = go("http://#{@hostname}:#{@port}/v1/config/query/#{basename}", "put", headers, nil, contents)
+          r = go("#{@rest_protocol}://#{@hostname}:#{@port}/v1/config/query/#{basename}", "put", headers, nil, contents)
           if (r.code.to_i < 200 && r.code.to_i > 206)
             @logger.error("code: #{r.code.to_i} body:#{r.body}")
           end
