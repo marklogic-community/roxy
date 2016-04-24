@@ -631,6 +631,9 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   def bootstrap
     raise ExitException.new("Bootstrap requires the target environment's hostname to be defined") unless @hostname.present?
 
+    @ml_username = @properties['ml.bootstrap-user'] || @properties['ml.user']
+    @ml_password = @properties['ml.bootstrap-password'] || @properties['ml.password']
+
     internals = find_arg(['--replicate-internals'])
     if internals
 
@@ -728,6 +731,10 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   end
 
   def wipe
+
+    @ml_username = @properties['ml.bootstrap-user'] || @properties['ml.user']
+    @ml_password = @properties['ml.bootstrap-password'] || @properties['ml.password']
+
     if @environment != "local"
       expected_response = %Q{I WANT TO WIPE #{@environment.upcase}}
       print %Q{
@@ -917,6 +924,9 @@ In order to proceed please type: #{expected_response}
   alias_method :validate, :validate_install
 
   def deploy
+    @ml_username = @properties['ml.deploy-user'] || @properties['ml.user']
+    @ml_password = @properties['ml.deploy-password'] || @properties['ml.password']
+
     what = ARGV.shift
     raise HelpException.new("deploy", "Missing WHAT") unless what
 
