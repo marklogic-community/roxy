@@ -516,6 +516,9 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   end
 
   def restart
+    @ml_username = @properties['ml.bootstrap-user'] || @properties['ml.user']
+    @ml_password = @properties['ml.bootstrap-password'] || @properties['ml.password']
+
     group = nil
     ARGV.each do |arg|
       # Exclude any argument passed from command line.
@@ -1409,6 +1412,9 @@ Provides listings of various kinds of settings supported within ml-config.xml.
   end
 
   def deploy_triggers
+    @ml_username = @properties['ml.deploy-user'] || @properties['ml.user']
+    @ml_password = @properties['ml.deploy-password'] || @properties['ml.password']
+
     logger.info "Deploying Triggers"
     if !@properties["ml.triggers-db"]
       raise ExitException.new("Deploy triggers requires a triggers database")
