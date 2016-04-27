@@ -939,6 +939,8 @@ In order to proceed please type: #{expected_response}
         deploy_cpf
       when 'triggers'
         deploy_triggers
+      when 'rest-config'
+        deploy_rest_config
       else
         raise HelpException.new("deploy", "Invalid WHAT")
     end
@@ -1739,7 +1741,7 @@ private
   def deploy_rest
     # Deploy options, extensions to the REST API server
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
-      # Figure out where we need to deploy this stuff
+      # Verify that we're not trying to run REST from the filesystem
       rest_modules_db = ''
       if @properties.has_key?('ml.rest-port') and @properties['ml.rest-port'] != ''
         rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
@@ -1752,13 +1754,13 @@ private
         return
       end
 
-      deploy_rest_config(rest_modules_db)
+      deploy_rest_config()
       deploy_ext()
       deploy_transform()
     end
   end
 
-  def deploy_rest_config (rest_modules_db)
+  def deploy_rest_config ()
     if (@properties.has_key?('ml.rest-options.dir') && File.exist?(@properties['ml.rest-options.dir']))
 
       prop_path = "#{@properties['ml.rest-options.dir']}/properties.xml"

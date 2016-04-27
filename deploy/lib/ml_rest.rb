@@ -38,6 +38,7 @@ module Roxy
     end
 
     def install_properties(path)
+      @logger.info("Loading REST properties in #{path}")
       if (File.exists?(path))
         headers = {
           'Content-Type' => 'application/xml'

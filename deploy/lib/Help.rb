@@ -276,12 +276,15 @@ class Help
         schemas     # deploys schemas to your schemas db in the given environment
         cpf         # deploys your cpf config to the server in the given environment
         src         # deploys the src code to your modules db in the given environment
-        rest        # deploys properties, extensions, and transforms to our modules db in the given environment
-        ext         # deploys your rest extensions to the server in the given environment
-                    if a name is specified, then only that extension will be deployed
-        transform   # deploys your rest extensions to the server in the given environment
-                    if a name is specified, then only that transform will be deployed
-        triggers    # deploys triggers from deploy/triggers-config.xml to your triggers database
+        rest        # deploys properties, search options, extensions, and transforms
+                      to our modules db in the given environment
+        rest-config # deploys properties and search options to our modules db
+        ext         # deploys rest extensions to the server in the given environment
+                      if a name is specified, only that extension will be deployed
+        transform   # deploys rest transforms to the server in the given environment
+                      if a name is specified, only that transform will be deployed
+        triggers    # deploys triggers from deploy/triggers-config.xml to your
+                      triggers database
     DOC
   end
 
