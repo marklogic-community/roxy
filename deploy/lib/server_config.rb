@@ -506,8 +506,10 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       r = execute_query_4 query, properties
     elsif @server_version == 5 || @server_version == 6
       r = execute_query_5 query, properties
-    else # 7 or 8
+    elsif @server_version == 7
       r = execute_query_7 query, properties
+    else # 8 or 9
+      r = execute_query_8 query, properties
     end
 
     raise ExitException.new(r.body) unless r.code.to_i == 200
@@ -2114,6 +2116,34 @@ private
     end
 
     delete_workspace(ws_id) if ws_id
+
+    raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
+
+    r
+  end
+
+  def execute_query_8(query, properties = {})
+    # headers = {}
+
+    # params = {
+    #   :xquery => query,
+    #   :locale => LOCALE,
+    #   :tzoffset => "-18000"
+    # }
+
+    # r = go "#{@protocol}://#{@hostname}:#{@qconsole_port}/eval", "post", headers, params
+
+    headers = {
+      "Content-Type" => "application/x-www-form-urlencoded"
+    }
+
+    params = {
+      :xquery => query,
+      :locale => LOCALE,
+      :tzoffset => "-18000"
+    }
+
+    r = go "#{@protocol}://#{@hostname}:#{@qconsole_port}/v1/eval", "post", headers, params
 
     raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
 
