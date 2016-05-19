@@ -208,7 +208,7 @@ class ServerConfig < MLClient
     server_version = find_arg(['--server-version'])
 
     # Check for required --server-version argument value
-    if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7 8).include? server_version))
+    if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7 8 9).include? server_version))
       server_version = prompt_server_version
     end
 
@@ -240,7 +240,7 @@ class ServerConfig < MLClient
       elsif app_type == "rest"
         # rest applications don't use Roxy's MVC structure, so they can use MarkLogic's rewriter and error handler
         # Note: ML8 rest uses the new native rewriter
-        rewriter_name = (server_version == "8") ? "rewriter.xml" : "rewriter.xqy"
+        rewriter_name = (server_version.to_i >= 8) ? "rewriter.xml" : "rewriter.xqy"
         properties_file.gsub!(/url-rewriter=\/roxy\/rewrite.xqy/, "url-rewriter=/MarkLogic/rest-api/" + rewriter_name)
         properties_file.gsub!(/error-handler=\/roxy\/error.xqy/, "error-handler=/MarkLogic/rest-api/error-handler.xqy")
       end
@@ -306,7 +306,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     else
       puts 'Required option --server-version=[version] not specified with valid value.
 
-  What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
+  What is the version number of the target MarkLogic server? [5, 6, 7, 8, or 9]'
       server_version = STDIN.gets.chomp.to_i
       server_version = 8 if server_version == 0
       server_version
