@@ -4761,8 +4761,7 @@ declare function setup:create-amps($import-config)
         <options xmlns="xdmp:eval">
           <database>{xdmp:security-database()}</database>
         </options>
-      ),
-      setup:add-rollback("amps", $amp)
+      )
     )
     else
     (
