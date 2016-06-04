@@ -18,6 +18,7 @@ xquery version "1.0-ml";
 import module namespace config = "http://marklogic.com/roxy/config" at "/app/config/config.xqy";
 import module namespace def = "http://marklogic.com/roxy/defaults" at "/roxy/config/defaults.xqy";
 import module namespace req = "http://marklogic.com/roxy/request" at "/roxy/lib/request.xqy";
+import module namespace rewriter = "http://marklogic.com/roxy/rewriter" at "/roxy/lib/rewriter-lib.xqy";
 
 declare namespace rest = "http://marklogic.com/appservices/rest";
 
@@ -37,16 +38,7 @@ return
   else
     try
     {
-      xdmp:eval('
-        import module namespace conf = "http://marklogic.com/rest-api/endpoints/config"
-          at "/MarkLogic/rest-api/endpoints/config.xqy";
-        declare variable $method external;
-        declare variable $uri external;
-        declare variable $path external;
-        (conf:rewrite($method, $uri, $path), $uri)[1]',
-        (xs:QName("method"), $method,
-         xs:QName("uri"), $uri,
-         xs:QName("path"), $path))
+      (rewriter:rewrite($method, $uri, $path), $uri)[1]
     }
     catch($ex) {
       if ($ex/error:code = "XDMP-MODNOTFOUND") then
