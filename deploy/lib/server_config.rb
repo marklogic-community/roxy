@@ -208,7 +208,7 @@ class ServerConfig < MLClient
     server_version = find_arg(['--server-version'])
 
     # Check for required --server-version argument value
-    if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7 8).include? server_version))
+    if (!server_version.present? || server_version == '--server-version' || !(%w(4 5 6 7 8 9).include? server_version))
       server_version = prompt_server_version
     end
 
@@ -240,7 +240,7 @@ class ServerConfig < MLClient
       elsif app_type == "rest"
         # rest applications don't use Roxy's MVC structure, so they can use MarkLogic's rewriter and error handler
         # Note: ML8 rest uses the new native rewriter
-        rewriter_name = (server_version == "8") ? "rewriter.xml" : "rewriter.xqy"
+        rewriter_name = (server_version.to_i >= 8) ? "rewriter.xml" : "rewriter.xqy"
         properties_file.gsub!(/url-rewriter=\/roxy\/rewrite.xqy/, "url-rewriter=/MarkLogic/rest-api/" + rewriter_name)
         properties_file.gsub!(/error-handler=\/roxy\/error.xqy/, "error-handler=/MarkLogic/rest-api/error-handler.xqy")
       end
@@ -306,7 +306,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     else
       puts 'Required option --server-version=[version] not specified with valid value.
 
-  What is the version number of the target MarkLogic server? [5, 6, 7, or 8]'
+  What is the version number of the target MarkLogic server? [5, 6, 7, 8, or 9]'
       server_version = STDIN.gets.chomp.to_i
       server_version = 8 if server_version == 0
       server_version
@@ -506,8 +506,10 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       r = execute_query_4 query, properties
     elsif @server_version == 5 || @server_version == 6
       r = execute_query_5 query, properties
-    else # 7 or 8
+    elsif @server_version == 7
       r = execute_query_7 query, properties
+    else # 8 or 9
+      r = execute_query_8 query, properties
     end
 
     raise ExitException.new(r.body) unless r.code.to_i == 200
@@ -539,7 +541,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     r = execute_query %Q{#{setup} setup:do-restart("#{group}")}
     logger.debug "code: #{r.code.to_i}"
 
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
     logger.info r.body
     return true
   end
@@ -569,7 +571,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     { :db_name => target_db }
     logger.debug "code: #{r.code.to_i}"
 
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
     logger.info r.body
   end
 
@@ -606,7 +608,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     { :db_name => target_db }
     logger.debug "code: #{r.code.to_i}"
 
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
     logger.info r.body
   end
 
@@ -623,7 +625,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     }
     logger.debug "code: #{r.code.to_i}"
 
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
     logger.info r.body
     return true
   end
@@ -643,7 +645,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
       # check cluster size
       r = execute_query %Q{ fn:count(xdmp:hosts()) }
-      r.body = parse_json(r.body)
+      r.body = parse_body(r.body)
       raise ExitException.new("Increase nr-replicas, minimum is 1") if nr < 1
       raise ExitException.new("Adding #{nr} replicas to internals requires at least a #{nr + 1} node cluster") if r.body.to_i <= nr
 
@@ -709,7 +711,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     r = execute_query %Q{#{setup} setup:do-setup(#{config}, "#{apply_changes}")}
     logger.debug "code: #{r.code.to_i}"
 
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
     logger.debug r.body
 
     if r.body.match("error log")
@@ -810,7 +812,7 @@ In order to proceed please type: #{expected_response}
         logger.debug %Q{calling setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (9999999), (9999999), ("##none##"))..}
         r = execute_query %Q{#{setup} setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (9999999), (9999999), ("##none##"))}
 
-        config = parse_json(r.body)
+        config = parse_body(r.body)
         logger.info "Wiping MarkLogic #{databases}, #{forests}, #{servers} from #{@hostname}..."
       else
         logger.info "Wiping MarkLogic setup for your project from #{@hostname}..."
@@ -863,7 +865,7 @@ In order to proceed please type: #{expected_response}
     end
     logger.debug "code: #{r.code.to_i}"
 
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
     logger.debug r.body
 
     if r.body.match("RESTART_NOW")
@@ -894,7 +896,7 @@ In order to proceed please type: #{expected_response}
       r = execute_query %Q{#{setup} setup:validate-install(#{get_config})}
       logger.debug "code: #{r.code.to_i}"
 
-      r.body = parse_json(r.body)
+      r.body = parse_body(r.body)
       logger.debug r.body
 
       if r.body.match("<error:error") || r.body.match("error log")
@@ -906,7 +908,7 @@ In order to proceed please type: #{expected_response}
         result = true
       end
     rescue Net::HTTPFatalError => e
-      e.response.body = parse_json(e.response.body)
+      e.response.body = parse_body(e.response.body)
       logger.error e.response.body
       logger.error "... Validation FAILED"
       result = false
@@ -1314,9 +1316,9 @@ In order to proceed please type: #{expected_response}
         )
       }
 
-      logger.debug parse_json(serverstats.body)
+      logger.debug parse_body(serverstats.body)
 
-      serverstats.body = parse_json(serverstats.body).split(/[\r\n]+/)
+      serverstats.body = parse_body(serverstats.body).split(/[\r\n]+/)
 
       port = serverstats.body[0]
       target_db = serverstats.body[1]
@@ -1361,7 +1363,7 @@ In order to proceed please type: #{expected_response}
 
           # Make sure REST properties are in accurate format, so you can directly deploy them again..
           r = go("http://#{@hostname}:#{port}/v1/config/properties", "get")
-          r.body = parse_json(r.body)
+          r.body = parse_body(r.body)
           File.open("#{@properties['ml.rest-options.dir']}/properties.xml", 'wb') { |file| file.write(r.body) }
 
         else
@@ -1388,7 +1390,7 @@ In order to proceed please type: #{expected_response}
     if arg
       setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
       r = execute_query %Q{#{setup} setup:list-settings("#{arg}")}
-      r.body = parse_json(r.body)
+      r.body = parse_body(r.body)
       logger.info r.body
     else
       logger.info %Q{
@@ -1474,7 +1476,7 @@ private
     q = %Q{for $u in (#{uris_as_string}) return "" || adjust-dateTime-to-timezone(xdmp:timestamp-to-wallclock(xdmp:document-timestamp($u)), xs:dayTimeDuration("PT0H"))}
 
     result = execute_query q, :db_name => @properties["ml.content-db"]
-    parse_json(result.body).split("\n")
+    parse_body(result.body).split("\n")
   end
 
   def save_files_to_fs(target_db, target_dir)
@@ -1565,7 +1567,7 @@ private
     logger.debug %Q{calling setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (#{users}), (#{roles}), (#{mimes}))..}
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     r = execute_query %Q{#{setup} setup:get-configuration((#{databases}), (#{forests}), (#{servers}), (#{users}), (#{roles}), (#{mimes}))}
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
 
     if r.body.match("error log")
       logger.error r.body
@@ -1835,7 +1837,7 @@ private
       return
         try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
     }
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
     logger.info r.body
 
     if @properties['ml.test-modules-db'].present? && @properties['ml.test-modules-db'] != @properties['ml.modules-db']
@@ -1876,7 +1878,7 @@ private
       return
         try { xdmp:forest-clear($id) } catch ($ignore) { fn:concat("Skipped forest ", xdmp:forest-name($id), "..") }
     }
-    r.body = parse_json(r.body)
+    r.body = parse_body(r.body)
     logger.info r.body
   end
 
@@ -2114,6 +2116,32 @@ private
     end
 
     delete_workspace(ws_id) if ws_id
+
+    raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
+
+    r
+  end
+
+  def execute_query_8(query, properties = {})
+    if properties[:app_name] != nil
+      raise ExitException.new("Executing queries with an app_name (currently) not supported with ML8+")
+    end
+
+    headers = {
+      "Content-Type" => "application/x-www-form-urlencoded"
+    }
+
+    params = {
+      :xquery => query,
+      :locale => LOCALE,
+      :tzoffset => "-18000"
+    }
+
+    if properties[:db_name] != nil
+      params[:database] = properties[:db_name]
+    end
+
+    r = go "#{@protocol}://#{@hostname}:#{@qconsole_port}/v1/eval", "post", headers, params
 
     raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
 
