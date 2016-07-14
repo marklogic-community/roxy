@@ -172,12 +172,17 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
         fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.xqy$")) then
         ()
       else
-        (helper:log($ex), xdmp:rethrow())
+        element t:result {
+          attribute type {"fail"},
+          $ex
+        }
     }
   let $result :=
     try {
-      helper:log("    ...running"),
-      xdmp:invoke($module)
+      if (fn:not($setup/@type = "fail")) then
+        (helper:log("    ...running"), xdmp:invoke($module))
+      else
+        ()
     }
     catch($ex) {
       helper:fail($ex)
@@ -191,7 +196,7 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
     else
       $result
   let $teardown :=
-    if ($run-teardown eq fn:true()) then
+    if ($run-teardown eq fn:true() and fn:not($setup/@type = "fail")) then
       try {
         helper:log("    ...invoking teardown"),
         xdmp:invoke(fn:concat("suites/", $suite, "/teardown.xqy"))
@@ -201,7 +206,10 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.xqy$")) then
           ()
         else
-          (helper:log($ex), xdmp:rethrow())
+          element t:result {
+            attribute type {"fail"},
+            $ex
+          }
       }
     else helper:log("    ...not running teardown")
   let $end-time := xdmp:elapsed-time()
@@ -209,7 +217,9 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
     element t:test {
       attribute name { $name },
       attribute time { functx:total-seconds-from-duration($end-time - $start-time) },
-      $result
+      $setup,
+      $result,
+      $teardown
     }
 };
 
