@@ -57,7 +57,7 @@ as xs:string*
  :)
 declare function t:list() {
   let $suite-ignore-list := (".svn", "CVS", ".DS_Store", "Thumbs.db", "thumbs.db", "test-data")
-  let $test-ignore-list := ("setup.xqy", "teardown.xqy", "suite-setup.xqy", "suite-teardown.xqy")
+  let $test-ignore-list := ("setup.xqy", "teardown.xqy")
   return
     element t:tests {
       let $db-id as xs:unsignedLong := xdmp:modules-database()
@@ -111,14 +111,34 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
       helper:log(text {"SUITE:", $suite}),
       try {
         helper:log(" - invoking suite setup"),
-        xdmp:invoke(fn:concat("suites/", $suite, "/suite-setup.xqy"))
+        xdmp:invoke(fn:concat("suites/", $suite, "/suite-setup.xqy")),
+        element t:test {
+          attribute name { "suite-setup.xqy" },
+          attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+          element t:result {
+            attribute type {"success"}
+          }
+        }
       }
       catch($ex) {
         if ($ex/error:code = "XDMP-MODNOTFOUND" and
           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.xqy$")) then
-          ()
+          element t:test {
+            attribute name { "suite-setup.xqy" },
+            attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+            element t:result {
+              attribute type {"success"}
+            }
+          }
         else
-          (helper:log($ex), xdmp:rethrow())
+          element t:test {
+            attribute name { "suite-setup.xqy" },
+            attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+            element t:result {
+              attribute type {"fail"},
+              $ex
+            }
+          }
       },
 
       helper:log(" - invoking tests"),
@@ -132,16 +152,37 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
         t:run($suite, $test, fn:concat("suites/", $suite, "/", $test), $run-teardown),
 
       if ($run-suite-teardown eq fn:true()) then
-        try {
+        let $teardown-start-time := xdmp:elapsed-time()
+        return try {
           helper:log(" - invoking suite teardown"),
-          xdmp:invoke(fn:concat("suites/", $suite, "/suite-teardown.xqy"))
+          xdmp:invoke(fn:concat("suites/", $suite, "/suite-teardown.xqy")),
+          element t:test {
+            attribute name { "suite-teardown.xqy" },
+            attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+            element t:result {
+              attribute type {"success"}
+            }
+          }
         }
         catch($ex) {
           if ($ex/error:code = "XDMP-MODNOTFOUND" and
             fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.xqy$")) then
-            ()
+            element t:test {
+              attribute name { "suite-teardown.xqy" },
+              attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+              element t:result {
+                attribute type {"success"}
+              }
+            }
           else
-            (helper:log($ex), xdmp:rethrow())
+            element t:test {
+              attribute name { "suite-teardown.xqy" },
+              attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $teardown-start-time) },
+              element t:result {
+                attribute type {"fail"},
+                $ex
+              }
+            }
         }
       else helper:log(" - not running suite teardown"),
       helper:log(" ")
@@ -351,7 +392,15 @@ declare function local:main() {
                   {
                     for $test in $suite/t:tests/t:test
                     return
-                      <li class="tests"><input class="test-cb" type="checkbox" checked="checked" value="{fn:data($test/@path)}"/>{fn:string($test/@path)}<span class="outcome"></span></li>
+                      <li class="tests">
+                      {
+                        if ($test/@path = "suite-setup.xqy" or $test/@path = "suite-teardown.xqy") then
+                          <input type="hidden" value="{fn:data($test/@path)}"/>
+                        else
+                          <input class="test-cb" type="checkbox" checked="checked" value="{fn:data($test/@path)}"/>,
+                        fn:string($test/@path)
+                      }<span class="outcome"></span>
+                      </li>
                   }
                   </ul>
                 </div>
