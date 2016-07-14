@@ -1142,38 +1142,150 @@ In order to proceed please type: #{expected_response}
     password_prompt
     encoded_password = url_encode(@ml_password)
     connection_string = %Q{xcc://#{@properties['ml.user']}:#{encoded_password}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
-    collection_name = find_arg(['--collection']) || '""'
-    xquery_module = find_arg(['--modules'])
-    uris_module = find_arg(['--uris']) || '""'
 
+    options = Hash.new("")
+    # handle Roxy convention for CoRB properties first
+    process_module = find_arg(['--modules']) || ''
+    process_module = process_module.reverse.chomp("/").reverse
+    if !process_module.blank?
+        options["PROCESS-MODULE"] = process_module
+    end
 
-    raise HelpException.new("corb", "modules is required") if xquery_module.blank?
-    raise HelpException.new("corb", "uris or collection is required ") if uris_module == '""' && collection_name == '""'
+    collection_name = find_arg(['--collection']) || ''
+    if !collection_name.blank?
+        options["COLLECTION-NAME"] = collection_name
+        # when COLLECTION-NAME is specified, assume CoRB 1.0 convention,
+        # and set URIS-MODULE with an inline module to return the URIs of all docs in the specified collection(s)
+        options["URIS-MODULE"] = "INLINE-XQUERY|xquery version '1.0-ml'; declare variable \\$URIS as xs:string external; let \\$uris := cts:uris('', ('document'), cts:collection-query(\\$URIS)) return (count(\\$uris), \\$uris)"
+    end
 
-    xquery_module = xquery_module.reverse.chomp("/").reverse
-    uris_module = uris_module.reverse.chomp("/").reverse
-    thread_count = find_arg(['--threads']) || "1"
+    uris_module = find_arg(['--uris']) || ''
+    uris_module = uris_module.reverse.chomp('/').reverse
+    if !uris_module.blank?
+        options["URIS-MODULE"] = uris_module
+    end
+
+    thread_count = find_arg(['--threads'])
     thread_count = thread_count.to_i
-    module_root = find_arg(['--root']) || '"/"'
-    modules_database = @properties['ml.modules-db']
-    install = find_arg(['--install']) == "true" || uris_module == '""'
+    if thread_count > 0
+        options["THREAD-COUNT"] = thread_count
+    end
+
+    module_root = find_arg(['--root']) || ''
+    if !module_root.blank?
+        options["MODULE-ROOT"] = module_root
+    end
+
+    modules_database = @properties['ml.modules-db'] || ''
+    if !modules_database.blank?
+        options["MODULES-DATABASE"] = modules_database
+    end
+
+    # A full list of CoRB2 options
+    ['BATCH-SIZE',
+    'BATCH-URI-DELIM',
+    'COLLECTION-NAME',
+    'COMMAND',
+    'COMMAND-FILE',
+    'COMMAND-FILE-POLL-INTERVAL',
+    'DECRYPTER',
+    'DISK-QUEUE',
+    'DISK-QUEUE-TEMP-DIR',
+    'DISK-QUEUE-MAX-IN-MEMORY-SIZE',
+    'ERROR-FILE-NAME',
+    'EXIT-CODE-NO-URIS',
+    'EXPORT_FILE_AS_ZIP',
+    'EXPORT-FILE-BOTTOM-CONTENT',
+    'EXPORT-FILE-DIR',
+    'EXPORT-FILE-HEADER-LINE-COUNT',
+    'EXPORT-FILE-NAME',
+    'EXPORT-FILE-PART-EXT',
+    'EXPORT-FILE-SORT',
+    'EXPORT-FILE-SORT-COMPARATOR',
+    'EXPORT-FILE-TOP-CONTENT',
+    'EXPORT-FILE-URI-TO-PATH',
+    'FAIL-ON-ERROR',
+    'INIT-MODULE',
+    'INIT-TASK',
+    'INSTALL',
+    'JASYPT-PROPERTIES-FILE',
+    'MAX_OPTS_FROM_MODULE',
+    'MODULES-DATABASE',
+    'MODULE-ROOT',
+    'OPTIONS-FILE',
+    'POST-BATCH-MODULE',
+    'POST-BATCH-TASK',
+    'POST-BATCH-XQUERY-MODULE',
+    'PRE-BATCH-MODULE',
+    'PRE-BATCH-TASK',
+    'PRE-BATCH-XQUERY-MODULE',
+    'PRIVATE-KEY-ALGORITHM',
+    'PRIVATE-KEY-FILE',
+    'PROCESS-MODULE',
+    'PROCESS-TASK',
+    'QUERY-RETRY-ERROR-CODES',
+    'QUERY-RETRY-ERROR-MESSAGE',
+    'QUERY-RETRY-INTERVAL',
+    'QUERY-RETRY-LIMIT',
+    'SSL-CIPHER-SUITES',
+    'SSL-CONFIG-CLASS',
+    'SSL-ENABLED-PROTOCOLS',
+    'SSL-KEY-PASSWORD',
+    'SSL-KEYSTORE',
+    'SSL-KEYSTORE-PASSWORD',
+    'SSL-KEYSTORE-TYPE',
+    'SSL-PROPERTIES-FILE',
+    'THREAD-COUNT',
+    'URIS_BATCH_REF',
+    'URIS-FILE',
+    'URIS-LOADER',
+    'URIS-MODULE',
+    'URIS-REPLACE-PATTERN',
+    'XCC-CONNECTION-RETRY-LIMIT',
+    'XCC-CONNECTION-RETRY-INTERVAL',
+    'XCC-CONNECTION-URI',
+    'XCC-DBNAME',
+    'XCC-HOSTNAME',
+    'XCC-PASSWORD',
+    'XCC-PORT',
+    'XCC-USERNAME',
+    'XML-FILE',
+    'XML-NODE',
+    'XQUERY-MODULE'].each do |optionName|
+        # match whether - or _ was used, since CoRB2 is not consistent with all option names
+        optionNamePattern = optionName.gsub(/(-|_)/, '\1?')
+        # match (case-insensitive) CoRB options with either "--" or "-D" prefix
+        optionArgPattern = /^(--|-D)(#{optionNamePattern})="?(.*)"?/i
+        ARGV.each do |arg|
+          if arg.match(optionArgPattern)
+            index = ARGV.index(arg)
+            ARGV.slice!(index)
+            matches = arg.match(optionArgPattern).to_a
+            options[optionName] = matches[3]
+          end
+        end
+    end
+
+    # collect options and set as Java system properties switches
+    systemProperties = options.delete_if{ |key, value| value.blank? }
+                        .map{ |key, value| "-D#{key}=\"#{value}\""}
+                        .join(' ')
 
     # Find the jars
-    corb_file = find_jar("corb")
-    xcc_file = find_jar("xcc")
+    corb_file = find_jar('corb')
+    xcc_file = find_jar('xcc')
 
-    if install
+    runme = %Q{java -cp #{corb_file}#{path_separator}#{xcc_file} #{systemProperties} com.marklogic.developer.corb.Manager #{connection_string}}
+    logger.info runme
+
+    if options.fetch("INSTALL", false)
       # If we're installing, we need to change directories to the source
       # directory, so that the xquery_modules will be visible with the
       # same path that will be used to see it in the modules database.
       Dir.chdir(@properties['ml.xquery.dir']) do
-        runme = %Q{java -cp #{corb_file}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
-        logger.info runme
         `#{runme}`
       end
     else
-      runme = %Q{java -cp #{corb_file}#{path_separator}#{xcc_file} com.marklogic.developer.corb.Manager #{connection_string} #{collection_name} #{xquery_module} #{thread_count} #{uris_module} #{module_root} #{modules_database} #{install}}
-      logger.info runme
       `#{runme}`
     end
   end
