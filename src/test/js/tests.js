@@ -343,6 +343,8 @@ $(document).ready(function(){
 
   $('input.cb').each(function() {
     if (this.id !== 'checkall') {
+      disableParent(this, 'tr');
+
       $(this).click(function(event) {
 
         disableParent(this, 'tr');
@@ -368,6 +370,8 @@ $(document).ready(function(){
   });
 
   $('input.test-cb').each(function() {
+    disableParent(this, 'li');
+
     $(this).click(function(event) {
       disableParent(this, 'li');
 
