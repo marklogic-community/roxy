@@ -1181,90 +1181,17 @@ In order to proceed please type: #{expected_response}
         options["MODULES-DATABASE"] = modules_database
     end
 
-    # A full list of CoRB2 options
-    ['BATCH-SIZE',
-    'BATCH-URI-DELIM',
-    'COLLECTION-NAME',
-    'COMMAND',
-    'COMMAND-FILE',
-    'COMMAND-FILE-POLL-INTERVAL',
-    'DECRYPTER',
-    'DISK-QUEUE',
-    'DISK-QUEUE-TEMP-DIR',
-    'DISK-QUEUE-MAX-IN-MEMORY-SIZE',
-    'ERROR-FILE-NAME',
-    'EXIT-CODE-NO-URIS',
-    'EXPORT_FILE_AS_ZIP',
-    'EXPORT-FILE-BOTTOM-CONTENT',
-    'EXPORT-FILE-DIR',
-    'EXPORT-FILE-HEADER-LINE-COUNT',
-    'EXPORT-FILE-NAME',
-    'EXPORT-FILE-PART-EXT',
-    'EXPORT-FILE-SORT',
-    'EXPORT-FILE-SORT-COMPARATOR',
-    'EXPORT-FILE-TOP-CONTENT',
-    'EXPORT-FILE-URI-TO-PATH',
-    'FAIL-ON-ERROR',
-    'INIT-MODULE',
-    'INIT-TASK',
-    'INSTALL',
-    'JASYPT-PROPERTIES-FILE',
-    'MAX_OPTS_FROM_MODULE',
-    'MODULES-DATABASE',
-    'MODULE-ROOT',
-    'OPTIONS-FILE',
-    'POST-BATCH-MODULE',
-    'POST-BATCH-TASK',
-    'POST-BATCH-XQUERY-MODULE',
-    'PRE-BATCH-MODULE',
-    'PRE-BATCH-TASK',
-    'PRE-BATCH-XQUERY-MODULE',
-    'PRIVATE-KEY-ALGORITHM',
-    'PRIVATE-KEY-FILE',
-    'PROCESS-MODULE',
-    'PROCESS-TASK',
-    'QUERY-RETRY-ERROR-CODES',
-    'QUERY-RETRY-ERROR-MESSAGE',
-    'QUERY-RETRY-INTERVAL',
-    'QUERY-RETRY-LIMIT',
-    'SSL-CIPHER-SUITES',
-    'SSL-CONFIG-CLASS',
-    'SSL-ENABLED-PROTOCOLS',
-    'SSL-KEY-PASSWORD',
-    'SSL-KEYSTORE',
-    'SSL-KEYSTORE-PASSWORD',
-    'SSL-KEYSTORE-TYPE',
-    'SSL-PROPERTIES-FILE',
-    'THREAD-COUNT',
-    'URIS_BATCH_REF',
-    'URIS-FILE',
-    'URIS-LOADER',
-    'URIS-MODULE',
-    'URIS-REPLACE-PATTERN',
-    'XCC-CONNECTION-RETRY-LIMIT',
-    'XCC-CONNECTION-RETRY-INTERVAL',
-    'XCC-CONNECTION-URI',
-    'XCC-DBNAME',
-    'XCC-HOSTNAME',
-    'XCC-PASSWORD',
-    'XCC-PORT',
-    'XCC-USERNAME',
-    'XML-FILE',
-    'XML-NODE',
-    'XQUERY-MODULE'].each do |optionName|
-        # match whether - or _ was used, since CoRB2 is not consistent with all option names
-        optionNamePattern = optionName.gsub(/(-|_)/, '\1?')
-        # match (case-insensitive) CoRB options with either "--" or "-D" prefix
-        optionArgPattern = /^(--|-D)(#{optionNamePattern})="?(.*)"?/i
-        ARGV.each do |arg|
-          if arg.match(optionArgPattern)
-            index = ARGV.index(arg)
-            ARGV.slice!(index)
-            matches = arg.match(optionArgPattern).to_a
-            options[optionName] = matches[3]
-          end
-        end
+    # match options with either "--" or "-D" prefix, and normalize options to be UPPER-CASE
+    optionArgPattern = /^(--|-D)(.*?)="?(.*)"?/
+    ARGV.each do |arg|
+      if arg.match(optionArgPattern)
+        matches = arg.match(optionArgPattern).to_a
+        options[matches[2].upcase] = matches[3]
+      end
     end
+
+    # we have normalized the options, now clear the args
+    ARGV.clear
 
     # collect options and set as Java system properties switches
     systemProperties = options.delete_if{ |key, value| value.blank? }
