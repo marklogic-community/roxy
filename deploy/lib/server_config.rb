@@ -1181,7 +1181,7 @@ In order to proceed please type: #{expected_response}
         options["MODULES-DATABASE"] = modules_database
     end
 
-    # match options with either "--" or "-D" prefix, and normalize options to be UPPER-CASE
+    # collect options with either "--" or "-D" prefix, and normalize options to be UPPER-CASE
     optionArgPattern = /^(--|-D)(.*?)="?(.*)"?/
     ARGV.each do |arg|
       if arg.match(optionArgPattern)
@@ -1203,7 +1203,7 @@ In order to proceed please type: #{expected_response}
     xcc_file = find_jar('xcc')
 
     runme = %Q{java -cp #{corb_file}#{path_separator}#{xcc_file} #{systemProperties} com.marklogic.developer.corb.Manager #{connection_string}}
-    logger.info runme
+    logger.debug runme
 
     if options.fetch("INSTALL", false)
       # If we're installing, we need to change directories to the source

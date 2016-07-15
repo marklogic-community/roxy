@@ -410,6 +410,7 @@ class Help
       See: https://github.com/marklogic/corb2
 
       General options:
+        -v, [--verbose]  # Verbose output
         -h, [--help]     # Shows this help
     DOC
   end
