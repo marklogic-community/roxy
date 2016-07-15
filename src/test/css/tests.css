@@ -98,6 +98,10 @@ table td {
   vertical-align: top;
 }
 
+table tr.tests td {
+  padding: 0;
+}
+
 tr.even {
   background-color: #dfd;
 }
