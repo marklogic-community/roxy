@@ -244,6 +244,45 @@ declare function helper:assert-not-equal($expected as item()*, $actual as item()
       ($expected, $actual))
 };
 
+declare function helper:assert-equal-xml($expected, $actual) {
+  typeswitch ($actual)
+    case document-node() return
+      typeswitch ($expected)
+        case document-node() return
+          helper:assert-equal-xml($expected/node(), $actual/node())
+        default return
+          helper:assert-equal-xml($expected, $actual/node())
+    case element() return
+      if (fn:empty($expected)) then
+        helper:assert-true(fn:false(), ("element not found in $expected : ", xdmp:path($actual)))
+      else typeswitch ($expected)
+        case element() return (
+          helper:assert-equal(fn:name($expected), fn:name($actual), ("mismatched node name ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          helper:assert-equal(fn:count($expected/@*), fn:count($actual/@*), ("mismatched attribute count ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          for $attribute in $actual/@* return
+            helper:assert-equal-xml($expected/@*[fn:name(.) = fn:name($attribute)], $attribute),
+          for $text at $i in $actual/text() return
+            helper:assert-equal(fn:normalize-space($expected/text()[$i]), fn:normalize-space($text), ("mismatched element text ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          helper:assert-equal(fn:count($expected/*), fn:count($actual/*), ("mismatched element count ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          for $element at $i in $actual/* return
+            helper:assert-equal-xml($expected/*[$i], $element)
+        )
+        default return
+          helper:assert-true(fn:false(), ("type mismatch ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+    case attribute() return
+      if (fn:empty($expected)) then
+        helper:assert-true(fn:false(), ("attribute not found in $expected : ", xdmp:path($actual)))
+      else typeswitch ($expected)
+        case attribute() return (
+          helper:assert-equal(fn:name($expected), fn:name($actual), ("mismatched attribute name ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          helper:assert-equal($expected/fn:data(), $actual/fn:data(), ("mismatched attribute text ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+        )
+        default return
+          helper:assert-true(fn:false(), ("type mismatch : $expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual)))
+    default return
+      helper:assert-true(fn:false(), ("unsupported type in $actual : ", xdmp:path($actual)))
+};
+
 declare function helper:assert-true($supposed-truths as xs:boolean*) {
   helper:assert-true($supposed-truths, $supposed-truths)
 };
