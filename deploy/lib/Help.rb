@@ -398,22 +398,20 @@ class Help
     <<-DOC.strip_heredoc
       Usage: ml {env} corb [options]
 
-      See: http://marklogic.github.com/corb/index.html
+      Runs CoRB2 with given command-line options against the selected environment.
+      CoRB2 options may be specified on the commandline using either -- or -D prefix.
 
-      Required options:
-        --modules=/path/to/modules.xqy  # the xquery module to process the data
+      For example, the OPTIONS-FILE option can be specified as:
+        --options-file=/path/to/options.properties
+        -DOPTIONS-FILE=/path/to/options.properties
 
-        (Only one of the following is required)
-        --collection=collection-name    # the name of a collection to process
-        --uris=/path/to/uris-module.xqy # path to a uris module
+      CoRB2 supports options files natively using the --OPTIONS-FILE parameter.
 
-      Corb Options:
-        --threads=1                     # the thread count to use
-        --root=/                        # the root of the modules database
-        --install=false                 # whether or not to install (default: false)
+      See: https://github.com/marklogic/corb2
 
       General options:
         -v, [--verbose]  # Verbose output
+        -h, [--help]     # Shows this help
     DOC
   end
 
@@ -421,7 +419,7 @@ class Help
     <<-DOC.strip_heredoc
       Usage: ml {env} mlcp [options]
 
-      Runs MLCP with given command-line options agains selected environment.
+      Runs MLCP with given command-line options against selected environment.
       MLCP supports options files natively using the -options_file parameter.
       The path to the MLCP options file must be an absolute path or a relative
       path from the root of the project directory.
