@@ -227,6 +227,13 @@ declare function helper:assert-equal($expected as item()*, $actual as item()*) {
     fn:error(xs:QName("ASSERT-EQUAL-FAILED"), "Assert Equal failed", ($expected, $actual))
 };
 
+declare function helper:assert-equal($expected as item()*, $actual as item()*, $error-object as item()*) {
+  if (helper:are-these-equal($expected, $actual)) then
+    helper:success()
+  else
+    fn:error(xs:QName("ASSERT-EQUAL-FAILED"), "Assert Equal failed", ($expected, $actual, " : ", $error-object))
+};
+
 declare function helper:assert-not-equal($expected as item()*, $actual as item()*) {
   if (fn:not(helper:are-these-equal($expected, $actual))) then
     helper:success()
