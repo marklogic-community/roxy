@@ -338,6 +338,7 @@ $(document).ready(function(){
   $('#checkall').click(function(event){
     $('#tests tbody').find('input.cb').each(function(){
       $(this).attr('checked', $('#checkall').is(':checked'));
+      disableParent(this, 'tr');
     });
   });
 
@@ -365,6 +366,7 @@ $(document).ready(function(){
     var parentCheck = $(this);
     parentCheck.parent().next('ul.tests').find('input.test-cb').each(function() {
       $(this).attr('checked', parentCheck.is(':checked'));
+      disableParent(this, 'li');
     });
     parentCheck.parents('tr').prev('tr').find('input.cb').attr('checked', parentCheck.is(':checked'));
   });
