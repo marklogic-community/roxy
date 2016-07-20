@@ -333,7 +333,7 @@ declare function local:main() {
                 <td class="passed">-</td>
                 <td class="right failed">-</td>
               </tr>,
-              <tr class="{$class}">
+              <tr class="{$class} tests">
                 <td colspan="6">
                 <div class="tests">
                   <div class="wrapper"><input class="check-all-tests" type="checkbox" checked="checked"/>Run All Tests</div>
