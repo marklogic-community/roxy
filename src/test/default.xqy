@@ -123,13 +123,7 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
       catch($ex) {
         if ($ex/error:code = "XDMP-MODNOTFOUND" and
           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.xqy$")) then
-          element t:test {
-            attribute name { "suite-setup.xqy" },
-            attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-            element t:result {
-              attribute type {"success"}
-            }
-          }
+          ()
         else
           element t:test {
             attribute name { "suite-setup.xqy" },
@@ -167,13 +161,7 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
         catch($ex) {
           if ($ex/error:code = "XDMP-MODNOTFOUND" and
             fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.xqy$")) then
-            element t:test {
-              attribute name { "suite-teardown.xqy" },
-              attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-              element t:result {
-                attribute type {"success"}
-              }
-            }
+            ()
           else
             element t:test {
               attribute name { "suite-teardown.xqy" },
