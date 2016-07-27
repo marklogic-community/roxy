@@ -60,17 +60,23 @@ declare function helper:get-caller()
 declare function helper:get-test-file($filename as xs:string)
   as document-node()
 {
-  helper:get-test-file($filename, "text")
+  helper:get-test-file($filename, "text", "force-unquote")
 };
 
 declare function helper:get-test-file($filename as xs:string, $format as xs:string?)
+  as document-node()
+{
+  helper:get-test-file($filename, $format, ())
+};
+
+declare function helper:get-test-file($filename as xs:string, $format as xs:string?, $unquote as xs:string?)
   as document-node()
 {
   helper:get-modules-file(
     fn:replace(
       fn:concat(
         cvt:basepath($helper:__CALLER_FILE__), "/test-data/", $filename),
-      "//", "/"), $format)
+      "//", "/"), $format, $unquote)
 };
 
 declare function helper:load-test-file($filename as xs:string, $database-id as xs:unsignedLong, $uri as xs:string)
@@ -115,10 +121,14 @@ declare function helper:build-uri(
 };
 
 declare function helper:get-modules-file($file as xs:string) {
-  helper:get-modules-file($file, "text")
+  helper:get-modules-file($file, "text", "force-unquote")
 };
 
 declare function helper:get-modules-file($file as xs:string, $format as xs:string?) {
+  helper:get-modules-file($file, $format, ())
+};
+
+declare function helper:get-modules-file($file as xs:string, $format as xs:string?, $unquote as xs:string?) {
   let $doc :=
     if (xdmp:modules-database() eq 0) then
       xdmp:document-get(
@@ -137,15 +147,18 @@ declare function helper:get-modules-file($file as xs:string, $format as xs:strin
           <database>{xdmp:modules-database()}</database>
         </options>)
   return
-    if ($doc/*) then
+    if (fn:empty($unquote) or $doc/*) then
       $doc
     else
-      try {
-        xdmp:unquote($doc) (: TODO WTF? :)
-      }
-      catch($ex) {
-        $doc
-      }
+      if ($unquote eq "force-unquote") then
+        try {
+          xdmp:unquote($doc)
+        }
+        catch($ex) {
+          $doc
+        }
+      else
+        xdmp:unquote($doc)
 };
 
 (:~
