@@ -119,8 +119,8 @@ declare function helper:get-modules-file($file as xs:string) {
 };
 
 declare function helper:get-modules-file($file as xs:string, $format as xs:string?) {
-  if (xdmp:modules-database() eq 0) then
-    let $doc :=
+  let $doc :=
+    if (xdmp:modules-database() eq 0) then
       xdmp:document-get(
         helper:build-uri(xdmp:modules-root(), $file),
         if (fn:exists($format)) then
@@ -129,28 +129,23 @@ declare function helper:get-modules-file($file as xs:string, $format as xs:strin
           </options>
         else
           ())
-    return
+    else
+      xdmp:eval(
+        'declare variable $file as xs:string external; fn:doc($file)',
+        (xs:QName('file'), $file),
+        <options xmlns="xdmp:eval">
+          <database>{xdmp:modules-database()}</database>
+        </options>)
+  return
+    if ($doc/*) then
+      $doc
+    else
       try {
-        xdmp:unquote($doc)
+        xdmp:unquote($doc) (: TODO WTF? :)
       }
-      catch($ex) {$doc}
-  else
-    let $doc := xdmp:eval(
-      'declare variable $file as xs:string external; fn:doc($file)',
-      (xs:QName('file'), $file),
-      <options xmlns="xdmp:eval">
-        <database>{xdmp:modules-database()}</database>
-      </options>)
-    return
-      if ($doc/*) then
+      catch($ex) {
         $doc
-      else
-        try {
-          xdmp:unquote($doc) (: TODO WTF? :)
-        }
-        catch($ex) {
-          $doc
-        }
+      }
 };
 
 (:~
