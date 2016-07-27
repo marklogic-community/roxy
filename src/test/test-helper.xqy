@@ -60,11 +60,17 @@ declare function helper:get-caller()
 declare function helper:get-test-file($filename as xs:string)
   as document-node()
 {
+  helper:get-test-file($filename, "text")
+};
+
+declare function helper:get-test-file($filename as xs:string, $format as xs:string?)
+  as document-node()
+{
   helper:get-modules-file(
     fn:replace(
       fn:concat(
         cvt:basepath($helper:__CALLER_FILE__), "/test-data/", $filename),
-      "//", "/"))
+      "//", "/"), $format)
 };
 
 declare function helper:load-test-file($filename as xs:string, $database-id as xs:unsignedLong, $uri as xs:string)
@@ -109,14 +115,20 @@ declare function helper:build-uri(
 };
 
 declare function helper:get-modules-file($file as xs:string) {
+  helper:get-modules-file($file, "text")
+};
+
+declare function helper:get-modules-file($file as xs:string, $format as xs:string?) {
   if (xdmp:modules-database() eq 0) then
     let $doc :=
       xdmp:document-get(
         helper:build-uri(xdmp:modules-root(), $file),
-        (: TODO why insist on text? :)
-        <options xmlns="xdmp:document-get">
-          <format>text</format>
-        </options>)
+        if (fn:exists($format)) then
+          <options xmlns="xdmp:document-get">
+            <format>{$format}</format>
+          </options>
+        else
+          ())
     return
       try {
         xdmp:unquote($doc)
