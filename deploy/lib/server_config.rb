@@ -1182,11 +1182,11 @@ In order to proceed please type: #{expected_response}
     end
 
     # collect options with either "--" or "-D" prefix, and normalize options to be UPPER-CASE
-    optionArgPattern = /^(--|-D)(([^.]*?)(\..*?)?)="?(.*)"?/
+    optionArgPattern = /^(--|-D)([^.]*?)(\..*?)?="?(.*)"?/
     ARGV.each do |arg|
       if arg.match(optionArgPattern)
         matches = arg.match(optionArgPattern).to_a
-        options[matches[3].to_s.upcase + matches[4].to_s] = matches[5]
+        options[matches[2].to_s.upcase + matches[3].to_s] = matches[4]
       end
     end
 
