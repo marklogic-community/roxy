@@ -4744,7 +4744,25 @@ declare function setup:create-amps($import-config)
     if ($existing-amps/sec:amp[sec:namespace = $amp/sec:namespace and
                                    sec:local-name = $amp/sec:local-name and
                                    sec:document-uri = $amp/(sec:doc-uri, sec:document-uri) and
-                                   sec:db-name = $amp/sec:db-name]) then ()
+                                   sec:db-name = $amp/sec:db-name]) then
+    (
+      xdmp:eval(
+        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $amp external;
+         declare variable $db := if($amp/sec:db-name = "filesystem") then 0 else xdmp:database($amp/sec:db-name);
+         sec:amp-set-roles(
+           $amp/sec:namespace,
+           $amp/sec:local-name,
+           $amp/(sec:doc-uri, sec:document-uri)[1],
+           $db,
+           $amp/sec:role-name
+        )',
+        (xs:QName("amp"), $amp),
+        <options xmlns="xdmp:eval">
+          <database>{xdmp:security-database()}</database>
+        </options>
+      )
+    )
     else
     (
       xdmp:eval(

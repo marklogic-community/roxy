@@ -187,6 +187,31 @@ def parse_json(body)
   end
 end
 
+def parse_multipart(body)
+  if (body.match("^\r\n--"))
+    # Extract the delimiter from the response.
+    delimiter = body.split("\r\n")[1].strip
+    parts = body.split(delimiter)
+
+    # The first part will always be an empty string. Just remove it.
+    parts.shift
+    # The last part will be the "--". Just remove it.
+    parts.pop
+
+    # Get rid of part headers
+    parts = parts.map{ |part| part.split("\r\n\r\n")[1].strip }
+
+    # Return all parts as one long string, like we were used to.
+    return parts.join("\n")
+  else
+    return body
+  end
+end
+
+def parse_body(body)
+  parse_multipart(parse_json(body))
+end
+
 def find_jar(jarname, jarpath = "../java/")
   matches = Dir.glob(ServerConfig.expand_path("#{jarpath}*#{jarname}*.jar"))
   raise "Missing #{jarname} jar." if matches.length == 0

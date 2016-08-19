@@ -278,37 +278,37 @@ declare function helper:assert-meets-maximum-threshold($expected as xs:decimal, 
 
 declare function helper:assert-throws-error($function as xdmp:function)
 {
-  helper:assert-throws-error($function, ())
+  helper:assert-throws-error_($function, json:to-array(), ())
 };
 
 declare function helper:assert-throws-error($function as xdmp:function, $error-code as xs:string?)
 {
-  helper:assert-throws-error($function, (), $error-code)
+  helper:assert-throws-error_($function, json:to-array(), $error-code)
 };
 
 declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $error-code as xs:string?)
 {
-  helper:assert-throws-error($function, $param1, (), $error-code)
+  helper:assert-throws-error_($function, json:to-array( (json:to-array($param1), json:to-array('make me a sequence')), 1 ), $error-code)
 };
 
 declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $error-code as xs:string?)
 {
-  helper:assert-throws-error($function, $param1, $param2, (), $error-code)
+  helper:assert-throws-error_($function, json:to-array((json:to-array($param1), json:to-array($param2))), $error-code)
 };
 
 declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $param3 as item()*, $error-code as xs:string?)
 {
-  helper:assert-throws-error($function, $param1, $param2, $param3, (), $error-code)
+  helper:assert-throws-error_($function, json:to-array((json:to-array($param1), json:to-array($param2), json:to-array($param3))), $error-code)
 };
 
 declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $param3 as item()*, $param4 as item()*, $error-code as xs:string?)
 {
-  helper:assert-throws-error($function, $param1, $param2, $param3, $param4, (), $error-code)
+  helper:assert-throws-error_($function, json:to-array((json:to-array($param1), json:to-array($param2), json:to-array($param3), json:to-array($param4))), $error-code)
 };
 
 declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $param3 as item()*, $param4 as item()*, $param5 as item()*, $error-code as xs:string?)
 {
-  helper:assert-throws-error($function, $param1, $param2, $param3, $param4, $param5, (), $error-code)
+  helper:assert-throws-error_($function, json:to-array((json:to-array($param1), json:to-array($param2), json:to-array($param3), json:to-array($param4), json:to-array($param5))), $error-code)
 };
 
 declare function helper:assert-throws-error($function as xdmp:function, $param1 as item()*, $param2 as item()*, $param3 as item()*, $param4 as item()*, $param5 as item()*, $param6 as item()*, $error-code as xs:string?)
