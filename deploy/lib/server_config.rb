@@ -517,7 +517,11 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
   def restart
     @ml_username = @properties['ml.bootstrap-user'] || @properties['ml.user']
-    @ml_password = @properties['ml.bootstrap-password'] || @properties['ml.password']
+    if @ml_username == @properties['ml.bootstrap-user']
+      @ml_password = @properties['ml.bootstrap-password']
+    else
+      @ml_password = @properties['ml.password']
+    end
 
     group = nil
     ARGV.each do |arg|
@@ -635,7 +639,11 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     raise ExitException.new("Bootstrap requires the target environment's hostname to be defined") unless @hostname.present?
 
     @ml_username = @properties['ml.bootstrap-user'] || @properties['ml.user']
-    @ml_password = @properties['ml.bootstrap-password'] || @properties['ml.password']
+    if @ml_username == @properties['ml.bootstrap-user']
+      @ml_password = @properties['ml.bootstrap-password']
+    else
+      @ml_password = @properties['ml.password']
+    end
 
     internals = find_arg(['--replicate-internals'])
     if internals
@@ -736,7 +744,11 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   def wipe
 
     @ml_username = @properties['ml.bootstrap-user'] || @properties['ml.user']
-    @ml_password = @properties['ml.bootstrap-password'] || @properties['ml.password']
+    if @ml_username == @properties['ml.bootstrap-user']
+      @ml_password = @properties['ml.bootstrap-password']
+    else
+      @ml_password = @properties['ml.password']
+    end
 
     if @environment != "local"
       expected_response = %Q{I WANT TO WIPE #{@environment.upcase}}
@@ -928,7 +940,11 @@ In order to proceed please type: #{expected_response}
 
   def deploy
     @ml_username = @properties['ml.deploy-user'] || @properties['ml.user']
-    @ml_password = @properties['ml.deploy-password'] || @properties['ml.password']
+    if @ml_username == @properties['ml.deploy-user']
+      @ml_password = @properties['ml.deploy-password']
+    else
+      @ml_password = @properties['ml.password']
+    end
 
     what = ARGV.shift
     raise HelpException.new("deploy", "Missing WHAT") unless what
@@ -1148,6 +1164,13 @@ In order to proceed please type: #{expected_response}
   end
 
   def corb
+    @ml_username = @properties['ml.corb-user'] || @properties['ml.user']
+    if @ml_username == @properties['ml.corb-user']
+      @ml_password = @properties['ml.corb-password']
+    else
+      @ml_password = @properties['ml.password']
+    end
+
     password_prompt
     encoded_password = url_encode(@ml_password)
     connection_string = %Q{xcc://#{@properties['ml.user']}:#{encoded_password}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
@@ -1239,7 +1262,12 @@ In order to proceed please type: #{expected_response}
     end
 
     @ml_username = @properties['ml.mlcp-user'] || @properties['ml.user']
-    @ml_password = @properties['ml.mlcp-password'] || @ml_password
+    if @ml_username == @properties['ml.mlcp-user']
+      @ml_password = @properties['ml.mlcp-password']
+    else
+      @ml_password = @properties['ml.password']
+    end
+
     if ARGV.length > 0
       password_prompt
       connection_string = %Q{ -username #{@ml_username} -password #{@ml_password} -host #{@properties['ml.server']} -port #{@properties['ml.xcc-port']}}
@@ -1413,7 +1441,11 @@ Provides listings of various kinds of settings supported within ml-config.xml.
 
   def deploy_triggers
     @ml_username = @properties['ml.deploy-user'] || @properties['ml.user']
-    @ml_password = @properties['ml.deploy-password'] || @properties['ml.password']
+    if @ml_username == @properties['ml.deploy-user']
+      @ml_password = @properties['ml.deploy-password']
+    else
+      @ml_password = @properties['ml.password']
+    end
 
     logger.info "Deploying Triggers"
     if !@properties["ml.triggers-db"]
