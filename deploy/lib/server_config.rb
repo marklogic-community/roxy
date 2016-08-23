@@ -2671,9 +2671,9 @@ private
 
     properties.merge!(ServerConfig.load_properties(env_properties_file, "ml.")) if File.exists? env_properties_file
 
-    properties = ServerConfig.substitute_properties(properties, properties, "ml.")
-
     properties = load_prop_from_args(properties)
+
+    properties = ServerConfig.substitute_properties(properties, properties, "ml.")
   end
 
 end
