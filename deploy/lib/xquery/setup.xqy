@@ -4120,12 +4120,17 @@ declare function setup:get-scheduled-task(
     admin:group-get-scheduled-tasks(
       $admin-config,
       $group-id)
+  let $modules-db :=
+    if ($task/gr:task-modules/@name eq "filesystem") then
+      0
+    else
+      admin:database-get-id($admin-config, $task/gr:task-modules/@name)
   return
     $tasks[gr:task-path = $task/gr:task-path and
            gr:task-root = $task/gr:task-root and
            gr:task-type = $task/gr:task-type and
            gr:task-database = admin:database-get-id($admin-config, $task/gr:task-database/@name) and
-           gr:task-modules = admin:database-get-id($admin-config, $task/gr:task-modules/@name) and
+           gr:task-modules = $modules-db and
            gr:task-user = xdmp:user($task/gr:task-user/@name)]
           [if ($task/gr:task-period) then gr:task-period = $task/gr:task-period else fn:true()]
            (:[if ($task/gr:task-period) then gr:task-period = $task/gr:task-period else fn:true()]:)
