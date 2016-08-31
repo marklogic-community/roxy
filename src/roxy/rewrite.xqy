@@ -41,7 +41,7 @@ return
       (rewriter:rewrite($method, $uri, $path), $uri)[1]
     }
     catch($ex) {
-      if ($ex/error:code = "XDMP-MODNOTFOUND") then
+      if ($ex/error:code = "XDMP-MODNOTFOUND" or $ex/error:code = "XDMP-UNDFUN") then
         $uri
       else
         xdmp:rethrow()
