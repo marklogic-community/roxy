@@ -57,7 +57,7 @@ as xs:string*
  :)
 declare function t:list() {
   let $suite-ignore-list := (".svn", "CVS", ".DS_Store", "Thumbs.db", "thumbs.db", "test-data")
-  let $test-ignore-list := ("setup.xqy", "teardown.xqy")
+  let $test-ignore-list := ("setup.xqy", "teardown.xqy", "setup.sjs", "teardown.sjs")
   return
     element t:tests {
       let $db-id as xs:unsignedLong := xdmp:modules-database()
@@ -123,7 +123,30 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
       catch($ex) {
         if ($ex/error:code = "XDMP-MODNOTFOUND" and
           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.xqy$")) then
-          ()
+          try {
+            xdmp:invoke(fn:concat("suites/", $suite, "/suite-setup.sjs")),
+            element t:test {
+              attribute name { "suite-setup.sjs" },
+              attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+              element t:result {
+                attribute type {"success"}
+              }
+            }
+          }
+          catch ($ex) {
+            if ($ex/error:code = "XDMP-MODNOTFOUND" and
+              fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.sjs$")) then
+              ()
+            else
+              element t:test {
+                attribute name { "suite-setup.sjs" },
+                attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+                element t:result {
+                  attribute type {"fail"},
+                  $ex
+                }
+              }
+          }
         else
           element t:test {
             attribute name { "suite-setup.xqy" },
@@ -161,7 +184,30 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
         catch($ex) {
           if ($ex/error:code = "XDMP-MODNOTFOUND" and
             fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.xqy$")) then
-            ()
+            try {
+              xdmp:invoke(fn:concat("suites/", $suite, "/suite-teardown.sjs")),
+              element t:test {
+                attribute name { "suite-teardown.sjs" },
+                attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+                element t:result {
+                  attribute type {"success"}
+                }
+              }
+            }
+            catch($ex) {
+              if ($ex/error:code = "XDMP-MODNOTFOUND" and
+                fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.sjs$")) then
+                ()
+              else
+                element t:test {
+                  attribute name { "suite-teardown.sjs" },
+                  attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $teardown-start-time) },
+                  element t:result {
+                    attribute type {"fail"},
+                    $ex
+                  }
+                }
+            }
           else
             element t:test {
               attribute name { "suite-teardown.xqy" },
@@ -199,7 +245,20 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
     catch($ex) {
       if ($ex/error:code = "XDMP-MODNOTFOUND" and
         fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.xqy$")) then
-        ()
+        try {
+          let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/setup.sjs"))
+          return ()
+        }
+        catch($ex) {
+          if ($ex/error:code = "XDMP-MODNOTFOUND" and
+            fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.sjs$")) then
+            ()
+          else
+            element t:result {
+              attribute type {"fail"},
+              $ex
+            }
+        }
       else
         element t:result {
           attribute type {"fail"},
@@ -233,7 +292,19 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
       catch($ex) {
         if ($ex/error:code = "XDMP-MODNOTFOUND" and
           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.xqy$")) then
-          ()
+          try {
+            xdmp:invoke(fn:concat("suites/", $suite, "/teardown.sjs"))
+          }
+          catch($ex) {
+            if ($ex/error:code = "XDMP-MODNOTFOUND" and
+              fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.sjs$")) then
+              ()
+            else
+              element t:result {
+                attribute type {"fail"},
+                $ex
+              }
+          }
         else
           element t:result {
             attribute type {"fail"},
