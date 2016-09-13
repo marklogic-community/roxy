@@ -145,7 +145,7 @@ class String
   end
 
   def xquery_safe
-    REXML::Text::normalize(self).gsub(/\{/, '{{').gsub(/\}/, '}}')
+    REXML::Text::normalize(self)
   end
 
   def xquery_unsafe
