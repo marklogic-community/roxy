@@ -124,9 +124,9 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
         if ($ex/error:code = "XDMP-MODNOTFOUND" and
           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.xqy$")) then
           try {
-            xdmp:invoke(fn:concat("suites/", $suite, "/suite-setup.sjs")),
+            xdmp:invoke(fn:concat("suites/", $suite, "/suiteSetup.sjs")),
             element t:test {
-              attribute name { "suite-setup.sjs" },
+              attribute name { "suiteSetup.sjs" },
               attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
               element t:result {
                 attribute type {"success"}
@@ -135,11 +135,11 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
           }
           catch ($ex) {
             if ($ex/error:code = "XDMP-MODNOTFOUND" and
-              fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.sjs$")) then
+              fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suiteSetup.sjs$")) then
               ()
             else
               element t:test {
-                attribute name { "suite-setup.sjs" },
+                attribute name { "suiteSetup.sjs" },
                 attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
                 element t:result {
                   attribute type {"fail"},
@@ -185,9 +185,9 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
           if ($ex/error:code = "XDMP-MODNOTFOUND" and
             fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.xqy$")) then
             try {
-              xdmp:invoke(fn:concat("suites/", $suite, "/suite-teardown.sjs")),
+              xdmp:invoke(fn:concat("suites/", $suite, "/suiteTeardown.sjs")),
               element t:test {
-                attribute name { "suite-teardown.sjs" },
+                attribute name { "suiteTeardown.sjs" },
                 attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
                 element t:result {
                   attribute type {"success"}
@@ -196,11 +196,11 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
             }
             catch($ex) {
               if ($ex/error:code = "XDMP-MODNOTFOUND" and
-                fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.sjs$")) then
+                fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suiteTeardown.sjs$")) then
                 ()
               else
                 element t:test {
-                  attribute name { "suite-teardown.sjs" },
+                  attribute name { "suiteTeardown.sjs" },
                   attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $teardown-start-time) },
                   element t:result {
                     attribute type {"fail"},
@@ -453,7 +453,7 @@ declare function local:main() {
                     return
                       <li class="tests">
                       {
-                        if ($test/@path = "suite-setup.xqy" or $test/@path = "suite-teardown.xqy") then
+                        if ($test/@path = "suite-setup.xqy" or $test/@path = "suite-teardown.xqy" or $test/@path = "suiteSetup.sjs" or $test/@path = "suiteTeardown.sjs") then
                           <input type="hidden" value="{fn:data($test/@path)}"/>
                         else
                           <input class="test-cb" type="checkbox" checked="checked" value="{fn:data($test/@path)}"/>,
