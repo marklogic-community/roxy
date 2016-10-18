@@ -60,11 +60,23 @@ declare function helper:get-caller()
 declare function helper:get-test-file($filename as xs:string)
   as document-node()
 {
+  helper:get-test-file($filename, "text", "force-unquote")
+};
+
+declare function helper:get-test-file($filename as xs:string, $format as xs:string?)
+  as document-node()
+{
+  helper:get-test-file($filename, $format, ())
+};
+
+declare function helper:get-test-file($filename as xs:string, $format as xs:string?, $unquote as xs:string?)
+  as document-node()
+{
   helper:get-modules-file(
     fn:replace(
       fn:concat(
         cvt:basepath($helper:__CALLER_FILE__), "/test-data/", $filename),
-      "//", "/"))
+      "//", "/"), $format, $unquote)
 };
 
 declare function helper:load-test-file($filename as xs:string, $database-id as xs:unsignedLong, $uri as xs:string)
@@ -109,36 +121,44 @@ declare function helper:build-uri(
 };
 
 declare function helper:get-modules-file($file as xs:string) {
-  if (xdmp:modules-database() eq 0) then
-    let $doc :=
+  helper:get-modules-file($file, "text", "force-unquote")
+};
+
+declare function helper:get-modules-file($file as xs:string, $format as xs:string?) {
+  helper:get-modules-file($file, $format, ())
+};
+
+declare function helper:get-modules-file($file as xs:string, $format as xs:string?, $unquote as xs:string?) {
+  let $doc :=
+    if (xdmp:modules-database() eq 0) then
       xdmp:document-get(
         helper:build-uri(xdmp:modules-root(), $file),
-        (: TODO why insist on text? :)
-        <options xmlns="xdmp:document-get">
-          <format>text</format>
+        if (fn:exists($format)) then
+          <options xmlns="xdmp:document-get">
+            <format>{$format}</format>
+          </options>
+        else
+          ())
+    else
+      xdmp:eval(
+        'declare variable $file as xs:string external; fn:doc($file)',
+        (xs:QName('file'), $file),
+        <options xmlns="xdmp:eval">
+          <database>{xdmp:modules-database()}</database>
         </options>)
-    return
-      try {
-        xdmp:unquote($doc)
-      }
-      catch($ex) {$doc}
-  else
-    let $doc := xdmp:eval(
-      'declare variable $file as xs:string external; fn:doc($file)',
-      (xs:QName('file'), $file),
-      <options xmlns="xdmp:eval">
-        <database>{xdmp:modules-database()}</database>
-      </options>)
-    return
-      if ($doc/*) then
-        $doc
-      else
+  return
+    if (fn:empty($unquote) or $doc/*) then
+      $doc
+    else
+      if ($unquote eq "force-unquote") then
         try {
-          xdmp:unquote($doc) (: TODO WTF? :)
+          xdmp:unquote($doc)
         }
         catch($ex) {
           $doc
         }
+      else
+        xdmp:unquote($doc)
 };
 
 (:~
