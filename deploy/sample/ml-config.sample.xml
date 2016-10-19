@@ -475,6 +475,14 @@
         <privilege>
           <privilege-name>xdmp:with-namespaces</privilege-name>
         </privilege>
+        <!-- START: required to run Roxy's rewriter-lib -->
+        <privilege>
+          <privilege-name>xdmp:get-server-field</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:set-server-field</privilege-name>
+        </privilege>
+        <!-- END: required to run Roxy's rewriter-lib -->
       </privileges>
     </role>
     <role>
@@ -486,9 +494,6 @@
         </privilege>
         <privilege>
           <privilege-name>xdmp:eval-in</privilege-name>
-        </privilege>
-        <privilege>
-          <privilege-name>xdmp:get-server-field</privilege-name>
         </privilege>
         <privilege>
           <privilege-name>xdmp:http-delete</privilege-name>
@@ -504,9 +509,6 @@
         </privilege>
         <privilege>
           <privilege-name>xdmp:http-put</privilege-name>
-        </privilege>
-        <privilege>
-          <privilege-name>xdmp:set-server-field</privilege-name>
         </privilege>
       </privileges>
     </role>
