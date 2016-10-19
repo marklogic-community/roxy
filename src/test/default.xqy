@@ -34,24 +34,6 @@ declare variable $FS-PATH  as xs:string :=
 
 declare option xdmp:mapping "false";
 
-declare function t:list-from-database(
-  $database as xs:unsignedLong,
-  $root as xs:string,
-  $suite as xs:string?)
-as xs:string*
-{
-  xdmp:eval(
-    'xquery version "1.0-ml";
-    declare variable $PATH as xs:string external;
-    try { cts:uris((), (), cts:directory-query($PATH, "infinity")) }
-    catch ($ex) {
-      if ($ex/error:code ne "XDMP-URILXCNNOTFOUND") then xdmp:rethrow()
-      else xdmp:directory($PATH, "infinity")/xdmp:node-uri(.) }',
-    (xs:QName('PATH'),
-      fn:concat($root, 'test/suites/', ($suite, '')[1])),
-    <options xmlns="xdmp:eval"><database>{$database}</database></options>)
-};
-
 (:~
  : Returns a list of the available tests. This list is magically computed based on the modules
  :)
@@ -66,7 +48,7 @@ declare function t:list() {
         if ($db-id = 0) then
           xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites"))/dir:entry[dir:type = "directory" and fn:not(dir:filename = $suite-ignore-list)]/dir:filename
         else
-          let $uris := t:list-from-database($db-id, $root, ())
+          let $uris := helper:list-from-database($db-id, $root, ())
           return
             fn:distinct-values(
               for $uri in $uris
@@ -79,7 +61,7 @@ declare function t:list() {
         if ($db-id = 0) then
           xdmp:filesystem-directory(fn:concat($root, $FS-PATH, "test/suites/", $suite))/dir:entry[dir:type = "file" and fn:not(dir:filename = $test-ignore-list)]/dir:filename[fn:ends-with(., ".xqy") or fn:ends-with(., ".sjs")]
         else
-          let $uris := t:list-from-database(
+          let $uris := helper:list-from-database(
             $db-id, $root, fn:concat($suite, '/'))
           return
             fn:distinct-values(

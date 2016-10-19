@@ -1,12 +1,6 @@
 xquery version "1.0-ml";
 
+import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
+
 (: remove the test controller :)
-if (xdmp:modules-database() ne 0) then
-  xdmp:eval('
-    xquery version "1.0-ml";
-    xdmp:document-delete("/app/controllers/test-request.xqy")',
-    (),
-    <options xmlns="xdmp:eval">
-      <database>{xdmp:modules-database()}</database>
-    </options>)
-else ()
+test:remove-modules(("/app/controllers/test-request.xqy"))

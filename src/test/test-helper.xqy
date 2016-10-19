@@ -440,3 +440,57 @@ declare function helper:log($items as item()*)
   let $_ := fn:trace($items, "UNIT-TEST")
   return ()
 };
+
+declare function helper:list-from-database(
+  $database as xs:unsignedLong,
+  $root as xs:string,
+  $suite as xs:string?)
+as xs:string*
+{
+  xdmp:eval(
+    'xquery version "1.0-ml";
+    declare variable $PATH as xs:string external;
+    try { cts:uris((), (), cts:directory-query($PATH, "infinity")) }
+    catch ($ex) {
+      if ($ex/error:code ne "XDMP-URILXCNNOTFOUND") then xdmp:rethrow()
+      else xdmp:directory($PATH, "infinity")/xdmp:node-uri(.) }',
+    (xs:QName('PATH'),
+      fn:concat($root, 'test/suites/', ($suite, '')[1])),
+    <options xmlns="xdmp:eval"><database>{$database}</database></options>)
+};
+
+(:
+ : Use this function to clean up after tests that put stuff in the modules database.
+ :)
+declare function helper:remove-modules($uris as xs:string*)
+{
+  if (xdmp:modules-database() ne 0) then
+    xdmp:eval('
+      xquery version "1.0-ml";
+      declare variable $uris external;
+
+      $uris ! xdmp:document-delete(.)',
+      map:new((map:entry("uris", $uris))),
+      <options xmlns="xdmp:eval">
+        <database>{xdmp:modules-database()}</database>
+      </options>)
+  else ()
+};
+
+(:
+ : Use this function to clean up after tests that put stuff in the modules database.
+ :)
+declare function helper:remove-modules-directories($dirs as xs:string*)
+{
+  if (xdmp:modules-database() ne 0) then
+    xdmp:eval('
+      xquery version "1.0-ml";
+      declare variable $dirs external;
+
+      $dirs ! xdmp:directory-delete(.)',
+      map:new((map:entry("dirs", $dirs))),
+      <options xmlns="xdmp:eval">
+        <database>{xdmp:modules-database()}</database>
+      </options>)
+  else ()
+};

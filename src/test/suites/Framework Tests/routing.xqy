@@ -12,28 +12,30 @@ import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/t
 
 import module namespace c = "http://marklogic.com/roxy/test-config" at "/test/test-config.xqy";
 
+import module namespace frm = "http://marklogic.com/roxy/test/framework" at "lib/framework-lib.xqy";
+
 declare namespace html = "http://www.w3.org/1999/xhtml";
 
 declare variable $options :=
   <options xmlns="xdmp:http">
     <format xmlns="xdmp:document-get">xml</format>
     <authentication method="digest">
-      <username>{$c:USER}</username>
-      <password>{$c:PASSWORD}</password>
+      <username>{$c:APP-USER}</username>
+      <password>{$c:APP-USER-PASSWORD}</password>
     </authentication>
   </options>;
 
 declare variable $options-non-xml :=
   <options xmlns="xdmp:http">
     <authentication method="digest">
-      <username>{$c:USER}</username>
-      <password>{$c:PASSWORD}</password>
+      <username>{$c:APP-USER}</username>
+      <password>{$c:APP-USER-PASSWORD}</password>
     </authentication>
   </options>;
 
 
 (: Verify that /tester will call tester:main and return the html view :)
-let $response := xdmp:http-get(test:easy-url("/tester"), $options)
+let $response := test:http-get(test:easy-url("/tester"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -42,7 +44,7 @@ return
 ),
 
 (: Verify that the .html will return the html view :)
-let $response := xdmp:http-get(test:easy-url("/tester.html"), $options)
+let $response := test:http-get(test:easy-url("/tester.html"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -51,7 +53,7 @@ return
 ),
 
 (: Verify that the .xml will return the xml view :)
-let $response := xdmp:http-get(test:easy-url("/tester.xml"), $options)
+let $response := test:http-get(test:easy-url("/tester.xml"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -59,7 +61,7 @@ return
 ),
 
 (: JSON view is not defined. Should throw a 500 error with handy error message :)
-let $response := xdmp:http-get(test:easy-url("/tester.json"), $options)
+let $response := test:http-get(test:easy-url("/tester.json"), $options)
 return
 (
   test:assert-equal(500, fn:data($response[1]/*:code)),
@@ -67,7 +69,7 @@ return
 ),
 
 (: verify that a handy error message is displayed when a layout is missing. :)
-let $response := xdmp:http-get(test:easy-url("/tester/missing-layout"), $options)
+let $response := test:http-get(test:easy-url("/tester/missing-layout"), $options)
 return
 (
   test:assert-equal(500, fn:data($response[1]/*:code)),
@@ -75,7 +77,7 @@ return
 ),
 
 (: verify that a handy error message is displayed when a view is missing. :)
-let $response := xdmp:http-get(test:easy-url("/tester/missing-view"), $options)
+let $response := test:http-get(test:easy-url("/tester/missing-view"), $options)
 return
 (
   test:assert-equal(500, fn:data($response[1]/*:code)),
@@ -83,7 +85,7 @@ return
 ),
 
 (: verify that turning off the layout works :)
-let $response := xdmp:http-get(test:easy-url("/tester/no-layout"), $options)
+let $response := test:http-get(test:easy-url("/tester/no-layout"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -92,7 +94,7 @@ return
 ),
 
 (: verify that turning off the view works :)
-let $response := xdmp:http-get(test:easy-url("/tester/no-view"), $options)
+let $response := test:http-get(test:easy-url("/tester/no-view"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -101,7 +103,7 @@ return
 ),
 
 (: verify that turning off the view and layout works :)
-let $response := xdmp:http-get(test:easy-url("/tester/no-view-or-layout"), $options)
+let $response := test:http-get(test:easy-url("/tester/no-view-or-layout"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -109,7 +111,7 @@ return
 ),
 
 (: verify that specifying a different view works :)
-let $response := xdmp:http-get(test:easy-url("/tester/different-view"), $options)
+let $response := test:http-get(test:easy-url("/tester/different-view"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -118,7 +120,7 @@ return
 ),
 
 (: verify that specifying a different layout works :)
-let $response := xdmp:http-get(test:easy-url("/tester/different-layout"), $options)
+let $response := test:http-get(test:easy-url("/tester/different-layout"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -127,7 +129,7 @@ return
 ),
 
 (: verify that specifying a different view for only xml works - first get html :)
-let $response := xdmp:http-get(test:easy-url("/tester/different-view-xml-only"), $options)
+let $response := test:http-get(test:easy-url("/tester/different-view-xml-only"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -136,7 +138,7 @@ return
 ),
 
 (: verify that specifying a different view for only xml works - now get xml :)
-let $response := xdmp:http-get(test:easy-url("/tester/different-view-xml-only.xml"), $options)
+let $response := test:http-get(test:easy-url("/tester/different-view-xml-only.xml"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -144,7 +146,7 @@ return
 ),
 
 (: verify that returning the input from the view doesn't break anything :)
-let $response := xdmp:http-get(test:easy-url("/tester/view-that-returns-the-input"), $options)
+let $response := test:http-get(test:easy-url("/tester/view-that-returns-the-input"), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
@@ -153,7 +155,7 @@ return
 ),
 
 (: verify that a missing variable returns a handy error message :)
-let $response := xdmp:http-get(test:easy-url("/tester/missing-variable"), $options)
+let $response := test:http-get(test:easy-url("/tester/missing-variable"), $options)
 return
 (
   test:assert-equal(500, fn:data($response[1]/*:code)),
@@ -161,7 +163,7 @@ return
 ),
 
 (: verify that a bad import propagates the correct error :)
-let $response := xdmp:http-get(test:easy-url("/tester/layout-with-bad-import"), $options-non-xml)
+let $response := test:http-get(test:easy-url("/tester/layout-with-bad-import"), $options-non-xml)
 return
 (
   test:assert-equal(500, fn:data($response[1]/*:code)),
@@ -169,7 +171,7 @@ return
 ),
 
 (: verify that a bad import propagates the correct error :)
-let $response := xdmp:http-get(test:easy-url("/tester/view-with-bad-import"), $options-non-xml)
+let $response := test:http-get(test:easy-url("/tester/view-with-bad-import"), $options-non-xml)
 return
 (
   test:assert-equal(500, fn:data($response[1]/*:code)),
@@ -178,70 +180,70 @@ return
 
 
 (: verify that public resources are accessible :)
-let $response := xdmp:http-get(test:easy-url("/css/app.less"), $options-non-xml)
+let $response := test:http-get(test:easy-url("/css/app.less"), $options-non-xml)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code))
 ),
 
 (: verify that public resources are accessible :)
-let $response := xdmp:http-get(test:easy-url("/images/ml-logo.gif"), $options-non-xml)
+let $response := test:http-get(test:easy-url("/images/ml-logo.gif"), $options-non-xml)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code))
 ),
 
 (: verify that public resources are accessible :)
-let $response := xdmp:http-get(test:easy-url("/js/app.js"), $options-non-xml)
+let $response := test:http-get(test:easy-url("/js/app.js"), $options-non-xml)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code))
 ),
 
 (: verify that a non-existent route returns 404 :)
-let $response := xdmp:http-get(test:easy-url("/not-real"), $options-non-xml)
+let $response := test:http-get(test:easy-url("/not-real"), $options-non-xml)
 return
 (
   test:assert-equal(404, fn:data($response[1]/*:code))
 ),
 
 (: verify that a non-existent route returns 404 :)
-let $response := xdmp:http-get(test:easy-url("/not-real.xml"), $options-non-xml)
+let $response := test:http-get(test:easy-url("/not-real.xml"), $options-non-xml)
 return
 (
   test:assert-equal(404, fn:data($response[1]/*:code))
 ),
 
 (: verify that a non-existent route returns 404 :)
-let $response := xdmp:http-get(test:easy-url("/not-real/at-all"), $options-non-xml)
+let $response := test:http-get(test:easy-url("/not-real/at-all"), $options-non-xml)
 return
 (
   test:assert-equal(404, fn:data($response[1]/*:code))
 ),
 
-let $response := xdmp:http-get(test:easy-url("/tester/update"), $options)
+let $response := test:http-get(test:easy-url("/tester/update"), $options)
 return
 (
   test:assert-equal(500, fn:data($response[1]/*:code)),
   test:assert-equal("XDMP-UPDATEFUNCTIONFROMQUERY", fn:string($response[2]//*:code))
 ),
 
-let $response := xdmp:http-head(test:easy-url("/tester/update"), $options)
+let $response := frm:http-head(test:easy-url("/tester/update"), $options)
 return
 (
   test:assert-equal(500, fn:data($response[1]/*:code))
   (: A HEAD request doesn't get the body, so we can't check the detailed message :)
 ),
 
-let $response := xdmp:http-delete(test:easy-url("/tester/delete?uri=/delete-me.xml"), $options-non-xml)
-return 
-  test:assert-equal(200, fn:data($response[1]/*:code)),
-
-let $response := xdmp:http-post(test:easy-url("/tester/update"), $options-non-xml)
+let $response := frm:http-delete(test:easy-url("/tester/delete?uri=/delete-me.xml"), $options-non-xml)
 return
   test:assert-equal(200, fn:data($response[1]/*:code)),
 
-let $response := xdmp:http-put(test:easy-url("/tester/update2"), $options-non-xml)
+let $response := frm:http-post(test:easy-url("/tester/update"), $options-non-xml)
+return
+  test:assert-equal(200, fn:data($response[1]/*:code)),
+
+let $response := frm:http-put(test:easy-url("/tester/update2"), $options-non-xml)
 return
   test:assert-equal(200, fn:data($response[1]/*:code))
 
