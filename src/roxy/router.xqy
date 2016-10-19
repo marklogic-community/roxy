@@ -27,7 +27,14 @@ import module namespace u = "http://marklogic.com/roxy/util" at "/roxy/lib/util.
 declare option xdmp:mapping "false";
 
 declare variable $controller as xs:QName := req:get("controller", "type=xs:QName");
-declare variable $controller-path as xs:string := fn:concat("/app/controllers/", $controller, ".xqy");
+declare variable $language as xs:string := req:get("language", "xqy", "type=xs:string");
+declare variable $controller-path as xs:string := fn:concat("/app/controllers/", $controller, ".", $language);
+declare variable $controller-ns as xs:string :=
+  if ($language eq "xqy") then
+    fn:concat("http://marklogic.com/roxy/controller/", $controller)
+  else
+    "";
+
 declare variable $func as xs:string := req:get("func", "main", "type=xs:string");
 declare variable $default-format :=
   (
@@ -50,7 +57,7 @@ declare function router:route()
   let $data :=
     xdmp:apply(
       xdmp:function(
-        fn:QName(fn:concat("http://marklogic.com/roxy/controller/", $controller), $func),
+        fn:QName($controller-ns, $func),
         $controller-path))
 
   (: Roxy options :)
