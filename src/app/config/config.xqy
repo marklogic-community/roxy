@@ -60,6 +60,18 @@ declare variable $c:ROXY-ROUTES :=
 
 (:
  : ***********************************************
+ : What is the default language of the controllers defined in the <request>
+ : sjs - Serverside JavaScript
+ : xqy - XQuery (default)
+ :
+ : Override this setting in the build.properties with the "controller-ext" key value pair.
+ :
+ : ***********************************************
+ :)
+declare variable $c:CTRL-EXT := ("@ml.controller-ext", $def:CTRL-EXT)[1];
+
+(:
+ : ***********************************************
  : A decent place to put your appservices search config
  : and various other search options.
  : The examples below are used by the appbuilder style
