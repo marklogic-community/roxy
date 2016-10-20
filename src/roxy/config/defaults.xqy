@@ -89,6 +89,11 @@ declare variable $ROXY-ROUTES :=
     </routes>;
 
 (:
+ : Default controller language
+ :)
+declare variable $CTRL-EXT := "xqy";
+
+(:
  : ***********************************************
  : A decent place to put your appservices search config
  : and various other search options
