@@ -4,6 +4,7 @@ import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/t
 
 (: create a test controller and views :)
 test:load-test-file("tester.xqy", xdmp:modules-database(), fn:concat(xdmp:modules-root(), "app/controllers/tester.xqy")),
+test:load-test-file("tester.sjs", xdmp:modules-database(), fn:concat(xdmp:modules-root(), "app/controllers/tester.sjs")),
 test:load-test-file("missing-map.xqy", xdmp:modules-database(), fn:concat(xdmp:modules-root(), "app/controllers/missing-map.xqy")),
 test:load-test-file("different-layout-view.html.xqy", xdmp:modules-database(), fn:concat(xdmp:modules-root(), "app/views/tester/different-layout.html.xqy")),
 test:load-test-file("different-view-xml-only.html.xqy", xdmp:modules-database(), fn:concat(xdmp:modules-root(), "app/views/tester/different-view-xml-only.html.xqy")),

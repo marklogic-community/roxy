@@ -4,6 +4,14 @@ import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/t
 
 import module namespace c = "http://marklogic.com/roxy/test-config" at "/test/test-config.xqy";
 
+(:
+ : Each of the URLs being tested here includes the language parameter, because
+ : the controllers can be implemented in either XQuery or SJS. The default is
+ : controlled by a property. In order to avoid false negatives, these tests
+ : make that choice explicit.
+ :)
+declare variable $LANG-XQY := "language=xqy";
+
 let $options :=
   <options xmlns="xdmp:http">
     <format xmlns="xdmp:document-get">xml</format>
@@ -12,7 +20,7 @@ let $options :=
       <password>{$c:PASSWORD}</password>
     </authentication>
   </options>
-let $response := xdmp:http-get(test:easy-url("/"), $options)
+let $response := xdmp:http-get(test:easy-url("/?" || $LANG-XQY), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),
