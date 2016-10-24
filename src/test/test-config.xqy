@@ -20,3 +20,6 @@ module namespace c = "http://marklogic.com/roxy/test-config";
 (: configured at deploy time by Roxy deployer :)
 declare variable $c:USER := "@ml.user";
 declare variable $c:PASSWORD := "@ml.password";
+
+declare variable $c:APP-USER as xs:string := ("@ml.default-user", $c:USER)[1];
+declare variable $c:APP-USER-PASSWORD as xs:string := ("@ml.appuser-password", $c:PASSWORD)[1];
