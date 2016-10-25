@@ -488,7 +488,21 @@
     <role>
       <role-name>${app-role}-unit-test</role-name>
       <description>A role for unit testing the ${app-name} application</description>
+      <role-names>
+        <role-name>${app-role}</role-name>
+      </role-names>
       <privileges>
+        <!-- START: privileges needed for unit testing while running on filesystem -->
+        <privilege>
+          <privilege-name>xdmp:document-get</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:filesystem-directory</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:save</privilege-name>
+        </privilege>
+        <!-- END: privileges needed for unit testing while running on filesystem -->
         <privilege>
           <privilege-name>xdmp:eval</privilege-name>
         </privilege>
@@ -524,6 +538,7 @@
       <permissions/>
       <collections/>
     </user>
+    @ml.test-user-xml
   </users>
   <amps xmlns="http://marklogic.com/xdmp/security">
     <!--
@@ -538,87 +553,6 @@
       <role-name>a-privileged-role</role-name>
     </amp>
     -->
-    <!-- This group of amps allows the app-user to run the unit tests. If you
-         aren't using the Unit Test framework, or if you run them as admin, you
-         can safely delete these.
-    -->
-    <amp>
-      <namespace>http://marklogic.com/roxy/test-helper</namespace>
-      <local-name>list-from-database</local-name>
-      <doc-uri>/test/test-helper.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test-helper</namespace>
-      <local-name>get-modules-file</local-name>
-      <doc-uri>/test/test-helper.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test-helper</namespace>
-      <local-name>load-test-file</local-name>
-      <doc-uri>/test/test-helper.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test-helper</namespace>
-      <local-name>remove-modules</local-name>
-      <doc-uri>/test/test-helper.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test-helper</namespace>
-      <local-name>remove-modules-directories</local-name>
-      <doc-uri>/test/test-helper.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test-helper</namespace>
-      <local-name>http-get</local-name>
-      <doc-uri>/test/test-helper.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test/framework</namespace>
-      <local-name>http-head</local-name>
-      <doc-uri>/test/suites/Framework Tests/lib/framework-lib.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test/framework</namespace>
-      <local-name>http-delete</local-name>
-      <doc-uri>/test/suites/Framework Tests/lib/framework-lib.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test/framework</namespace>
-      <local-name>http-post</local-name>
-      <doc-uri>/test/suites/Framework Tests/lib/framework-lib.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test/framework</namespace>
-      <local-name>http-put</local-name>
-      <doc-uri>/test/suites/Framework Tests/lib/framework-lib.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
-    <amp>
-      <namespace>http://marklogic.com/roxy/test/framework</namespace>
-      <local-name>create-delete-target</local-name>
-      <doc-uri>/test/suites/Framework Tests/lib/framework-lib.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
-      <role-name>${app-role}-unit-test</role-name>
-    </amp>
   </amps>
   <privileges xmlns="http://marklogic.com/xdmp/security">
 <!--

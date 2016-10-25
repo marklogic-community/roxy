@@ -20,16 +20,16 @@ declare variable $options :=
   <options xmlns="xdmp:http">
     <format xmlns="xdmp:document-get">xml</format>
     <authentication method="digest">
-      <username>{$c:APP-USER}</username>
-      <password>{$c:APP-USER-PASSWORD}</password>
+      <username>{$c:TEST-USER}</username>
+      <password>{$c:TEST-USER-PASSWORD}</password>
     </authentication>
   </options>;
 
 declare variable $options-non-xml :=
   <options xmlns="xdmp:http">
     <authentication method="digest">
-      <username>{$c:APP-USER}</username>
-      <password>{$c:APP-USER-PASSWORD}</password>
+      <username>{$c:TEST-USER}</username>
+      <password>{$c:TEST-USER-PASSWORD}</password>
     </authentication>
   </options>;
 
@@ -41,6 +41,8 @@ declare variable $options-non-xml :=
  :)
 declare variable $LANG-XQY := "language=xqy";
 declare variable $LANG-SJS := "language=sjs";
+
+xdmp:log("options: " || xdmp:quote($options)),
 
 (: Verify that /tester will call tester:main and return the html view :)
 let $response := test:http-get(test:easy-url("/tester?" || $LANG-XQY), $options)

@@ -2409,6 +2409,21 @@ private
     }
   end
 
+  def test_user_xml
+    %Q{
+      <user>
+        <user-name>${test-user}</user-name>
+        <description>A user for the ${app-name} unit tests</description>
+        <password>${test-user-password}</password>
+        <role-names>
+          <role-name>${app-role}-unit-test</role-name>
+        </role-names>
+        <permissions/>
+        <collections/>
+      </user>
+    }
+  end
+
   def test_modules_db_assignment
     %Q{
       <assignment>
@@ -2569,6 +2584,14 @@ private
     else
       config.gsub!("@ml.test-modules-db-xml", "")
       config.gsub!("@ml.test-modules-db-assignment", "")
+    end
+
+    if @properties['ml.test-user'].present?
+
+      config.gsub!("@ml.test-user-xml", test_user_xml)
+
+    else
+      config.gsub!("@ml.test-user-xml", "")
     end
 
     if @properties['ml.rest-port'].present?
