@@ -103,8 +103,10 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
         }
       }
       catch($ex) {
-        if ($ex/error:code = "XDMP-MODNOTFOUND" and
-          fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.xqy$")) then
+        if (($ex/error:code = "XDMP-MODNOTFOUND" and
+             fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.xqy$")) or
+            ($ex/error:code = "SVC-FILOPN" and
+             fn:matches($ex/error:expr, "suite-setup.xqy"))) then
           try {
             xdmp:invoke(fn:concat("suites/", $suite, "/suiteSetup.sjs")),
             element t:test {
@@ -116,8 +118,10 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
             }
           }
           catch ($ex) {
-            if ($ex/error:code = "XDMP-MODNOTFOUND" and
-              fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suiteSetup.sjs$")) then
+            if (($ex/error:code = "XDMP-MODNOTFOUND" and
+                 fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suiteSetup.sjs$")) or
+                ($ex/error:code = "SVC-FILOPN" and
+                 fn:matches($ex/error:expr, "suiteSetup.sjs"))) then
               ()
             else
               element t:test {
@@ -164,8 +168,10 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
           }
         }
         catch($ex) {
-          if ($ex/error:code = "XDMP-MODNOTFOUND" and
-            fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.xqy$")) then
+          if (($ex/error:code = "XDMP-MODNOTFOUND" and
+               fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.xqy$")) or
+              ($ex/error:code = "SVC-FILOPN" and
+               fn:matches($ex/error:expr, "suite-teardown.xqy"))) then
             try {
               xdmp:invoke(fn:concat("suites/", $suite, "/suiteTeardown.sjs")),
               element t:test {
@@ -177,8 +183,10 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
               }
             }
             catch($ex) {
-              if ($ex/error:code = "XDMP-MODNOTFOUND" and
-                fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suiteTeardown.sjs$")) then
+              if (($ex/error:code = "XDMP-MODNOTFOUND" and
+                   fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suiteTeardown.sjs$")) or
+                  ($ex/error:code = "SVC-FILOPN" and
+                   fn:matches($ex/error:expr, "suiteTeardown.sjs"))) then
                 ()
               else
                 element t:test {
@@ -225,15 +233,19 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
       return ()
     }
     catch($ex) {
-      if ($ex/error:code = "XDMP-MODNOTFOUND" and
-        fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.xqy$")) then
+      if (($ex/error:code = "XDMP-MODNOTFOUND" and
+           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.xqy$")) or
+          ($ex/error:code = "SVC-FILOPN" and
+           fn:matches($ex/error:expr, "setup.xqy"))) then
         try {
           let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/setup.sjs"))
           return ()
         }
         catch($ex) {
-          if ($ex/error:code = "XDMP-MODNOTFOUND" and
-            fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.sjs$")) then
+          if (($ex/error:code = "XDMP-MODNOTFOUND" and
+               fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.sjs$")) or
+              ($ex/error:code = "SVC-FILOPN" and
+           fn:matches($ex/error:expr, "setup.sjs"))) then
             ()
           else
             element t:result {
@@ -272,14 +284,18 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
         xdmp:invoke(fn:concat("suites/", $suite, "/teardown.xqy"))
       }
       catch($ex) {
-        if ($ex/error:code = "XDMP-MODNOTFOUND" and
-          fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.xqy$")) then
+        if (($ex/error:code = "XDMP-MODNOTFOUND" and
+             fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.xqy$")) or
+            ($ex/error:code = "SVC-FILOPN" and
+             fn:matches($ex/error:expr, "teardown.xqy"))) then
           try {
             xdmp:invoke(fn:concat("suites/", $suite, "/teardown.sjs"))
           }
           catch($ex) {
-            if ($ex/error:code = "XDMP-MODNOTFOUND" and
-              fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.sjs$")) then
+            if (($ex/error:code = "XDMP-MODNOTFOUND" and
+                 fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.sjs$")) or
+                ($ex/error:code = "SVC-FILOPN" and
+                 fn:matches($ex/error:expr, "teardown.sjs"))) then
               ()
             else
               element t:result {
