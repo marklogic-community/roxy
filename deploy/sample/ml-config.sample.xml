@@ -458,6 +458,9 @@
       </collections>
       <privileges>
         <privilege>
+          <privilege-name>rest-reader</privilege-name>
+        </privilege>
+        <privilege>
           <privilege-name>xdmp:value</privilege-name>
         </privilege>
         <privilege>
@@ -468,6 +471,58 @@
         </privilege>
         <privilege>
           <privilege-name>xdmp:with-namespaces</privilege-name>
+        </privilege>
+        <!-- START: required to run Roxy's rewriter-lib -->
+        <privilege>
+          <privilege-name>xdmp:get-server-field</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:set-server-field</privilege-name>
+        </privilege>
+        <!-- END: required to run Roxy's rewriter-lib -->
+      </privileges>
+    </role>
+    <role>
+      <role-name>${app-role}-unit-test</role-name>
+      <description>A role for unit testing the ${app-name} application</description>
+      <role-names>
+        <role-name>${app-role}</role-name>
+      </role-names>
+      <privileges>
+        <!-- START: privileges needed for unit testing while running on filesystem -->
+        <privilege>
+          <privilege-name>xdmp:document-get</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:filesystem-directory</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:save</privilege-name>
+        </privilege>
+        <!-- END: privileges needed for unit testing while running on filesystem -->
+        <privilege>
+          <privilege-name>any-uri</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:eval</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:eval-in</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:http-delete</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:http-get</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:http-head</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:http-post</privilege-name>
+        </privilege>
+        <privilege>
+          <privilege-name>xdmp:http-put</privilege-name>
         </privilege>
       </privileges>
     </role>
@@ -483,12 +538,13 @@
       <permissions/>
       <collections/>
     </user>
+    @ml.test-user-xml
   </users>
   <amps xmlns="http://marklogic.com/xdmp/security">
-<!--
-  Sample amp. See the Understanding and Using Security Guide section 5.2 for
-  information about amps.
-  http://community.marklogic.com/pubs/5.0/books/security.pdf
+    <!--
+      Sample amp. See the Understanding and Using Security Guide section 5.2 for
+      information about amps.
+      http://community.marklogic.com/pubs/5.0/books/security.pdf
     <amp>
       <namespace>http://marklogic.com/roxy</namespace>
       <local-name>sample</local-name>
@@ -496,7 +552,7 @@
       <db-name>${app-modules-db}</db-name>
       <role-name>a-privileged-role</role-name>
     </amp>
--->
+    -->
   </amps>
   <privileges xmlns="http://marklogic.com/xdmp/security">
 <!--

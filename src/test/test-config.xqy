@@ -20,3 +20,10 @@ module namespace c = "http://marklogic.com/roxy/test-config";
 (: configured at deploy time by Roxy deployer :)
 declare variable $c:USER := "@ml.user";
 declare variable $c:PASSWORD := "@ml.password";
+
+declare variable $c:TEST-USER as xs:string :=
+  if (fn:matches("@ml.test-user", "@")) then $c:USER
+  else "@ml.test-user";
+declare variable $c:TEST-USER-PASSWORD as xs:string :=
+  if (fn:matches("@ml.test-user-password", "@")) then $c:PASSWORD
+  else "@ml.test-user-password";

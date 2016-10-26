@@ -20,7 +20,7 @@ let $options :=
       <password>{$c:PASSWORD}</password>
     </authentication>
   </options>
-let $response := xdmp:http-get(test:easy-url("/?" || $LANG-XQY), $options)
+let $response := test:http-get(test:easy-url("/?" || $LANG-XQY), $options)
 return
 (
   test:assert-equal(200, fn:data($response[1]/*:code)),

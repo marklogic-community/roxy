@@ -2,6 +2,15 @@ xquery version "1.0-ml";
 
 import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
 
+(: These tests require the modules database, because they will make HTTP
+ : requests using credentials from test-config.xqy. Those credentials will only
+ : be available if property substitution happens, which only works when using a
+ : modules database.
+ :)
+if (xdmp:modules-database() eq 0) then
+  test:fail("You must run this test from a modules database.")
+else (),
+
 (: create a test controller and views :)
 test:load-test-file("tester.xqy", xdmp:modules-database(), fn:concat(xdmp:modules-root(), "app/controllers/tester.xqy")),
 test:load-test-file("tester.sjs", xdmp:modules-database(), fn:concat(xdmp:modules-root(), "app/controllers/tester.sjs")),
