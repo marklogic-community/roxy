@@ -458,9 +458,6 @@
       </collections>
       <privileges>
         <privilege>
-          <privilege-name>any-uri</privilege-name>
-        </privilege>
-        <privilege>
           <privilege-name>rest-reader</privilege-name>
         </privilege>
         <privilege>
@@ -503,6 +500,9 @@
           <privilege-name>xdmp:save</privilege-name>
         </privilege>
         <!-- END: privileges needed for unit testing while running on filesystem -->
+        <privilege>
+          <privilege-name>any-uri</privilege-name>
+        </privilege>
         <privilege>
           <privilege-name>xdmp:eval</privilege-name>
         </privilege>
