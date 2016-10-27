@@ -65,6 +65,9 @@ class ServerConfig < MLClient
     @config_file = @properties["ml.config.file"]
 
     @properties["ml.server"] = @properties["ml.#{@environment}-server"] unless @properties["ml.server"]
+    if (@properties["ml.server"] == nil)
+      raise "Error! ml.server not set. You may be missing deploy/" + @properties["environment"] + ".properties"
+    end
 
     @hostname = @properties["ml.server"]
     @bootstrap_port_four = @properties["ml.bootstrap-port-four"]
@@ -128,7 +131,7 @@ class ServerConfig < MLClient
       logger.info "IS_JAR: #{@@is_jar}"
       logger.info "Properties:"
       @properties.sort {|x,y| x <=> y}.each do |k, v|
-        logger.info k + ": " + v
+        logger.info k + ": " + v.to_s
       end
     end
     return true
