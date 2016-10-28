@@ -1,6 +1,34 @@
 # Roxy Changes
 This file describes changes made to Roxy per release
 
+## 1.7.4
+### New Features
+* [#415](https://github.com/marklogic/roxy/issues/415) Allow deploy rest-config
+* [#521](https://github.com/marklogic/roxy/issues/521) Support custom properties for corb2
+* [#596](https://github.com/marklogic/roxy/issues/596) Test Roxy deployment with MarkLogic 9
+* [#612](https://github.com/marklogic/roxy/issues/612) Move Roxy off Query Console endpoint
+* [#638](https://github.com/marklogic/roxy/issues/638) The get-test-file/get-module-file test methods force returning unquoted documents.
+* [#640](https://github.com/marklogic/roxy/issues/640) Support SJS controllers
+* [#656](https://github.com/marklogic/roxy/issues/656) support javascript suite-setup/setup/suite-teardown/teardown
+* [#670](https://github.com/marklogic/roxy/issues/670) bootstrap broken with ML 8.0-6
+
+### Resolved Issues
+* [#563](https://github.com/marklogic/roxy/issues/563) Configuring Roxy for Unit Testing in ML8
+* [#570](https://github.com/marklogic/roxy/issues/570) Toggling the Run/Run All Tests checkboxes don't update the active styling for tests
+* [#571](https://github.com/marklogic/roxy/issues/571) The active styling is not set correctly when first loading the page for unchecked tests/test suites
+* [#573](https://github.com/marklogic/roxy/issues/573) Exceptions within the setup/teardown files are not displayed when running a test suite.
+* [#591](https://github.com/marklogic/roxy/issues/591) Issue when overriding property from command line
+* [#593](https://github.com/marklogic/roxy/issues/593) deploy_rest doesn't use REST API to deploy options
+* [#599](https://github.com/marklogic/roxy/issues/599) deploy modules throws "Undefined function conf:rewrite error"
+* [#601](https://github.com/marklogic/roxy/issues/601) Space in Ruby Path causes ml.bat to fail
+* [#620](https://github.com/marklogic/roxy/issues/620) ERROR: no implicit conversion of nil into String
+* [#621](https://github.com/marklogic/roxy/issues/621) Passwords not bootstrapped correctly
+* [#625](https://github.com/marklogic/roxy/issues/625) ADMIN-INVALIDCONFIG: (err:FOER0000) after updating Roxy to 1.7.3
+* [#630](https://github.com/marklogic/roxy/issues/630) The test list table row introduces extra padding in collapsed test suites.
+* [#642](https://github.com/marklogic/roxy/issues/642) xdbc-authentication-method should default to 'digest'
+* [#648](https://github.com/marklogic/roxy/issues/648) Bootstrapping scheduled tasks doesn't work when using the filesystem
+* [#667](https://github.com/marklogic/roxy/issues/667) Transactional Unit Tests always succeed
+
 ## 1.7.3
 
 ### New Features
