@@ -5,8 +5,9 @@
   <debug>false</debug>
   <!--
     error-format no longer supported as of MarkLogic 8
-    
+
     <error-format>xml</error-format>
   -->
   <validate-queries>false</validate-queries>
+  <update-policy>merge-metadata</update-policy>
 </properties>
