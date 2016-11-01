@@ -652,17 +652,24 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
     internals = find_arg(['--replicate-internals'])
     if internals
+      dointernals = 'internals'
 
+      # Number of hosts
+      r = execute_query %Q{ fn:count(xdmp:hosts()) }
+      r.body = parse_body(r.body)
+
+      # check cluster size
       nr = find_arg(['--nr-replicas'])
       if nr
-        nr = nr.to_i
+        if nr == "max" or nr == "MAX"
+          nr = r.body.to_i - 1
+        else
+          nr = nr.to_i
+        end
       else
         nr = 2
       end
 
-      # check cluster size
-      r = execute_query %Q{ fn:count(xdmp:hosts()) }
-      r.body = parse_body(r.body)
       raise ExitException.new("Increase nr-replicas, minimum is 1") if nr < 1
       raise ExitException.new("Adding #{nr} replicas to internals requires at least a #{nr + 1} node cluster") if r.body.to_i <= nr
 
@@ -672,16 +679,12 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       assigns = ''
       internals = @properties['ml.system-dbs'].split ','
       internals.each do |db|
-        repnames = ''
-        repassigns = ''
-        (1..nr).each do |i|
-          repnames = repnames + %Q{
-                <replica-name>#{db}-rep#{i}</replica-name>}
-          repassigns = repassigns + %Q{
+        repnames = %Q{
+            <replica-name>#{db}-rep1</replica-name>}
+        repassigns = %Q{
             <assignment>
-              <forest-name>#{db}-rep#{i}</forest-name>
+              <forest-name nr-replicas="#{nr}">#{db}-rep1</forest-name>
             </assignment>}
-        end
 
         assigns = assigns + %Q{
 
@@ -714,18 +717,19 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       }
       logger.debug config
     else
+      dointernals = ''
       logger.info "Bootstrapping your project into MarkLogic #{@properties['ml.server-version']} on #{@hostname}..."
       config = get_config
     end
 
     apply_changes = find_arg(['--apply-changes'])
 
-    if apply_changes == nil
-      apply_changes = ""
+    if apply_changes == nil or apply_changes == ""
+      apply_changes = "all"
     end
 
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-setup(#{config}, "#{apply_changes}")}
+    r = execute_query %Q{#{setup} setup:do-setup(#{config}, "#{apply_changes},#{dointernals}")}
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_body(r.body)
@@ -744,6 +748,73 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       logger.info "... Bootstrap Complete"
       return true
     end
+  end
+
+  def clean_replicas_state
+    internals = find_arg(['--internal-replicas'])
+
+    if internals == nil
+      internals = ''
+      logger.info "Cleaning application forest decommissioned replica state"
+      config = get_config
+    else
+      logger.info "Cleaning interal forest decommissioned replica state"
+      internals = 'internals'
+      config = get_config
+    end
+
+    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
+    r = execute_query %Q{#{setup} setup:do-clean-replicas-state(#{config}, "#{internals}")}
+
+    if r.body.match("error log")
+      logger.error r.body
+      logger.error "... Cleaning replicas FAILED"
+      return false
+    end
+
+    logger.info r.body
+    logger.info "... Cleaning replicas Complete"
+    return true
+  end
+
+  def clean_replicas
+    internals = find_arg(['--internal-replicas'])
+
+    if internals == nil
+      internals = ''
+      logger.info "Cleaning application forest decommissioned replicas, if ready."
+      config = get_config
+    else
+      logger.info "Cleaning interal forest decommissioned replicas, if ready."
+      internals = 'internals'
+      config = get_config
+    end
+
+    setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
+    r = execute_query %Q{#{setup} setup:do-clean-replicas(#{config}, "#{internals}")}
+    logger.debug "code: #{r.code.to_i}"
+
+    r.body = parse_body(r.body)
+    logger.debug r.body
+
+    if r.body.match("error log")
+      logger.error r.body
+      logger.error "... Cleaning replicas FAILED"
+      return false
+    end
+    if r.body.match("Replicas not ready")
+      logger.error r.body
+      return false
+    end
+    if r.body.match("nothing to do")
+      logger.error r.body
+      logger.info "No replicas were found to be retired.  Nothing to do."
+      return false
+    end
+
+    logger.info r.body
+    logger.info "... Cleaning replicas Complete"
+    return true
   end
 
   def wipe
@@ -882,8 +953,8 @@ In order to proceed please type: #{expected_response}
 
       wipe_changes = find_arg(['--apply-changes'])
 
-      if wipe_changes == nil
-        wipe_changes = ""
+      if wipe_changes == nil or wipe_changes == ""
+        wipe_changes = "all"
       end
 
       r = execute_query %Q{#{setup} setup:do-wipe(#{config}, "#{wipe_changes}")}
@@ -1044,6 +1115,10 @@ In order to proceed please type: #{expected_response}
         clean_cpf
       when 'triggers'
         clean_triggers
+      when 'replicas'
+        clean_replicas
+      when 'replicas-state'
+        clean_replicas_state
       else
         raise HelpException.new("clean", "Invalid WHAT")
     end
