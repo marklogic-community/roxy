@@ -2685,8 +2685,9 @@ private
     properties = ServerConfig.load_properties(default_properties_file, "ml.")
     properties.merge!(ServerConfig.load_properties(properties_file, "ml."))
 
+    #Look for optional shared_config, if it is set grab the properties from path relative to the root of the roxy project
     if properties['ml.shared_config'] then
-      shared_properties_file = ServerConfig.expand_path(properties['ml.shared_config'])
+      shared_properties_file = ServerConfig.expand_path("#{@@path}/../#{properties['ml.shared_config']}")
       properties.merge!(ServerConfig.load_properties(shared_properties_file))
     end
 
