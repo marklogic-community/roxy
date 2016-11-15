@@ -1051,6 +1051,13 @@ In order to proceed please type: #{expected_response}
   end
 
   #
+  # An alernative command for clean
+  #
+  def clear
+    clean
+  end
+
+  #
   # Invokes unit tests for the project
   #
   def test
