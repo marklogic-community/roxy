@@ -661,13 +661,13 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       # check cluster size
       nr = find_arg(['--nr-replicas'])
       if nr
-        if nr == "max" or nr == "MAX"
+        if nr.downcase == "max"
           nr = r.body.to_i - 1
         else
           nr = nr.to_i
         end
       else
-        nr = 2
+        nr = 1
       end
 
       raise ExitException.new("Increase nr-replicas, minimum is 1") if nr < 1
