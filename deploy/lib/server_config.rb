@@ -1067,6 +1067,9 @@ In order to proceed please type: #{expected_response}
     if @properties["ml.triggers-db"] then
       deploy_triggers
     end
+    if @properties["ml.triggers-db"] and @properties["ml.data.dir"] and File.exist?(ServerConfig.expand_path("#{@@path}/pipeline-config.xml")) then
+      deploy_cpf
+    end
     deploy_content
   end
 
