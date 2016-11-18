@@ -46,12 +46,12 @@ then
     then
       read -r -n 1 -p "Running ml new from within a Roxy project is not recommended. Continue? [y/N] " response
       printf "\n"
-      if [ $response != "Y" ] && [ $response != "y" ]
+      if [[ $response != "Y" ]] && [[ $response != "y" ]]
       then
         exit 1
-      fi      
+      fi
     fi
-    
+
     app_name="$1"
     shift
 
