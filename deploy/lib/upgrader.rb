@@ -55,8 +55,7 @@ module Roxy
         raise ExitException.new("--no-prompt parameter prevents prompting for input")
       else
         fork = find_arg(['--fork']) || 'marklogic'
-        branch = find_arg(['--branch'])
-        raise HelpException.new("upgrade", "Missing branch name") unless branch
+        branch = find_arg(['--branch']) || 'master'
 
         print "This command will attempt to upgrade to the latest Roxy files.\n"
         print "Before running this command, you should have checked all your code\n"
