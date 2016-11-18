@@ -5703,6 +5703,7 @@ declare function setup:create-ssl-certificate-templates($import-config as elemen
   for $cert in $import-config/pki:certificates/pki:certificate[fn:exists(pki:name/text())]
   return
     if (fn:empty(pki:get-template-by-name($cert/pki:name))) then
+    (
       xdmp:eval(
         '
         import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
@@ -5737,7 +5738,26 @@ declare function setup:create-ssl-certificate-templates($import-config as elemen
           <database>{xdmp:security-database()}</database>
           <isolation>different-transaction</isolation>
         </options>
+      ),
+      
+      xdmp:eval(
+      '
+      import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
+      declare variable $cert external;
+      pki:generate-temporary-certificate-if-necessary(
+        pki:template-get-id(pki:get-template-by-name($cert/pki:name)),
+        365,
+        xdmp:hostname(),
+        (),
+        ()
+      )',
+      (xs:QName("cert"), $cert),
+        <options xmlns="xdmp:eval">
+          <database>{xdmp:security-database()}</database>
+          <isolation>different-transaction</isolation>
+        </options>
       )
+    )
     else ()
 
 };
