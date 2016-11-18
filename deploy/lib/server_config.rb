@@ -2350,6 +2350,8 @@ private
       sub_me.each do |k,v|
         if v.match(/\$\{basedir\}/)
           sub_me[k] = ServerConfig.expand_path(v.gsub("${basedir}", Dir.pwd))
+          matches = v.scan(/\$\{([^}]+)\}/)
+          needs_rescan = true if matches.length > 1
         else
           matches = v.scan(/\$\{([^}]+)\}/)
           if matches.length > 0
