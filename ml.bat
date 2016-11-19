@@ -210,3 +210,4 @@ goto end
   goto end
 
 :end
+exit /b %errorlevel%
