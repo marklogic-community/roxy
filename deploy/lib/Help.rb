@@ -24,8 +24,10 @@ class Help
         clean         Removes all files from the cpf, modules, or content databases on the given environment
         credentials   Configures user and password for the given environment
         info          Returns settings for the given environment
+        install       Bootstraps and deploys all components of a Roxy application
         restart       Restarts the given environment
         validate      Compare your ml-config against the given environment
+        uninstall     An alias of wipe
         wipe          Removes your application from the given environment
 
       Deployment/Data commands (with environment):

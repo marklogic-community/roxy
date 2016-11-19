@@ -733,7 +733,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
     if r.body.match("error log")
       logger.error r.body
-      logger.error "... Bootstrap FAILED"
+      raise ExitException.new("... Bootstrap FAILED")
       return false
     else
       if r.body.match("(note: restart required)")
@@ -1055,6 +1055,29 @@ In order to proceed please type: #{expected_response}
   #
   def clear
     clean
+  end
+
+  #
+  # Install - Runs all steps needed to 'install' a Roxy application
+  #
+  def install
+    bootstrap
+    deploy_modules
+    deploy_schemas
+    if @properties["ml.triggers-db"] then
+      deploy_triggers
+    end
+    if @properties["ml.triggers-db"] and @properties["ml.data.dir"] and File.exist?(ServerConfig.expand_path("#{@@path}/pipeline-config.xml")) then
+      deploy_cpf
+    end
+    deploy_content
+  end
+
+  #
+  # Uninstall - an alternative command for wipe to complement install
+  #
+  def uninstall
+    wipe
   end
 
   #
