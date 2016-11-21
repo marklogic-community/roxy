@@ -1297,12 +1297,26 @@ declare function setup:save-cleanup-state( $import-config as element(configurati
           $replicating-map-file-internal
         else
           $replicating-map-file
+  let $user-roles := 
+      xdmp:eval( 'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";' ||
+                 'sec:get-role-names( xdmp:get-current-roles() )', 
+                 (), 
+                 <options xmlns="xdmp:eval"><database>{xdmp:security-database()}</database></options> )
+let $_ := xdmp:log( "EVAL ROLE: " || $user-roles )
+  let $perms :=
+      if( "admin" = $user-roles ) then
+        (
+          xdmp:permission( "admin", "read" ), 
+          xdmp:permission( "admin", "update" )
+        )
+      else 
+        xdmp:default-permissions()
 
   (: Write the delete maps and the replicating maps for use when delete old replicas is done :)
   return
   (
-    xdmp:document-insert( $which-delete-map-file, document { $delete-map } ),
-    xdmp:document-insert( $which-replicating-map-file, document { $replicating-map } )
+    xdmp:document-insert( $which-delete-map-file, document { $delete-map }, $perms ),
+    xdmp:document-insert( $which-replicating-map-file, document { $replicating-map }, $perms )
   )
 };
 
