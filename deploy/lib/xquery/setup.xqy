@@ -1302,7 +1302,6 @@ declare function setup:save-cleanup-state( $import-config as element(configurati
                  'sec:get-role-names( xdmp:get-current-roles() )', 
                  (), 
                  <options xmlns="xdmp:eval"><database>{xdmp:security-database()}</database></options> )
-let $_ := xdmp:log( "EVAL ROLE: " || $user-roles )
   let $perms :=
       if( "admin" = $user-roles ) then
         (
