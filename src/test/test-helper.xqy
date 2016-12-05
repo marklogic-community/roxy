@@ -247,6 +247,13 @@ declare function helper:assert-equal($expected as item()*, $actual as item()*) {
     fn:error(xs:QName("ASSERT-EQUAL-FAILED"), "Assert Equal failed", ($expected, $actual))
 };
 
+declare function helper:assert-equal($expected as item()*, $actual as item()*, $error-object as item()*) {
+  if (helper:are-these-equal($expected, $actual)) then
+    helper:success()
+  else
+    fn:error(xs:QName("ASSERT-EQUAL-FAILED"), "Assert Equal failed", ($expected, $actual, " : ", $error-object))
+};
+
 declare function helper:assert-not-equal($expected as item()*, $actual as item()*) {
   if (fn:not(helper:are-these-equal($expected, $actual))) then
     helper:success()
@@ -255,6 +262,91 @@ declare function helper:assert-not-equal($expected as item()*, $actual as item()
       xs:QName("ASSERT-NOT-EQUAL-FAILED"),
       fn:concat("test name", ": Assert Not Equal failed"),
       ($expected, $actual))
+};
+
+declare function helper:assert-equal-xml($expected, $actual) {
+  typeswitch ($actual)
+    case document-node() return
+      typeswitch ($expected)
+        case document-node() return
+          helper:assert-equal-xml($expected/node(), $actual/node())
+        default return
+          helper:assert-equal-xml($expected, $actual/node())
+    case element() return
+      if (fn:empty($expected)) then
+        helper:assert-true(fn:false(), ("element not found in $expected : ", xdmp:path($actual)))
+      else typeswitch ($expected)
+        case element() return (
+          helper:assert-equal(fn:name($expected), fn:name($actual), ("mismatched node name ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          helper:assert-equal(fn:count($expected/@*), fn:count($actual/@*), ("mismatched attribute count ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          for $attribute in $actual/@* return
+            helper:assert-equal-xml($expected/@*[fn:name(.) = fn:name($attribute)], $attribute),
+          for $text at $i in $actual/text() return
+            helper:assert-equal(fn:normalize-space($expected/text()[$i]), fn:normalize-space($text), ("mismatched element text ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          helper:assert-equal(fn:count($expected/*), fn:count($actual/*), ("mismatched element count ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          for $element at $i in $actual/* return
+            helper:assert-equal-xml($expected/*[$i], $element)
+        )
+        default return
+          helper:assert-true(fn:false(), ("type mismatch ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+    case attribute() return
+      if (fn:empty($expected)) then
+        helper:assert-true(fn:false(), ("attribute not found in $expected : ", xdmp:path($actual)))
+      else typeswitch ($expected)
+        case attribute() return (
+          helper:assert-equal(fn:name($expected), fn:name($actual), ("mismatched attribute name ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")")),
+          helper:assert-equal($expected/fn:data(), $actual/fn:data(), ("mismatched attribute text ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+        )
+        default return
+          helper:assert-true(fn:false(), ("type mismatch : $expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual)))
+    default return
+      helper:assert-true(fn:false(), ("unsupported type in $actual : ", xdmp:path($actual)))
+};
+
+declare function helper:assert-equal-json($expected, $actual) {
+  typeswitch ($actual)
+    case document-node() return
+      typeswitch ($expected)
+        case document-node() return
+          helper:assert-equal-json($expected/node(), $actual/node())
+        default return
+          helper:assert-equal-json($expected, $actual/node())
+    case object-node() return
+      typeswitch ($expected)
+        case object-node() return
+          let $_ := helper:assert-equal(fn:count($expected/*), fn:count($actual/*), ("mismatched object key/value count ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+          return for $item at $i in $actual/* return
+            let $exp := $expected/*[$i]
+            let $_ := helper:assert-equal(fn:name($exp), fn:name($item), ("mismatched object key name ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+            return helper:assert-equal-json($exp, $item)
+        default return
+          helper:assert-true(fn:false(), ("type mismatch ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+    case number-node() return
+      typeswitch ($expected)
+        case number-node() return
+          helper:assert-equal($expected/fn:data(), $actual/fn:data(), ("mismatched number node ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+        default return
+          helper:assert-true(fn:false(), ("type mismatch ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+    case boolean-node() return
+      typeswitch ($expected)
+        case boolean-node() return
+          helper:assert-equal($expected/fn:data(), $actual/fn:data(), ("mismatched boolean node ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+        default return
+          helper:assert-true(fn:false(), ("type mismatch ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+    case null-node() return
+      typeswitch ($expected)
+        case null-node() return
+          helper:assert-true(fn:true()) (: success! :)
+        default return
+          helper:assert-true(fn:false(), ("type mismatch ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+    case text() return
+      typeswitch ($expected)
+        case text() return
+          helper:assert-equal($expected, $actual, ("mismatched text node ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+        default return
+          helper:assert-true(fn:false(), ("type mismatch ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
+    default return
+      fn:error(xs:QName("INVALID-ARG"), "Unsupported JSON type.")
 };
 
 declare function helper:assert-true($supposed-truths as xs:boolean*) {
