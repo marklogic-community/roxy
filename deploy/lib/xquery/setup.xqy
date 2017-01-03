@@ -110,6 +110,11 @@ declare variable $group-settings :=
     <!--TODO: setting>audit-role-restriction</setting>
     <setting>audit-uri-restriction</setting>
     <setting>audit-user-restriction</setting-->
+    <setting min-version="7.0-0" function="add" keys="namespace-uri location">module-location</setting>
+    <setting min-version="7.0-0" function="add" keys="prefix namespace-uri">namespace</setting>
+    <setting min-version="7.0-0" function="add" keys="namespace-uri schema-location">schema</setting>
+    <setting min-version="7.0-0" function="add" keys="event-id">trace-event</setting>
+    <setting min-version="7.0-0" function="add" keys="namespace-uri">using-namespace</setting>
   </settings>;
 
 declare variable $host-settings :=
@@ -3153,13 +3158,16 @@ declare function setup:configure-groups($import-config as element(configuration)
       if ($setting/@value) then
         xdmp:value($setting/@value)
       else
-        fn:data(xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test)))
+        xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test))
     let $min-version as xs:string? := $setting/@min-version
     where (fn:exists($value))
     return
       if (fn:empty($min-version) or setup:at-least-version($min-version)) then
         xdmp:set($admin-config,
-          xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $group-id, $value)")))
+          if ($setting/@function eq "add") then
+            setup:apply-groups-setting-add($admin-config, $group-id, $setting, $value)
+          else
+            xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $group-id, fn:data($value))")))
       else
         fn:error(
           xs:QName("VERSION_NOT_SUPPORTED"),
@@ -3172,6 +3180,71 @@ declare function setup:configure-groups($import-config as element(configuration)
 
     fn:concat("Group ", $group-name, " settings applied succesfully.")
   )
+};
+
+declare function setup:apply-groups-setting-add(
+  $admin-config as element(configuration),
+  $group-id as xs:unsignedLong,
+  $setting as element(setting),
+  $values as element()*
+) as element(configuration) {
+  if (fn:exists($values)) then
+    let $old-values := xdmp:value(fn:concat("admin:group-get-", $setting, "s", "($admin-config, $group-id)"))
+    let $admin-config :=
+      (: First delete any values that matches the @keys first item, value must be unique :)
+      xdmp:value(
+        fn:concat(
+          "admin:group-delete-", $setting, "($admin-config, $group-id,",
+          setup:get-groups-element-setting(
+            $admin-config,
+            $group-id,
+            $setting,
+            for $value in $values
+            return $old-values[./node()[1] eq $value/node()[fn:local-name() eq fn:tokenize($setting/@keys, " ")[1]]]
+          ),
+          ")"
+        )
+      )
+    return
+      xdmp:value(
+        fn:concat(
+          "admin:group-add-", $setting, "($admin-config, $group-id,",
+          setup:get-groups-element-setting($admin-config, $group-id, $setting, $values),
+          ")"
+        )
+      )
+  else
+    $admin-config
+};
+
+declare function setup:get-groups-element-setting(
+  $admin-config as element(configuration),
+  $group-id as xs:unsignedLong,
+  $setting as element(setting),
+  $values as element()*
+) as xs:string {
+    fn:concat(
+      "(",
+      fn:string-join(
+        (
+          for $value in $values
+          return
+            fn:concat(
+              "admin:group-",
+              $setting,
+              "(",
+              fn:string-join(
+                for $key in fn:tokenize($setting/@keys, " ")
+                return fn:concat('"', xdmp:value(fn:concat("$value/gr:", $key)), '"'),
+                ","
+              ),
+              ")"
+            )
+        ),
+        ","
+      ),
+      ")"
+    )
 };
 
 declare function setup:validate-groups-settings($import-config as element(configuration)) as item()*
