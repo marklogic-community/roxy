@@ -199,6 +199,13 @@ def parse_multipart(body)
     parts.pop
 
     # Get rid of part headers
+    # TODO: I think this is broken (DMC)
+    # This line is intended to just drop the zeroth item, but actually only
+    # keeps the index=1 item. Anything after that gets lost, which is bad if
+    # the file has \r\n for line separators. Need to verify that this is a
+    # problem and fix if so. See save_files_to_fs MarkLogic 8 section for an
+    # alternative approach.
+
     parts = parts.map{ |part| part.split("\r\n\r\n")[1].strip }
 
     # Return all parts as one long string, like we were used to.
