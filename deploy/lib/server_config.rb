@@ -1655,7 +1655,7 @@ private
           }
 
           # Return all parts as one long string, like we were used to.
-          parts = parts.join("\r\n")
+          parts = parts.join().chomp("\r\n")
 
           path = "#{target_dir}#{uri}"
           parentdir = File.dirname path
