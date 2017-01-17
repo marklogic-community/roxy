@@ -1640,7 +1640,7 @@ private
           File.open("#{path}", 'wb') { |file| file.write(r.body) }
         end
       end
-    else
+    elsif @properties['ml.server-version'] == '7'
       # In ML7, the response is JSON
       # [
       #  {"qid":null, "type":"string", "result":"\/"},
@@ -1657,6 +1657,42 @@ private
         FileUtils.mkdir_p(parentdir) unless File.exists?(parentdir)
         if ! uri.end_with?("/")
           File.open("#{path}", 'wb') { |file| file.write(r.body) }
+        end
+      end
+    else
+      # ML8, we're using /v1/eval, so we get a multi-part response
+      uris = parse_body(dirs.body)
+      uris.split(/\r?\n/).each do |uri|
+        if ! uri.end_with?("/")
+
+          r = execute_query %Q{
+            fn:doc("#{uri}")
+          },
+          { :db_name => target_db }
+
+          delimiter = r.body.split("\r\n")[1].strip
+          parts = r.body.split(delimiter)
+
+          # The first part will always be an empty string. Just remove it.
+          parts.shift
+          # The last part will be the "--". Just remove it.
+          parts.pop
+
+          # Get rid of part headers
+          parts = parts.map{ |part|
+            sections = part.split("\r\n\r\n");
+            sections.slice(1, sections.length).join("\r\n\r\n")
+          }
+
+          # Return all parts as one long string, like we were used to.
+          parts = parts.join().chomp("\r\n")
+
+          path = "#{target_dir}#{uri}"
+          parentdir = File.dirname path
+          FileUtils.mkdir_p(parentdir) unless File.exists?(parentdir)
+          if ! uri.end_with?("/")
+            File.open("#{path}", 'wb') { |file| file.write(parts) }
+          end
         end
       end
     end
