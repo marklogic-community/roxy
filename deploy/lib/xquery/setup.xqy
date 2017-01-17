@@ -2477,7 +2477,32 @@ declare function setup:add-geospatial-element-attribute-pair-indexes(
   admin:database-add-geospatial-element-attribute-pair-index(
     setup:remove-existing-geospatial-element-attribute-pair-indexes($admin-config, $database),
     $database,
-    $db-config/db:geospatial-element-attribute-pair-indexes/db:geospatial-element-attribute-pair-index)
+    for $index in $db-config/db:geospatial-element-attribute-pair-indexes/db:geospatial-element-attribute-pair-index
+    return
+      if (setup:at-least-version("6.0-0")) then
+        admin:database-geospatial-element-attribute-pair-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:latitude-namespace-uri,
+          $index/db:latitude-localname,
+          $index/db:longitude-namespace-uri,
+          $index/db:longitude-localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:invalid-values, "ignore")[1]
+        )
+      else
+        admin:database-geospatial-element-attribute-pair-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:latitude-namespace-uri,
+          $index/db:latitude-localname,
+          $index/db:longitude-namespace-uri,
+          $index/db:longitude-localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions
+        )
+  )
 };
 
 declare function setup:validate-geospatial-element-attribute-pair-indexes(
