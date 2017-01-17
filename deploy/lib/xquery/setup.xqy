@@ -2391,18 +2391,18 @@ declare function setup:add-range-field-indexes-helper(
   $db-config as element(db:database)) as element(configuration)
 {
   if ($db-config/db:range-field-indexes/db:range-field-index) then
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare namespace db="http://marklogic.com/xdmp/database";
-      declare variable $admin-config external;
-      declare variable $database external;
-      declare variable $db-config external;
-      admin:database-add-range-field-index($admin-config, $database, $db-config/db:range-field-indexes/db:range-field-index)',
-      (
-        xs:QName("admin-config"), $admin-config,
-        xs:QName("database"), $database,
-        xs:QName("db-config"), $db-config
-      ))
+    admin:database-add-range-field-index(
+      $admin-config,
+      $database,
+      for $index in $db-config/db:range-field-indexes/db:range-field-index
+      return
+        admin:database-range-field-index(
+          $index/db:scalar-type,
+          $index/db:field-name,
+          $index/db:collation,
+          $index/db:range-value-positions
+        )
+    )
   else
     $admin-config
 };
@@ -5739,7 +5739,7 @@ declare function setup:create-ssl-certificate-templates($import-config as elemen
           <isolation>different-transaction</isolation>
         </options>
       ),
-      
+
       xdmp:eval(
       '
       import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
