@@ -2715,29 +2715,16 @@ declare function setup:add-fragment-parents(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-fragment-parents-R(
+  admin:database-add-fragment-parent(
     setup:remove-existing-fragment-parents($admin-config, $database),
     $database,
-    $db-config/db:fragment-parents/db:fragment-parent)
-};
-
-declare function setup:add-fragment-parents-R(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong,
-  $fragment-parents as element(db:fragment-parent)*) as element(configuration)
-{
-  if ($fragment-parents) then
-    setup:add-fragment-parents-R(
-      admin:database-add-fragment-parent(
-        $admin-config,
-        $database,
-        admin:database-fragment-parent(
-          $fragment-parents[1]/db:namespace-uri,
-          $fragment-parents[1]/db:localname/fn:string(.))),
-      $database,
-      fn:subsequence($fragment-parents, 2))
-  else
-    $admin-config
+    for $parent in $db-config/db:fragment-parents/db:fragment-parent
+    return
+      admin:database-fragment-parent(
+        $parent/db:namespace-uri,
+        $parent/db:localname
+      )
+  )
 };
 
 declare function setup:validate-fragment-parents(
