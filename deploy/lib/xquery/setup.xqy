@@ -2678,7 +2678,7 @@ declare function setup:add-fragment-roots(
   $db-config as element(db:database)) as element(configuration)
 {
   admin:database-add-fragment-root(
-    $admin-config,
+    setup:remove-existing-fragment-roots($admin-config, $database),
     $database,
     for $root in $db-config/db:fragment-roots/db:fragment-root
     return
