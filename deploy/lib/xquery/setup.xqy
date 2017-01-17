@@ -2088,18 +2088,28 @@ declare function setup:add-range-path-indexes(
   $db-config as element(db:database)) as element(configuration)
 {
   if ($db-config/db:range-path-indexes/db:range-path-index) then
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare namespace db="http://marklogic.com/xdmp/database";
-      declare variable $admin-config external;
-      declare variable $database external;
-      declare variable $db-config external;
-      admin:database-add-range-path-index($admin-config, $database, $db-config/db:range-path-indexes/db:range-path-index)',
-      (
-        xs:QName("admin-config"), $admin-config,
-        xs:QName("database"), $database,
-        xs:QName("db-config"), $db-config
-      ))
+    if (setup:at-least-version("6.0-1")) then
+      xdmp:value(
+        "admin:database-add-range-path-index(
+           $admin-config,
+           $database,
+           for $index in $db-config/db:range-path-indexes/db:range-path-index
+           return
+             admin:database-range-path-index(
+               $database,
+               $index/db:scalar-type,
+               $index/db:path-expression,
+               $index/db:collation,
+               $index/db:range-value-positions,
+               $index/db:invalid-values
+             )
+         )"
+      )
+    else
+      fn:error(
+        xs:QName("VERSION_NOT_SUPPORTED"),
+        "Roxy does not support path namespaces for this version of MarkLogic. Use 6.0-2 or later."
+      )
   else
     $admin-config
 };
@@ -2110,24 +2120,9 @@ declare function setup:validate-range-path-indexes(
   $db-config as element(db:database))
 {
   let $existing :=
-    try
-    {
-      xdmp:eval('
-        import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-        declare variable $admin-config external;
-        declare variable $database external;
-        admin:database-get-range-path-indexes($admin-config, $database)',
-        (
-          xs:QName("admin-config"), $admin-config,
-          xs:QName("database"), $database
-        ))
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "XDMP-UNDFUN") then ()
-      else
-        xdmp:rethrow()
-    }
+    if (setup:at-least-version("6.0-1")) then
+      xdmp:value("admin:database-get-range-path-indexes($admin-config, $database)")
+    else ()
   for $expected in $db-config/db:range-path-indexes/db:range-path-index
   let $expected :=
     xdmp:eval('
