@@ -2677,29 +2677,16 @@ declare function setup:add-fragment-roots(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-fragment-roots-R(
-    setup:remove-existing-fragment-roots($admin-config, $database),
+  admin:database-add-fragment-root(
+    $admin-config,
     $database,
-    $db-config/db:fragment-roots/db:fragment-root)
-};
-
-declare function setup:add-fragment-roots-R(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong,
-  $fragment-roots as element(db:fragment-root)*) as element(configuration)
-{
-  if ($fragment-roots) then
-    setup:add-fragment-roots-R(
-      admin:database-add-fragment-root(
-        $admin-config,
-        $database,
-        admin:database-fragment-root(
-          $fragment-roots[1]/db:namespace-uri,
-          $fragment-roots[1]/db:localname/fn:string(.))),
-      $database,
-      fn:subsequence($fragment-roots, 2))
-  else
-    $admin-config
+    for $root in $db-config/db:fragment-roots/db:fragment-root
+    return
+      admin:database-fragment-root(
+        $root/db:namespace-uri,
+        $root/db:localname/fn:string(.)
+      )
+  )
 };
 
 declare function setup:validate-fragment-roots(
