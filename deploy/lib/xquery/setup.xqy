@@ -2396,12 +2396,21 @@ declare function setup:add-range-field-indexes-helper(
       $database,
       for $index in $db-config/db:range-field-indexes/db:range-field-index
       return
-        admin:database-range-field-index(
-          $index/db:scalar-type,
-          $index/db:field-name,
-          $index/db:collation,
-          $index/db:range-value-positions
-        )
+        if (setup:at-least-version("6.0-0")) then
+          admin:database-range-field-index(
+            $index/db:scalar-type,
+            $index/db:field-name,
+            $index/db:collation,
+            $index/db:range-value-positions,
+            $index/db:invalid-values
+          )
+        else
+          admin:database-range-field-index(
+            $index/db:scalar-type,
+            $index/db:field-name,
+            $index/db:collation,
+            $index/db:range-value-positions
+          )
     )
   else
     $admin-config
