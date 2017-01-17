@@ -2355,24 +2355,8 @@ declare function setup:remove-existing-range-field-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong) as element(configuration)
 {
-  (: wrap in try catch because this function is new to 5.0 and will fail in older version of ML :)
-  try
-  {
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare variable $admin-config external;
-      declare variable $database external;
-      admin:database-delete-range-field-index($admin-config, $database,
-        admin:database-get-range-field-indexes($admin-config, $database))',
-      (xs:QName("admin-config"), $admin-config,
-       xs:QName("database"), $database))
-  }
-  catch($ex)
-  {
-    if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
-    else
-      xdmp:rethrow()
-  }
+  admin:database-delete-range-field-index($admin-config, $database,
+    admin:database-get-range-field-indexes($admin-config, $database))
 };
 
 declare function setup:add-range-field-indexes(
