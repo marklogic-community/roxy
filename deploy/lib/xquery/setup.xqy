@@ -2557,8 +2557,7 @@ declare function setup:add-geospatial-element-pair-indexes(
           $index/db:longitude-namespace-uri,
           $index/db:longitude-localname,
           $index/db:coordinate-system,
-          $index/db:range-value-positions,
-          ($index/db:invalid-values, "ignore")[1]
+          $index/db:range-value-positions
         )
   )
 };
@@ -2592,7 +2591,30 @@ declare function setup:add-geospatial-element-child-indexes(
   admin:database-add-geospatial-element-child-index(
     setup:remove-existing-geospatial-element-child-indexes($admin-config, $database),
     $database,
-    $db-config/db:geospatial-element-child-indexes/db:geospatial-element-child-index)
+    for $index in $db-config/db:geospatial-element-child-indexes/db:geospatial-element-child-index
+    return
+      if (setup:at-least-version("6.0-0")) then
+        admin:database-geospatial-element-child-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:namespace-uri,
+          $index/db:localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1],
+          ($index/db:invalid-values, "ignore")[1]
+        )
+      else
+        admin:database-geospatial-element-child-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:namespace-uri,
+          $index/db:localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1]
+        )
+  )
 };
 
 declare function setup:validate-geospatial-element-child-indexes(
@@ -2624,7 +2646,9 @@ declare function setup:add-word-lexicons(
   admin:database-add-word-lexicon(
     setup:remove-existing-word-lexicons($admin-config, $database),
     $database,
-    $db-config/db:word-lexicons/db:word-lexicon)
+    for $lex in $db-config/db:word-lexicons/db:word-lexicon
+    return admin:database-word-lexicon($lex/db:collation)
+  )
 };
 
 declare function setup:validate-word-lexicons(
