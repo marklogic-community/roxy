@@ -2410,32 +2410,12 @@ declare function setup:remove-existing-geospatial-element-indexes(
 
 declare function setup:validate-range-field-indexes($admin-config, $database, $db-config)
 {
-  try
-  {
-    let $existing :=
-      xdmp:eval('
-        import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-
-        declare namespace db="http://marklogic.com/xdmp/database";
-
-        declare variable $admin-config external;
-        declare variable $database external;
-
-        admin:database-get-range-field-indexes($admin-config, $database)',
-        (xs:QName("admin-config"), $admin-config,
-         xs:QName("database"), $database))
-    for $expected in $db-config/db:range-field-indexes/db:range-field-index
-    return
-      if ($existing[fn:deep-equal(., $expected)]) then ()
-      else
-        setup:validation-fail(fn:concat("Database mismatched range field index: ", $expected/db:field-name))
-  }
-  catch($ex)
-  {
-    if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
+  let $existing := admin:database-get-range-field-indexes($admin-config, $database)
+  for $expected in $db-config/db:range-field-indexes/db:range-field-index
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      xdmp:rethrow()
-  }
+      setup:validation-fail(fn:concat("Database mismatched range field index: ", $expected/db:field-name))
 };
 
 declare function setup:add-geospatial-element-indexes(
