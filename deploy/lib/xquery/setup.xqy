@@ -2423,8 +2423,29 @@ declare function setup:add-geospatial-element-indexes(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-geospatial-element-index(setup:remove-existing-geospatial-element-indexes($admin-config, $database),
-    $database, $db-config/db:geospatial-element-indexes/db:geospatial-element-index)
+  admin:database-add-geospatial-element-index(
+    setup:remove-existing-geospatial-element-indexes($admin-config, $database),
+    $database,
+    for $index in $db-config/db:geospatial-element-indexes/db:geospatial-element-index
+    return
+      if (setup:at-least-version("6.0-0")) then
+        admin:database-geospatial-element-index(
+          $index/db:namespace-uri,
+          $index/db:localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1],
+          ($index/db:invalid-values, "ignore")[1]
+        )
+      else
+        admin:database-geospatial-element-index(
+          $index/db:namespace-uri,
+          $index/db:localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1]
+        )
+  )
 };
 
 declare function setup:validate-geospatial-element-indexes(
