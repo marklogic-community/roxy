@@ -1683,59 +1683,29 @@ declare function setup:add-fields(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-fields-R(
+  admin:database-add-field(
     setup:remove-existing-fields($admin-config, $database),
     $database,
-    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")]
-  )
-};
-
-declare function setup:add-fields-R(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong,
-  $field-configs as element(db:field)*) as element(configuration)
-{
-  if ($field-configs) then
-    let $field := $field-configs[1]
+    for $field in $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")]
     return
-    setup:add-fields-R(
       if ($field/db:field-path) then
         if (setup:at-least-version("7.0-1")) then
-          xdmp:eval(
-            'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-             declare namespace db = "http://marklogic.com/xdmp/database";
-             declare variable $admin-config external;
-             declare variable $database external;
-             declare variable $field external;
-             admin:database-add-field(
-              $admin-config,
-              $database,
-              admin:database-path-field(
-                $field/db:field-name,
-                for $path in $field/db:field-path
-                return
-                  admin:database-field-path($path/db:path, ($path/db:weight, 1.0)[1]))
-              )',
-            (xs:QName("admin-config"), $admin-config,
-             xs:QName("database"), $database,
-             xs:QName("field"), $field),
-            <options xmlns="xdmp:eval">
-              <isolation>same-statement</isolation>
-            </options>
+          (: wrap database-field-path call for ML6 compatibility :)
+          xdmp:value(
+            "admin:database-path-field(
+               $field/db:field-name,
+               for $path in $field/db:field-path
+               return
+                 admin:database-field-path($path/db:path, ($path/db:weight, 1.0)[1])
+             )"
           )
         else
           fn:error(
             xs:QName("VERSION_NOT_SUPPORTED"),
             fn:concat("MarkLogic ", xdmp:version(), " does not support path-based fields. Use 7.0-1 or higher."))
       else
-        admin:database-add-field(
-          $admin-config,
-          $database,
-          admin:database-field($field/db:field-name, $field/db:include-root)),
-      $database,
-      fn:subsequence($field-configs, 2))
-  else
-    $admin-config
+        admin:database-field($field/db:field-name, $field/db:include-root)
+  )
 };
 
 declare function setup:validate-fields($admin-config, $database, $db-config)
