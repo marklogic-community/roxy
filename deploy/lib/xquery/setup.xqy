@@ -2384,7 +2384,7 @@ declare function setup:add-range-field-indexes-helper(
           admin:database-range-field-index(
             $index/db:scalar-type,
             $index/db:field-name,
-            $index/db:collation,
+            ($index/db:collation/fn:string(), "")[1], (: ML6 requires xs:string; later requires xs:string? :)
             $index/db:range-value-positions,
             $index/db:invalid-values
           )
@@ -2647,7 +2647,7 @@ declare function setup:add-word-lexicons(
     setup:remove-existing-word-lexicons($admin-config, $database),
     $database,
     for $lex in $db-config/db:word-lexicons/db:word-lexicon
-    return admin:database-word-lexicon($lex/db:collation)
+    return admin:database-word-lexicon($lex/fn:string())
   )
 };
 
