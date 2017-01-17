@@ -1,0 +1,32 @@
+## Thank you for submitting an issue!
+
+If this is a bug, please use the bug template below. If this is an enhancement request, please use the RFE template below. Before submitting your issue, please do us a favor and search currently open issues. If your issue already exists, please make a comment there advocating your issue be addressed sooner.
+
+### Bug Template
+
+#### The issue
+
+Short description of the problem:
+
+What are the steps to reproduce the problem?
+1. One
+2. Two
+3. Three
+
+#### Tech Specs
+
+Which Operating System are you using?
+
+Which version of MarkLogic are you using?
+
+Which version of Roxy are you using (see version.txt)?
+
+### RFE Template
+
+#### The RFE
+
+Short description of the problem:
+
+Your business use case. How much time would this save you? Can you currently work around this missing feature?
+
+Timeframe : How urgently do you feel you need this RFE addressed? Why?
