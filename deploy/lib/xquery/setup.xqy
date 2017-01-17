@@ -2159,8 +2159,17 @@ declare function setup:add-element-word-lexicons(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-element-word-lexicon(setup:remove-existing-element-word-lexicons($admin-config, $database),
-    $database, $db-config/db:element-word-lexicons/db:element-word-lexicon)
+  admin:database-add-element-word-lexicon(
+    setup:remove-existing-element-word-lexicons($admin-config, $database),
+    $database,
+    for $lex in $db-config/db:element-word-lexicons/db:element-word-lexicon
+    return
+      admin:database-element-word-lexicon(
+        $lex/db:namespace-uri,
+        $lex/db:localname,
+        $lex/db:collation
+      )
+    )
 };
 
 declare function setup:validate-element-word-lexicons($admin-config, $database, $db-config)
