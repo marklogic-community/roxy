@@ -2249,8 +2249,16 @@ declare function setup:add-phrase-throughs(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-phrase-through(setup:remove-existing-phrase-throughs($admin-config, $database),
-    $database, $db-config/db:phrase-throughs/db:phrase-through)
+  admin:database-add-phrase-through(
+    setup:remove-existing-phrase-throughs($admin-config, $database),
+    $database,
+    for $pt in $db-config/db:phrase-throughs/db:phrase-through
+    return
+      admin:database-phrase-through(
+        $pt/db:namespace-uri,
+        $pt/db:localname
+      )
+  )
 };
 
 declare function setup:validate-phrase-throughs($admin-config, $database, $db-config)
@@ -2279,7 +2287,13 @@ declare function setup:add-phrase-arounds(
   admin:database-add-phrase-around(
     setup:remove-existing-phrase-arounds($admin-config, $database),
     $database,
-    $db-config/db:phrase-arounds/db:phrase-around)
+    for $pa in $db-config/db:phrase-arounds/db:phrase-around
+    return
+      admin:database-phrase-around(
+        $pa/db:namespace-uri,
+        $pa/db:collation
+      )
+    )
 };
 
 declare function setup:validate-phrase-arounds($admin-config, $database, $db-config)
