@@ -1829,30 +1829,19 @@ declare function setup:add-field-excludes-R(
         $admin-config,
         $database,
         $field-configs[1]/db:field-name,
-        for $e in $field-configs[1]/db:excluded-elements/db:excluded-element
+        for $excluded in $field-configs[1]/db:excluded-elements/db:excluded-element
         return
-          if (fn:starts-with(xdmp:version(), "4")) then
-            admin:database-excluded-element(
-              $e/db:namespace-uri,
-              $e/db:localname/fn:string(.))
-          else
-            xdmp:eval(
-             'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-              declare namespace db="http://marklogic.com/xdmp/database";
-              declare variable $e external;
-
-              admin:database-excluded-element(
-                $e/db:namespace-uri,
-                $e/db:localname/fn:string(.),
-                ($e/db:attribute-namespace-uri, "")[1],
-                ($e/db:attribute-localname/fn:string(.), "")[1],
-                ($e/db:attribute-value, "")[1])',
-              (xs:QName("e"), $e),
-              <options xmlns="xdmp:eval">
-                <isolation>same-statement</isolation>
-              </options>)),
+          admin:database-excluded-element(
+            $excluded/db:namespace-uri,
+            $excluded/db:localname/fn:string(.),
+            ($excluded/db:attribute-namespace-uri, "")[1],
+            ($excluded/db:attribute-localname/fn:string(.), "")[1],
+            ($excluded/db:attribute-value, "")[1]
+          )
+      ),
       $database,
-      fn:subsequence($field-configs, 2))
+      fn:subsequence($field-configs, 2)
+    )
   else
     $admin-config
 };
