@@ -1034,11 +1034,17 @@ declare function setup:create-mimetypes($import-config as element(configuration)
   let $format as xs:string := $mimetype-config/mt:format
   let $admin-config := admin:get-configuration()
   return
-    if (admin:mimetypes-get($admin-config)[mt:name = $name]) then
+    if (fn:deep-equal(admin:mimetypes-get($admin-config)[mt:name = $name],
+          admin:mimetype($name, $extension, $format))) then
       fn:concat("Mimetype ", $name, " already exists, not recreated..")
     else
       let $admin-config :=
-        admin:mimetypes-add($admin-config, admin:mimetype($name, $extension, $format))
+        admin:mimetypes-add(
+          if (admin:mimetypes-get($admin-config)[mt:name = $name])
+          then admin:mimetypes-delete($admin-config,
+            admin:mimetypes-get($admin-config)[mt:name = $name])
+          else $admin-config,
+          admin:mimetype($name, $extension, $format))
       return
       (
         if (admin:save-configuration-without-restart($admin-config)) then
