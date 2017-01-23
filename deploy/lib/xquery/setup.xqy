@@ -55,9 +55,9 @@ declare variable $system-roles as xs:string+ :=
 
 (: Used to adjust which host gets the next internal forest replica when the number of :)
 (: replicas is less than (#hosts - 1) :)
-declare variable $internal-forests := 
+declare variable $internal-forests :=
   map:map() !
-    ( 
+    (
       map:put( ., "internal-forest-adjust", 0 ),
       .
     );
@@ -507,25 +507,23 @@ declare function setup:gen-forest-name(
   $replica-host-num as xs:int?
 ) as xs:string
 {
-    fn:string-join(
-      (
-        $base-name,
-        if( fn:exists( $forest-num ) ) then
-        (
-          fn:format-number(xs:int($base-host-num), "000"),
-          xs:string($forest-num)
-        )
-        else ()
-        ,
-        if( fn:exists( $replica-host-num ) ) then
-          (
-            "on",
-            fn:format-number(xs:int($replica-host-num), "000")
-          )
-        else ()
-      ),
-      "-"
-    )
+  fn:string-join(
+    (
+      $base-name,
+      if (fn:exists( $forest-num ) ) then (
+        fn:format-number(xs:int($base-host-num), "000"),
+        xs:string($forest-num)
+      )
+      else ()
+      ,
+      if (fn:exists( $replica-host-num ) ) then (
+        "on",
+        fn:format-number(xs:int($replica-host-num), "000")
+      )
+      else ()
+    ),
+    "-"
+  )
 };
 
 declare private function setup:parse-options( $options as xs:string ) as map:map
@@ -535,10 +533,10 @@ declare private function setup:parse-options( $options as xs:string ) as map:map
   let $optionsMap := map:map()
   let $_ :=
     for $each in $options
-      return
-        map:put($optionsMap, $each, fn:true())
+    return
+      map:put($optionsMap, $each, fn:true())
 
-  return( $optionsMap )
+  return $optionsMap
 };
 
 declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string) as item()*
@@ -601,7 +599,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
   let $optionsMap := map:map()
   let $_ :=
     for $each in $options
-      return map:put($optionsMap, $each, fn:true())
+    return map:put($optionsMap, $each, fn:true())
 
   return
   try
@@ -740,7 +738,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
                 let $database-name := setup:get-database-name-from-database-config($db-config)
                 for $host at $hostnr in $hosts
                 for $forestnr in (1 to $forests-per-host)
-                  return setup:gen-forest-name( $database-name, $hostnr, $forestnr, () )
+                return setup:gen-forest-name( $database-name, $hostnr, $forestnr, () )
               else ()
             )
 
@@ -761,45 +759,44 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
                 return $gen-names
             )
 
-          for $forest-name in $forest-names
-          return
-            if (admin:forest-exists($admin-config, $forest-name)) then
-              let $forest-id := admin:forest-get-id($admin-config, $forest-name)
-              return
-              (
-                for $replica-name in $replica-names
-                where admin:forest-exists($admin-config, $replica-name)
-                return
-                  let $replica-id := admin:forest-get-id($admin-config, $replica-name)
-                  (: double check it is really a replica of current forest :)
-                  where admin:forest-get-replicas($admin-config, $forest-id) = $replica-id
+            for $forest-name in $forest-names
+            return
+              if (admin:forest-exists($admin-config, $forest-name)) then
+                let $forest-id := admin:forest-get-id($admin-config, $forest-name)
+                return (
+                  for $replica-name in $replica-names
+                  where admin:forest-exists($admin-config, $replica-name)
                   return
-                  (
-                    xdmp:set($admin-config, admin:forest-remove-replica($admin-config, $forest-id, $replica-id)),
-                    xdmp:set($admin-config, admin:forest-delete($admin-config, $replica-id, fn:true()))
-                  ),
+                    let $replica-id := admin:forest-get-id($admin-config, $replica-name)
+                    (: double check it is really a replica of current forest :)
+                    where admin:forest-get-replicas($admin-config, $forest-id) = $replica-id
+                    return
+                    (
+                      xdmp:set($admin-config, admin:forest-remove-replica($admin-config, $forest-id, $replica-id)),
+                      xdmp:set($admin-config, admin:forest-delete($admin-config, $replica-id, fn:true()))
+                    ),
 
-                try {
-                  xdmp:set(
-                    $admin-config,
-                    admin:forest-delete(
+                  try {
+                    xdmp:set(
                       $admin-config,
-                      $forest-id, fn:true()))
-                }
-                catch($ex) {
-                  xdmp:set(
-                    $admin-config,
-                    admin:forest-delete(
+                      admin:forest-delete(
+                        $admin-config,
+                        $forest-id, fn:true()))
+                  }
+                  catch($ex) {
+                    xdmp:set(
                       $admin-config,
-                      $forest-id, fn:false()))
-                }
-            )
-            else ()
+                      admin:forest-delete(
+                        $admin-config,
+                        $forest-id, fn:false()))
+                  }
+                )
+              else ()
         return
           if (admin:save-configuration-without-restart($admin-config)) then
             xdmp:set($restart-needed, fn:true())
           else ()
-        else (),
+      else (),
 
       (: detach hosts :)
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "hosts")) then
@@ -1030,52 +1027,51 @@ declare function setup:do-clean-replicas($import-config as element(configuration
   let $_ := setup:initialize-cleanup-state( $import-config, $do-internals )
 
   return
-    try
-    {
-      if( map:count( $delete-map ) ) then
+    try {
+      if (map:count( $delete-map ) ) then
         (: Loop over the replicas we are waiting for and check state :)
         let $reps-waiting :=
-            for $rep in map:keys( $replicating-map )
-            let $rep-id := xdmp:forest( $rep )
-            let $state := xdmp:forest-status( $rep-id )/fs:state/fn:string()
-            let $_ := xdmp:log( "Replica state for: " || $rep || " with ID " || $rep-id || " is " || $state )
-            return
-              if( $state = ( "sync replicating", "Open Replica" ) ) then
-                ()
-              else 
-                (
-                  xdmp:log( "Replica " || $rep || " is in state: " || $state || "." ),
-                  "Replica " || $rep || " is in state: " || $state || "."
-                )
+          for $rep in map:keys( $replicating-map )
+          let $rep-id := xdmp:forest( $rep )
+          let $state := xdmp:forest-status( $rep-id )/fs:state/fn:string()
+          let $_ := xdmp:log( "Replica state for: " || $rep || " with ID " || $rep-id || " is " || $state )
+          return
+            if ($state = ( "sync replicating", "Open Replica" ) ) then
+              ()
+            else
+              (
+                xdmp:log( "Replica " || $rep || " is in state: " || $state || "." ),
+                "Replica " || $rep || " is in state: " || $state || "."
+              )
 
         (: If all replicas are sync'd, then we can remove the decommissioned replicas :)
         return
-          if( fn:count( $reps-waiting ) = 0 ) then
+          if (fn:count( $reps-waiting ) = 0 ) then
             let $_ := xdmp:log( "All new replicas are sync'd - cleaning decommissioned replicas" )
             let $admin-config := admin:get-configuration()
             let $updated-config := map:map() ! ( map:put( ., "admin-config", $admin-config ), . )
             let $cleaned :=
-                for $del-rep in map:keys( $delete-map ) 
-                (: First, get ID of the replica to delete :)
-                let $del-rep-id := xdmp:forest( $del-rep )
+              for $del-rep in map:keys( $delete-map )
+              (: First, get ID of the replica to delete :)
+              let $del-rep-id := xdmp:forest( $del-rep )
 
-                (: Next, get ID of the master to remove it from :)
-                let $master := map:get( $delete-map, $del-rep )
-                let $master-id := xdmp:forest( $master )
+              (: Next, get ID of the master to remove it from :)
+              let $master := map:get( $delete-map, $del-rep )
+              let $master-id := xdmp:forest( $master )
 
-                (: Get the configuration from previous iterations :)
-                let $prev-conf := map:get( $updated-config, "admin-config" )
+              (: Get the configuration from previous iterations :)
+              let $prev-conf := map:get( $updated-config, "admin-config" )
 
-                (: Remove and get the updated config :)
-                let $temp-conf := admin:forest-remove-replica( $prev-conf, $master-id, $del-rep-id )
+              (: Remove and get the updated config :)
+              let $temp-conf := admin:forest-remove-replica( $prev-conf, $master-id, $del-rep-id )
 
-                (: Delete the replica :)
-                let $new-conf := admin:forest-delete( $temp-conf, $del-rep-id, fn:true() )
+              (: Delete the replica :)
+              let $new-conf := admin:forest-delete( $temp-conf, $del-rep-id, fn:true() )
 
-                (: Update the dynamic config :)
-                let $_ := map:put( $updated-config, "admin-config", $new-conf )
+              (: Update the dynamic config :)
+              let $_ := map:put( $updated-config, "admin-config", $new-conf )
 
-                return( "Removed replica " || $del-rep || " from master " || $master )
+              return( "Removed replica " || $del-rep || " from master " || $master )
 
             let $_ := xdmp:log( "Updating configuration." )
             let $_ := admin:save-configuration( map:get( $updated-config, "admin-config" ) )
@@ -1109,13 +1105,13 @@ declare function setup:do-clean-replicas-state($import-config as element(configu
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
 
-  let $which-delete-map-file := 
-    if( $do-internals ) then
+  let $which-delete-map-file :=
+    if ($do-internals ) then
       $delete-map-file-internal
     else
       $delete-map-file
-  let $which-replicating-map-file := 
-    if( $do-internals ) then
+  let $which-replicating-map-file :=
+    if ($do-internals ) then
       $replicating-map-file-internal
     else
       $replicating-map-file
@@ -1193,8 +1189,7 @@ declare function setup:find-forest-ids(
 {
   let $group-id := setup:get-group($db-config)
   let $admin-config := admin:get-configuration()
-  let $hosts := admin:group-get-host-ids($admin-config, $group-id)
-  for $host at $hostnr in $hosts
+  for $host at $hostnr in admin:group-get-host-ids($admin-config, $group-id)
   for $forestnr in (1 to $db-config/db:forests-per-host)
   let $name := setup:gen-forest-name($db-config/db:database-name, $hostnr, $forestnr, () )
   return
@@ -1254,12 +1249,12 @@ declare function setup:validate-mimetypes($import-config as element(configuratio
 declare function setup:initialize-cleanup-state( $import-config as element(configuration), $do-internals as xs:boolean )
 {
   (: Get which files to use, based on whether using internals :)
-  let $which-delete-map-file := 
+  let $which-delete-map-file :=
     if( $do-internals ) then
       $delete-map-file-internal
     else
       $delete-map-file
-  let $which-replicating-map-file := 
+  let $which-replicating-map-file :=
     if( $do-internals ) then
       $replicating-map-file-internal
     else
@@ -1267,17 +1262,19 @@ declare function setup:initialize-cleanup-state( $import-config as element(confi
 
   return
     (: Map of forests to delete must exist - otherwise, why bother :)
-    if( fn:doc-available( $which-delete-map-file ) ) then
+    if (fn:doc-available( $which-delete-map-file ) ) then
       let $local-delete-map := map:map( fn:doc( $which-delete-map-file )/node() )
       let $local-replicating-map := map:map( fn:doc( $which-replicating-map-file )/node() )
 
       let $_ := xdmp:log( "INIT delete map file: " || $which-delete-map-file )
-      let $_ := for $i in map:keys( $local-delete-map )
+      let $_ :=
+        for $i in map:keys( $local-delete-map )
         let $_ := map:put( $delete-map, $i, map:get( $local-delete-map, $i ) )
         return xdmp:log( "     -> " || $i || " : " || map:get( $delete-map, $i ) )
 
       let $_ := xdmp:log( "INIT replicating map file: " || $which-replicating-map-file )
-      let $_ := for $i in map:keys( $local-replicating-map)
+      let $_ :=
+        for $i in map:keys( $local-replicating-map)
         let $_ := map:put( $replicating-map, $i, map:get( $local-replicating-map, $i ) )
         return xdmp:log( "     -> " || $i || " : " || map:get( $replicating-map, $i ) )
 
@@ -1291,34 +1288,34 @@ declare function setup:initialize-cleanup-state( $import-config as element(confi
 :)
 declare function setup:save-cleanup-state( $import-config as element(configuration), $do-internals as xs:boolean )
 {
-  let $which-delete-map-file := 
-    if( $do-internals ) then
+  let $which-delete-map-file :=
+    if ($do-internals ) then
       $delete-map-file-internal
     else
       $delete-map-file
-  let $which-replicating-map-file := 
-    if( $do-internals ) then
+  let $which-replicating-map-file :=
+    if ($do-internals ) then
       $replicating-map-file-internal
     else
       $replicating-map-file
 
-  let $user-roles := 
-      xdmp:eval( 'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";' ||
-                 'sec:get-role-names( xdmp:get-current-roles() )', 
-                 (), 
-                 <options xmlns="xdmp:eval"><database>{xdmp:security-database()}</database></options> )
+  let $user-roles :=
+    xdmp:eval(
+      'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";' ||
+      'sec:get-role-names( xdmp:get-current-roles() )',
+      (),
+      <options xmlns="xdmp:eval"><database>{xdmp:security-database()}</database></options>
+    )
   let $perms :=
-      if( "admin" = $user-roles ) then
-        (
-          xdmp:permission( "admin", "read" ), 
-          xdmp:permission( "admin", "update" )
-        )
-      else 
-        xdmp:default-permissions()
+    if ("admin" = $user-roles ) then (
+      xdmp:permission( "admin", "read" ),
+      xdmp:permission( "admin", "update" )
+    )
+    else
+      xdmp:default-permissions()
 
   (: Write the delete maps and the replicating maps for use when delete old replicas is done :)
-  return
-  (
+  return (
     xdmp:document-insert( $which-delete-map-file, document { $delete-map }, $perms ),
     xdmp:document-insert( $which-replicating-map-file, document { $replicating-map }, $perms )
   )
@@ -1341,7 +1338,7 @@ declare function setup:create-forests($import-config as element(configuration), 
 
   let $_ := setup:save-cleanup-state( $import-config, $do-internals )
 
-  return( $return )
+  return $return
 };
 
 declare function setup:validate-forests($import-config as element(configuration))
@@ -1422,29 +1419,29 @@ declare function setup:create-forests-from-count(
   (: Get the assignment entries for each primary forest ID associated with this database :)
   for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
   let $forest-name as xs:string := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
-  let $data-directory as xs:string? := ($forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0], 
+  let $data-directory as xs:string? := ($forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0],
                                        $db-config/db:forests/db:data-directory)[1]
-    for $host at $hostnr in $hosts
-      for $forestnr in (1 to $forests-per-host)
-      let $new-forest-name := setup:gen-forest-name( $forest-name, $hostnr, $forestnr, () )
+  for $host at $hostnr in $hosts
+  for $forestnr in (1 to $forests-per-host)
+  let $new-forest-name := setup:gen-forest-name( $forest-name, $hostnr, $forestnr, () )
 
-      let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
-      let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
-      let $_ := setup:mark-old-replicas-for-delete( $new-forest-name )
-      return 
-        setup:create-forest(
-          $new-forest-name,
-          $data-directory,
-          $host,
-          if (fn:count($hosts) gt 1) then
-            setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr, $is-internal )
-          else ()
-        )
+  let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+  let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+  let $_ := setup:mark-old-replicas-for-delete( $new-forest-name )
+  return
+    setup:create-forest(
+      $new-forest-name,
+      $data-directory,
+      $host,
+      if (fn:count($hosts) gt 1) then
+        setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr, $is-internal )
+      else ()
+    )
 };
 
 (:
   When scaling out and the number of replicas is less than (#hosts - 1), then replicas will be re-distributed
-  across hosts in the cluster.  New replicas are created on the new hosts, while eqivalent old replicas are 
+  across hosts in the cluster.  New replicas are created on the new hosts, while eqivalent old replicas are
   removed from existing hosts.  (A "move" operation.)  The old replicas are only removed after the new
   replacements have gone to a sync replicating state to ensure there is not a time that at least one replica
   is in a ready state.
@@ -1454,18 +1451,19 @@ declare function setup:mark-old-replicas-for-delete(
 ) as xs:string*
 {
   let $admin-config := admin:get-configuration()
-  let $existing-replicas := 
-    if( admin:forest-exists( $admin-config, $forest-name ) ) then
-      let $forest-id := admin:forest-get-id($admin-config, $forest-name)
-      return admin:forest-get-replicas($admin-config, $forest-id)
+  let $existing-replicas :=
+    if (admin:forest-exists( $admin-config, $forest-name ) ) then
+      admin:forest-get-replicas(
+        $admin-config,
+        admin:forest-get-id($admin-config, $forest-name)
+      )
     else ()
 
   (: Loop over existing forest IDs and keep track of the forest names.  Any not reused will be marked for retirement :)
+  for $rep-id in $existing-replicas
+  let $rep-name := admin:forest-get-name( $admin-config, $rep-id )
   return
-    for $rep-id in $existing-replicas 
-    let $rep-name := admin:forest-get-name( $admin-config, $rep-id )
-    return
-      map:put( $delete-map, $rep-name, $forest-name )
+    map:put( $delete-map, $rep-name, $forest-name )
 };
 
 declare function setup:get-assigned-replicas(
@@ -1501,14 +1499,14 @@ declare function setup:reassign-replicas(
   let $nr-replicas := ( $replica/as:forest-name/@nr-replicas, "1" )[1]
 
   (: If number of replicas specified as "MAX", then use all hosts :)
-  let $num-forced-replicas as xs:int := 
-    if( $nr-replicas = "MAX" or $nr-replicas = "max" ) then
+  let $num-forced-replicas as xs:int :=
+    if ($nr-replicas = "MAX" or $nr-replicas = "max" ) then
       fn:count( $rep-hosts )
     else xs:int( $nr-replicas )
 
   (: Adjust the replicas for internal forests so they don't get all jammed onto a single server :)
   let $adjuster as xs:int :=
-    if( $is-internal ) then
+    if ($is-internal ) then
       let $return := map:get( $internal-forests, "internal-forest-adjust" )
       return
       (
@@ -1534,7 +1532,7 @@ declare function setup:reassign-replicas(
   (: Generate the new replica name based on name, forest counter, primary host, and replica host :)
   let $replica-name := setup:gen-forest-name( $base-replica-name, $hostnr, $forestnr, $replica-real-index )
 
-  let $_ := 
+  let $_ :=
     if( map:contains( $delete-map, $replica-name ) ) then
       (: If it exists already, remove this replica from the list of those to delete :)
       map:delete( $delete-map, $replica-name )
@@ -1803,8 +1801,7 @@ declare function setup:attach-forests-by-count($db-config as element(db:database
 {
   let $group-id := setup:get-group($db-config)
   let $database-name := setup:get-database-name-from-database-config($db-config)
-  let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group-id)
-  for $host at $hostnr in $hosts
+  for $host at $hostnr in admin:group-get-host-ids(admin:get-configuration(), $group-id)
   let $hostname := xdmp:host-name($host)
   for $forestnr in (1 to setup:get-forests-per-host-from-database-config($db-config))
   let $forest-name := setup:gen-forest-name( $database-name, $hostnr, $forestnr, () )
@@ -6056,8 +6053,7 @@ declare function setup:create-ssl-certificate-templates($import-config as elemen
 {
   for $cert in $import-config/pki:certificates/pki:certificate[fn:exists(pki:name/text())]
   return
-    if (fn:empty(pki:get-template-by-name($cert/pki:name))) then
-    (
+    if (fn:empty(pki:get-template-by-name($cert/pki:name))) then (
       xdmp:eval(
         '
         import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
