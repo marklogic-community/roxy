@@ -4156,35 +4156,37 @@ declare function setup:create-privileges(
   let $role-names as xs:string* := ()
   let $match := setup:get-privileges()/sec:privilege[sec:privilege-name = $privilege-name]
   return
-    if ($match) then
-      if ($match/sec:action != $action or $match/sec:kind != $kind) then
-        fn:error(
-          xs:QName("PRIV-MISMATCH"),
-          fn:concat(
-            "Configured privilege conflicts with existing one: name=",
-            $privilege-name,
-            "; action=", $action, "; kind=",
-            $kind)
-        )
-      else () (: noop :)
-    else
-    (
-      (: Create this new privilege :)
+    if ($match/sec:action eq $action and $match/sec:kind eq $kind) then ()
+    else (
+      if ($match) then (
+      (: Delete mismatched privilege :)
       xdmp:eval(
         'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-         declare variable $privilege-name as xs:string external;
          declare variable $action as xs:string external;
          declare variable $kind as xs:string external;
-         declare variable $role-names as element() external;
-         sec:create-privilege($privilege-name, $action, $kind, $role-names/*)',
-        (xs:QName("privilege-name"), $privilege-name,
-         xs:QName("action"), $action,
-         xs:QName("kind"), $kind,
-         xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
-        <options xmlns="xdmp:eval">
-          <database>{$default-security}</database>
-        </options>),
-      setup:add-rollback("privileges", $privilege)
+         sec:remove-privilege($action, $kind)',
+        (xs:QName("action"), $match/sec:action,
+         xs:QName("kind"), $match/sec:kind),
+      <options xmlns="xdmp:eval">
+        <database>{$default-security}</database>
+      </options>)
+    ) else (),
+    (: Create this new privilege :)
+    xdmp:eval(
+      'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+      declare variable $privilege-name as xs:string external;
+      declare variable $action as xs:string external;
+      declare variable $kind as xs:string external;
+      declare variable $role-names as element() external;
+      sec:create-privilege($privilege-name, $action, $kind, $role-names/*)',
+      (xs:QName("privilege-name"), $privilege-name,
+       xs:QName("action"), $action,
+       xs:QName("kind"), $kind,
+       xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
+    <options xmlns="xdmp:eval">
+      <database>{$default-security}</database>
+    </options>),
+    setup:add-rollback("privileges", $privilege)
     )
 };
 
