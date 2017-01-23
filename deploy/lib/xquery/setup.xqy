@@ -4158,35 +4158,36 @@ declare function setup:create-privileges(
   return
     if ($match/sec:action eq $action and $match/sec:kind eq $kind) then ()
     else (
-      if ($match) then (
-      (: Delete mismatched privilege :)
+      if ($match) then
+        (: Delete mismatched privilege :)
+        xdmp:eval(
+          'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+           declare variable $action as xs:string external;
+           declare variable $kind as xs:string external;
+           sec:remove-privilege($action, $kind)',
+          (xs:QName("action"), $match/sec:action,
+           xs:QName("kind"), $match/sec:kind),
+          <options xmlns="xdmp:eval">
+            <database>{$default-security}</database>
+          </options>
+        )
+      else (),
+      (: Create this new privilege :)
       xdmp:eval(
         'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+         declare variable $privilege-name as xs:string external;
          declare variable $action as xs:string external;
          declare variable $kind as xs:string external;
-         sec:remove-privilege($action, $kind)',
-        (xs:QName("action"), $match/sec:action,
-         xs:QName("kind"), $match/sec:kind),
-      <options xmlns="xdmp:eval">
-        <database>{$default-security}</database>
-      </options>)
-    ) else (),
-    (: Create this new privilege :)
-    xdmp:eval(
-      'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
-      declare variable $privilege-name as xs:string external;
-      declare variable $action as xs:string external;
-      declare variable $kind as xs:string external;
-      declare variable $role-names as element() external;
-      sec:create-privilege($privilege-name, $action, $kind, $role-names/*)',
-      (xs:QName("privilege-name"), $privilege-name,
-       xs:QName("action"), $action,
-       xs:QName("kind"), $kind,
-       xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
-    <options xmlns="xdmp:eval">
-      <database>{$default-security}</database>
-    </options>),
-    setup:add-rollback("privileges", $privilege)
+         declare variable $role-names as element() external;
+         sec:create-privilege($privilege-name, $action, $kind, $role-names/*)',
+        (xs:QName("privilege-name"), $privilege-name,
+         xs:QName("action"), $action,
+         xs:QName("kind"), $kind,
+         xs:QName("role-names"), <w>{for $r in $role-names return <w>{$r}</w>}</w>),
+        <options xmlns="xdmp:eval">
+          <database>{$default-security}</database>
+        </options>),
+      setup:add-rollback("privileges", $privilege)
     )
 };
 
@@ -5745,7 +5746,7 @@ declare function setup:create-ssl-certificate-templates($import-config as elemen
           <isolation>different-transaction</isolation>
         </options>
       ),
-      
+
       xdmp:eval(
       '
       import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
