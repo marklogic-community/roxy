@@ -2031,59 +2031,29 @@ declare function setup:add-fields(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-fields-R(
+  admin:database-add-field(
     setup:remove-existing-fields($admin-config, $database),
     $database,
-    $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")]
-  )
-};
-
-declare function setup:add-fields-R(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong,
-  $field-configs as element(db:field)*) as element(configuration)
-{
-  if ($field-configs) then
-    let $field := $field-configs[1]
+    for $field in $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")]
     return
-    setup:add-fields-R(
       if ($field/db:field-path) then
         if (setup:at-least-version("7.0-1")) then
-          xdmp:eval(
-            'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-             declare namespace db = "http://marklogic.com/xdmp/database";
-             declare variable $admin-config external;
-             declare variable $database external;
-             declare variable $field external;
-             admin:database-add-field(
-              $admin-config,
-              $database,
-              admin:database-path-field(
-                $field/db:field-name,
-                for $path in $field/db:field-path
-                return
-                  admin:database-field-path($path/db:path, ($path/db:weight, 1.0)[1]))
-              )',
-            (xs:QName("admin-config"), $admin-config,
-             xs:QName("database"), $database,
-             xs:QName("field"), $field),
-            <options xmlns="xdmp:eval">
-              <isolation>same-statement</isolation>
-            </options>
+          (: wrap database-field-path call for ML6 compatibility :)
+          xdmp:value(
+            "admin:database-path-field(
+               $field/db:field-name,
+               for $path in $field/db:field-path
+               return
+                 admin:database-field-path($path/db:path, ($path/db:weight, 1.0)[1])
+             )"
           )
         else
           fn:error(
             xs:QName("VERSION_NOT_SUPPORTED"),
             fn:concat("MarkLogic ", xdmp:version(), " does not support path-based fields. Use 7.0-1 or higher."))
       else
-        admin:database-add-field(
-          $admin-config,
-          $database,
-          admin:database-field($field/db:field-name, $field/db:include-root)),
-      $database,
-      fn:subsequence($field-configs, 2))
-  else
-    $admin-config
+        admin:database-field($field/db:field-name, $field/db:include-root)
+  )
 };
 
 declare function setup:validate-fields($admin-config, $database, $db-config)
@@ -2207,30 +2177,19 @@ declare function setup:add-field-excludes-R(
         $admin-config,
         $database,
         $field-configs[1]/db:field-name,
-        for $e in $field-configs[1]/db:excluded-elements/db:excluded-element
+        for $excluded in $field-configs[1]/db:excluded-elements/db:excluded-element
         return
-          if (fn:starts-with(xdmp:version(), "4")) then
-            admin:database-excluded-element(
-              $e/db:namespace-uri,
-              $e/db:localname/fn:string(.))
-          else
-            xdmp:eval(
-             'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-              declare namespace db="http://marklogic.com/xdmp/database";
-              declare variable $e external;
-
-              admin:database-excluded-element(
-                $e/db:namespace-uri,
-                $e/db:localname/fn:string(.),
-                ($e/db:attribute-namespace-uri, "")[1],
-                ($e/db:attribute-localname/fn:string(.), "")[1],
-                ($e/db:attribute-value, "")[1])',
-              (xs:QName("e"), $e),
-              <options xmlns="xdmp:eval">
-                <isolation>same-statement</isolation>
-              </options>)),
+          admin:database-excluded-element(
+            $excluded/db:namespace-uri,
+            $excluded/db:localname/fn:string(.),
+            ($excluded/db:attribute-namespace-uri, "")[1],
+            ($excluded/db:attribute-localname/fn:string(.), "")[1],
+            ($excluded/db:attribute-value, "")[1]
+          )
+      ),
       $database,
-      fn:subsequence($field-configs, 2))
+      fn:subsequence($field-configs, 2)
+    )
   else
     $admin-config
 };
@@ -2394,26 +2353,16 @@ declare function setup:remove-existing-path-namespaces(
   $admin-config as element(configuration),
   $database as xs:unsignedLong) as element(configuration)
 {
-  (: wrap in try catch because this function is new to 6.0 and will fail in older version of ML :)
-  try
-  {
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare variable $database external;
-      declare variable $admin-config external;
-      admin:database-delete-path-namespace($admin-config, $database,
-        admin:database-get-path-namespaces($admin-config, $database))',
-      (xs:QName("database"), $database,
-       xs:QName("admin-config"), $admin-config))
-  }
-  catch($ex)
-  {
-    if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
-    else if ($ex/error:code = "ADMIN-PATHNAMESPACEINUSE" and fn:not(setup:at-least-version("6.0-2"))) then
-      fn:error(xs:QName("VERSION_NOT_SUPPORTED"), "Roxy does not support path namespaces for this version of MarkLogic. Use 6.0-2 or later.")
-    else
-      xdmp:rethrow()
-  }
+  (: wrap in xdmp:value because this function is new to 6.0 and will fail in older version of ML :)
+  if (setup:at-least-version("6.0-2")) then
+    xdmp:value(
+      "admin:database-delete-path-namespace($admin-config, $database,
+        admin:database-get-path-namespaces($admin-config, $database))"
+    )
+  else
+    (: We don't need to complain if ML is too old to run this function; in
+     : that case, the path-namespaces won't have been built. :)
+    $admin-config
 };
 
 declare function setup:add-path-namespaces(
@@ -2422,18 +2371,21 @@ declare function setup:add-path-namespaces(
   $db-config as element(db:database)) as element(configuration)
 {
   if ($db-config/db:path-namespaces/db:path-namespace) then
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare namespace db="http://marklogic.com/xdmp/database";
-      declare variable $admin-config external;
-      declare variable $database external;
-      declare variable $db-config external;
-      admin:database-add-path-namespace($admin-config, $database, $db-config/db:path-namespaces/db:path-namespace)',
-      (
-        xs:QName("admin-config"), $admin-config,
-        xs:QName("database"), $database,
-        xs:QName("db-config"), $db-config
-      ))
+    if (setup:at-least-version("6.0-2")) then
+      xdmp:value(
+        "admin:database-add-path-namespace(
+           $admin-config,
+           $database,
+           for $path-ns in $db-config/db:path-namespaces/db:path-namespace
+           return
+             admin:database-path-namespace($path-ns/db:prefix, $path-ns/db:namespace-uri)
+         )"
+      )
+    else
+      fn:error(
+        xs:QName("VERSION_NOT_SUPPORTED"),
+        "Roxy does not support path namespaces for this version of MarkLogic. Use 6.0-2 or later."
+      )
   else
     $admin-config
 };
@@ -2444,24 +2396,9 @@ declare function setup:validate-path-namespaces(
   $db-config as element(db:database))
 {
   let $existing :=
-    try
-    {
-      xdmp:eval('
-        import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-        declare variable $admin-config external;
-        declare variable $database external;
-        admin:database-get-path-namespaces($admin-config, $database)',
-        (
-          xs:QName("admin-config"), $admin-config,
-          xs:QName("database"), $database
-        ))
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "XDMP-UNDFUN") then ()
-      else
-        xdmp:rethrow()
-    }
+    if (setup:at-least-version("6.0-2")) then
+      xdmp:value("admin:database-get-path-namespaces($admin-config, $database)")
+    else ()
   for $expected in $db-config/db:path-namespaces/db:path-namespace
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
@@ -2499,18 +2436,28 @@ declare function setup:add-range-path-indexes(
   $db-config as element(db:database)) as element(configuration)
 {
   if ($db-config/db:range-path-indexes/db:range-path-index) then
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare namespace db="http://marklogic.com/xdmp/database";
-      declare variable $admin-config external;
-      declare variable $database external;
-      declare variable $db-config external;
-      admin:database-add-range-path-index($admin-config, $database, $db-config/db:range-path-indexes/db:range-path-index)',
-      (
-        xs:QName("admin-config"), $admin-config,
-        xs:QName("database"), $database,
-        xs:QName("db-config"), $db-config
-      ))
+    if (setup:at-least-version("6.0-1")) then
+      xdmp:value(
+        "admin:database-add-range-path-index(
+           $admin-config,
+           $database,
+           for $index in $db-config/db:range-path-indexes/db:range-path-index
+           return
+             admin:database-range-path-index(
+               $database,
+               $index/db:scalar-type,
+               $index/db:path-expression,
+               $index/db:collation,
+               $index/db:range-value-positions,
+               $index/db:invalid-values
+             )
+         )"
+      )
+    else
+      fn:error(
+        xs:QName("VERSION_NOT_SUPPORTED"),
+        "Roxy does not support path namespaces for this version of MarkLogic. Use 6.0-2 or later."
+      )
   else
     $admin-config
 };
@@ -2521,24 +2468,9 @@ declare function setup:validate-range-path-indexes(
   $db-config as element(db:database))
 {
   let $existing :=
-    try
-    {
-      xdmp:eval('
-        import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-        declare variable $admin-config external;
-        declare variable $database external;
-        admin:database-get-range-path-indexes($admin-config, $database)',
-        (
-          xs:QName("admin-config"), $admin-config,
-          xs:QName("database"), $database
-        ))
-    }
-    catch($ex)
-    {
-      if ($ex/error:code = "XDMP-UNDFUN") then ()
-      else
-        xdmp:rethrow()
-    }
+    if (setup:at-least-version("6.0-1")) then
+      xdmp:value("admin:database-get-range-path-indexes($admin-config, $database)")
+    else ()
   for $expected in $db-config/db:range-path-indexes/db:range-path-index
   let $expected :=
     xdmp:eval('
@@ -2575,8 +2507,17 @@ declare function setup:add-element-word-lexicons(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-element-word-lexicon(setup:remove-existing-element-word-lexicons($admin-config, $database),
-    $database, $db-config/db:element-word-lexicons/db:element-word-lexicon)
+  admin:database-add-element-word-lexicon(
+    setup:remove-existing-element-word-lexicons($admin-config, $database),
+    $database,
+    for $lex in $db-config/db:element-word-lexicons/db:element-word-lexicon
+    return
+      admin:database-element-word-lexicon(
+        $lex/db:namespace-uri,
+        $lex/db:localname,
+        $lex/db:collation
+      )
+    )
 };
 
 declare function setup:validate-element-word-lexicons($admin-config, $database, $db-config)
@@ -2656,8 +2597,16 @@ declare function setup:add-phrase-throughs(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-phrase-through(setup:remove-existing-phrase-throughs($admin-config, $database),
-    $database, $db-config/db:phrase-throughs/db:phrase-through)
+  admin:database-add-phrase-through(
+    setup:remove-existing-phrase-throughs($admin-config, $database),
+    $database,
+    for $pt in $db-config/db:phrase-throughs/db:phrase-through
+    return
+      admin:database-phrase-through(
+        $pt/db:namespace-uri,
+        $pt/db:localname
+      )
+  )
 };
 
 declare function setup:validate-phrase-throughs($admin-config, $database, $db-config)
@@ -2686,7 +2635,13 @@ declare function setup:add-phrase-arounds(
   admin:database-add-phrase-around(
     setup:remove-existing-phrase-arounds($admin-config, $database),
     $database,
-    $db-config/db:phrase-arounds/db:phrase-around)
+    for $pa in $db-config/db:phrase-arounds/db:phrase-around
+    return
+      admin:database-phrase-around(
+        $pa/db:namespace-uri,
+        $pa/db:collation
+      )
+    )
 };
 
 declare function setup:validate-phrase-arounds($admin-config, $database, $db-config)
@@ -2703,24 +2658,8 @@ declare function setup:remove-existing-range-field-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong) as element(configuration)
 {
-  (: wrap in try catch because this function is new to 5.0 and will fail in older version of ML :)
-  try
-  {
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare variable $admin-config external;
-      declare variable $database external;
-      admin:database-delete-range-field-index($admin-config, $database,
-        admin:database-get-range-field-indexes($admin-config, $database))',
-      (xs:QName("admin-config"), $admin-config,
-       xs:QName("database"), $database))
-  }
-  catch($ex)
-  {
-    if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
-    else
-      xdmp:rethrow()
-  }
+  admin:database-delete-range-field-index($admin-config, $database,
+    admin:database-get-range-field-indexes($admin-config, $database))
 };
 
 declare function setup:add-range-field-indexes(
@@ -2739,18 +2678,27 @@ declare function setup:add-range-field-indexes-helper(
   $db-config as element(db:database)) as element(configuration)
 {
   if ($db-config/db:range-field-indexes/db:range-field-index) then
-    xdmp:eval('
-      import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-      declare namespace db="http://marklogic.com/xdmp/database";
-      declare variable $admin-config external;
-      declare variable $database external;
-      declare variable $db-config external;
-      admin:database-add-range-field-index($admin-config, $database, $db-config/db:range-field-indexes/db:range-field-index)',
-      (
-        xs:QName("admin-config"), $admin-config,
-        xs:QName("database"), $database,
-        xs:QName("db-config"), $db-config
-      ))
+    admin:database-add-range-field-index(
+      $admin-config,
+      $database,
+      for $index in $db-config/db:range-field-indexes/db:range-field-index
+      return
+        if (setup:at-least-version("6.0-0")) then
+          admin:database-range-field-index(
+            $index/db:scalar-type,
+            $index/db:field-name,
+            ($index/db:collation/fn:string(), "")[1], (: ML6 requires xs:string; later requires xs:string? :)
+            $index/db:range-value-positions,
+            $index/db:invalid-values
+          )
+        else
+          admin:database-range-field-index(
+            $index/db:scalar-type,
+            $index/db:field-name,
+            $index/db:collation,
+            $index/db:range-value-positions
+          )
+    )
   else
     $admin-config
 };
@@ -2765,32 +2713,12 @@ declare function setup:remove-existing-geospatial-element-indexes(
 
 declare function setup:validate-range-field-indexes($admin-config, $database, $db-config)
 {
-  try
-  {
-    let $existing :=
-      xdmp:eval('
-        import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
-
-        declare namespace db="http://marklogic.com/xdmp/database";
-
-        declare variable $admin-config external;
-        declare variable $database external;
-
-        admin:database-get-range-field-indexes($admin-config, $database)',
-        (xs:QName("admin-config"), $admin-config,
-         xs:QName("database"), $database))
-    for $expected in $db-config/db:range-field-indexes/db:range-field-index
-    return
-      if ($existing[fn:deep-equal(., $expected)]) then ()
-      else
-        setup:validation-fail(fn:concat("Database mismatched range field index: ", $expected/db:field-name))
-  }
-  catch($ex)
-  {
-    if ($ex/error:code = "XDMP-UNDFUN") then $admin-config
+  let $existing := admin:database-get-range-field-indexes($admin-config, $database)
+  for $expected in $db-config/db:range-field-indexes/db:range-field-index
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
     else
-      xdmp:rethrow()
-  }
+      setup:validation-fail(fn:concat("Database mismatched range field index: ", $expected/db:field-name))
 };
 
 declare function setup:add-geospatial-element-indexes(
@@ -2798,8 +2726,29 @@ declare function setup:add-geospatial-element-indexes(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-geospatial-element-index(setup:remove-existing-geospatial-element-indexes($admin-config, $database),
-    $database, $db-config/db:geospatial-element-indexes/db:geospatial-element-index)
+  admin:database-add-geospatial-element-index(
+    setup:remove-existing-geospatial-element-indexes($admin-config, $database),
+    $database,
+    for $index in $db-config/db:geospatial-element-indexes/db:geospatial-element-index
+    return
+      if (setup:at-least-version("6.0-0")) then
+        admin:database-geospatial-element-index(
+          $index/db:namespace-uri,
+          $index/db:localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1],
+          ($index/db:invalid-values, "ignore")[1]
+        )
+      else
+        admin:database-geospatial-element-index(
+          $index/db:namespace-uri,
+          $index/db:localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1]
+        )
+  )
 };
 
 declare function setup:validate-geospatial-element-indexes(
@@ -2831,7 +2780,32 @@ declare function setup:add-geospatial-element-attribute-pair-indexes(
   admin:database-add-geospatial-element-attribute-pair-index(
     setup:remove-existing-geospatial-element-attribute-pair-indexes($admin-config, $database),
     $database,
-    $db-config/db:geospatial-element-attribute-pair-indexes/db:geospatial-element-attribute-pair-index)
+    for $index in $db-config/db:geospatial-element-attribute-pair-indexes/db:geospatial-element-attribute-pair-index
+    return
+      if (setup:at-least-version("6.0-0")) then
+        admin:database-geospatial-element-attribute-pair-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:latitude-namespace-uri,
+          $index/db:latitude-localname,
+          $index/db:longitude-namespace-uri,
+          $index/db:longitude-localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:invalid-values, "ignore")[1]
+        )
+      else
+        admin:database-geospatial-element-attribute-pair-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:latitude-namespace-uri,
+          $index/db:latitude-localname,
+          $index/db:longitude-namespace-uri,
+          $index/db:longitude-localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions
+        )
+  )
 };
 
 declare function setup:validate-geospatial-element-attribute-pair-indexes(
@@ -2863,7 +2837,32 @@ declare function setup:add-geospatial-element-pair-indexes(
   admin:database-add-geospatial-element-pair-index(
     setup:remove-existing-geospatial-element-pair-indexes($admin-config, $database),
     $database,
-    $db-config/db:geospatial-element-pair-indexes/db:geospatial-element-pair-index)
+    for $index in $db-config/db:geospatial-element-pair-indexes/db:geospatial-element-pair-index
+    return
+      if (setup:at-least-version("6.0-0")) then
+        admin:database-geospatial-element-pair-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:latitude-namespace-uri,
+          $index/db:latitude-localname,
+          $index/db:longitude-namespace-uri,
+          $index/db:longitude-localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:invalid-values, "ignore")[1]
+        )
+      else
+        admin:database-geospatial-element-pair-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:latitude-namespace-uri,
+          $index/db:latitude-localname,
+          $index/db:longitude-namespace-uri,
+          $index/db:longitude-localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions
+        )
+  )
 };
 
 declare function setup:validate-geospatial-element-pair-indexes(
@@ -2895,7 +2894,30 @@ declare function setup:add-geospatial-element-child-indexes(
   admin:database-add-geospatial-element-child-index(
     setup:remove-existing-geospatial-element-child-indexes($admin-config, $database),
     $database,
-    $db-config/db:geospatial-element-child-indexes/db:geospatial-element-child-index)
+    for $index in $db-config/db:geospatial-element-child-indexes/db:geospatial-element-child-index
+    return
+      if (setup:at-least-version("6.0-0")) then
+        admin:database-geospatial-element-child-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:namespace-uri,
+          $index/db:localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1],
+          ($index/db:invalid-values, "ignore")[1]
+        )
+      else
+        admin:database-geospatial-element-child-index(
+          $index/db:parent-namespace-uri,
+          $index/db:parent-localname,
+          $index/db:namespace-uri,
+          $index/db:localname,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1]
+        )
+  )
 };
 
 declare function setup:validate-geospatial-element-child-indexes(
@@ -2927,7 +2949,9 @@ declare function setup:add-word-lexicons(
   admin:database-add-word-lexicon(
     setup:remove-existing-word-lexicons($admin-config, $database),
     $database,
-    $db-config/db:word-lexicons/db:word-lexicon)
+    for $lex in $db-config/db:word-lexicons/db:word-lexicon
+    return admin:database-word-lexicon($lex/fn:string())
+  )
 };
 
 declare function setup:validate-word-lexicons(
@@ -2956,29 +2980,16 @@ declare function setup:add-fragment-roots(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-fragment-roots-R(
+  admin:database-add-fragment-root(
     setup:remove-existing-fragment-roots($admin-config, $database),
     $database,
-    $db-config/db:fragment-roots/db:fragment-root)
-};
-
-declare function setup:add-fragment-roots-R(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong,
-  $fragment-roots as element(db:fragment-root)*) as element(configuration)
-{
-  if ($fragment-roots) then
-    setup:add-fragment-roots-R(
-      admin:database-add-fragment-root(
-        $admin-config,
-        $database,
-        admin:database-fragment-root(
-          $fragment-roots[1]/db:namespace-uri,
-          $fragment-roots[1]/db:localname/fn:string(.))),
-      $database,
-      fn:subsequence($fragment-roots, 2))
-  else
-    $admin-config
+    for $root in $db-config/db:fragment-roots/db:fragment-root
+    return
+      admin:database-fragment-root(
+        $root/db:namespace-uri,
+        $root/db:localname/fn:string(.)
+      )
+  )
 };
 
 declare function setup:validate-fragment-roots(
@@ -3007,29 +3018,16 @@ declare function setup:add-fragment-parents(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  setup:add-fragment-parents-R(
+  admin:database-add-fragment-parent(
     setup:remove-existing-fragment-parents($admin-config, $database),
     $database,
-    $db-config/db:fragment-parents/db:fragment-parent)
-};
-
-declare function setup:add-fragment-parents-R(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong,
-  $fragment-parents as element(db:fragment-parent)*) as element(configuration)
-{
-  if ($fragment-parents) then
-    setup:add-fragment-parents-R(
-      admin:database-add-fragment-parent(
-        $admin-config,
-        $database,
-        admin:database-fragment-parent(
-          $fragment-parents[1]/db:namespace-uri,
-          $fragment-parents[1]/db:localname/fn:string(.))),
-      $database,
-      fn:subsequence($fragment-parents, 2))
-  else
-    $admin-config
+    for $parent in $db-config/db:fragment-parents/db:fragment-parent
+    return
+      admin:database-fragment-parent(
+        $parent/db:namespace-uri,
+        $parent/db:localname
+      )
+  )
 };
 
 declare function setup:validate-fragment-parents(

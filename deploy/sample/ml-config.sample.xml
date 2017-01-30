@@ -275,6 +275,7 @@
           <field-name>sample</field-name>
           <collation/>
           <range-value-positions>false</range-value-positions>
+          <invalid-values>ignore</invalid-values>
         </range-field-index>
 -->
       </range-field-indexes>
