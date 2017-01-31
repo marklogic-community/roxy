@@ -149,7 +149,7 @@ class String
   end
 
   def xquery_unsafe
-    REXML::Text::unnormalize(self).gsub(/\{\{/, '{').gsub(/\}\}/, '}')
+    REXML::Text::unnormalize(self)
   end
 
 end
