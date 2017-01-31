@@ -1784,9 +1784,9 @@ private
     raise ExitException.new("Capture requires the target environment's hostname to be defined") unless @hostname.present?
 
     if (full_config == nil)
-      databases = quote_arglist(find_arg(['--databases']) || "#{@properties["ml.content-db"]},#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]},#{@properties["ml.modules-db"]}")
+      databases = quote_arglist(find_arg(['--databases']) || "#{@properties["ml.content-db"]},#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]}")
       # TODO: take content-forests-per-host into account properly, just taking first by default
-      forests = quote_arglist(find_arg(['--forests']) || "#{@properties["ml.content-db"]},#{@properties["ml.content-db"]}-001-1,#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]},,#{@properties["ml.modules-db"]}")
+      forests = quote_arglist(find_arg(['--forests']) || "#{@properties["ml.content-db"]},#{@properties["ml.content-db"]}-001-1,#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]}")
       # TODO: include dav, xdbc, odbc servers?
       servers = quote_arglist(find_arg(['--servers']) || "#{@properties["ml.app-name"]},#{@properties["ml.app-name"]}-xdbc,#{@properties["ml.app-name"]}-odbc,#{@properties["ml.app-name"]}-test,#{@properties["ml.app-name"]}-webdav")
       mimes = quote_arglist(find_arg(['--mime-types']) || "##none##")
