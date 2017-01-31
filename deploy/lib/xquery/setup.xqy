@@ -2603,8 +2603,8 @@ declare function setup:add-phrase-throughs(
     for $pt in $db-config/db:phrase-throughs/db:phrase-through
     return
       admin:database-phrase-through(
-        $pt/db:namespace-uri,
-        $pt/db:localname
+        $pt/db:namespace-uri/string(),
+        $pt/db:localname/string()
       )
   )
 };
@@ -2638,8 +2638,8 @@ declare function setup:add-phrase-arounds(
     for $pa in $db-config/db:phrase-arounds/db:phrase-around
     return
       admin:database-phrase-around(
-        $pa/db:namespace-uri,
-        $pa/db:collation
+        $pa/db:namespace-uri/string(),
+        $pa/db:localname/string()
       )
     )
 };
