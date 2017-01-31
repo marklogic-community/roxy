@@ -1784,9 +1784,9 @@ private
     raise ExitException.new("Capture requires the target environment's hostname to be defined") unless @hostname.present?
 
     if (full_config == nil)
-      databases = quote_arglist(find_arg(['--databases']) || "#{@properties["ml.content-db"]},#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]},#{@properties["ml.app-modules-db"]}")
+      databases = quote_arglist(find_arg(['--databases']) || "#{@properties["ml.content-db"]},#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]}")
       # TODO: take content-forests-per-host into account properly, just taking first by default
-      forests = quote_arglist(find_arg(['--forests']) || "#{@properties["ml.content-db"]},#{@properties["ml.content-db"]}-001-1,#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]},,#{@properties["ml.app-modules-db"]}")
+      forests = quote_arglist(find_arg(['--forests']) || "#{@properties["ml.content-db"]},#{@properties["ml.content-db"]}-001-1,#{@properties["ml.modules-db"]},#{@properties["ml.triggers-db"]},#{@properties["ml.schemas-db"]}")
       # TODO: include dav, xdbc, odbc servers?
       servers = quote_arglist(find_arg(['--servers']) || "#{@properties["ml.app-name"]},#{@properties["ml.app-name"]}-xdbc,#{@properties["ml.app-name"]}-odbc,#{@properties["ml.app-name"]}-test,#{@properties["ml.app-name"]}-webdav")
       mimes = quote_arglist(find_arg(['--mime-types']) || "##none##")
@@ -1850,13 +1850,13 @@ private
     @properties['ml.test-content-db'].present? &&
     @properties['ml.test-port'].present? &&
     !@properties['ml.do-not-deploy-tests'].split(",").include?(@environment) &&
-    conditional_prop('ml.test-modules-db', 'ml.app-modules-db') == target_db
+    conditional_prop('ml.test-modules-db', 'ml.modules-db') == target_db
   end
 
   def modules_databases
-    dbs = [@properties['ml.app-modules-db']]
+    dbs = [@properties['ml.modules-db']]
     dbs << @properties['ml.test-modules-db'] if @properties['ml.test-modules-db'].present? &&
-                                                @properties['ml.test-modules-db'] != @properties['ml.app-modules-db']
+                                                @properties['ml.test-modules-db'] != @properties['ml.modules-db']
     dbs
   end
 
@@ -2528,7 +2528,7 @@ private
 
   def test_appserver
     # The modules database for the test server can be different from the app one
-    test_modules_db = conditional_prop('ml.test-modules-db', 'ml.app-modules-db')
+    test_modules_db = conditional_prop('ml.test-modules-db', 'ml.modules-db')
     test_auth_method = conditional_prop('ml.test-authentication-method', 'ml.authentication-method')
     test_default_user = conditional_prop('ml.test-default-user', 'ml.default-user')
 
@@ -2579,7 +2579,7 @@ private
   end
 
   def rest_appserver
-    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
+    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
     rest_auth_method = conditional_prop('ml.rest-authentication-method', 'ml.authentication-method')
     rest_default_user = conditional_prop('ml.rest-default-user', 'ml.default-user')
 
@@ -2608,7 +2608,7 @@ private
   end
 
   def rest_modules_db_xml
-    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
+    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
 
     %Q{
       <database>
@@ -2621,7 +2621,7 @@ private
   end
 
   def rest_modules_db_assignment
-    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.app-modules-db')
+    rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
 
     %Q{
       <assignment>
@@ -2652,7 +2652,7 @@ private
     # Build the triggers db if it is provided
     if @properties['ml.triggers-db'].present?
 
-      if @properties['ml.triggers-db'] != @properties['ml.app-modules-db']
+      if @properties['ml.triggers-db'] != @properties['ml.modules-db']
         config.gsub!("@ml.triggers-db-xml", triggers_db_xml)
         config.gsub!("@ml.triggers-assignment", triggers_assignment)
       else
@@ -2686,7 +2686,7 @@ private
     # Build the schemas db if it is provided
     if @properties['ml.schemas-db'].present?
 
-      if @properties['ml.schemas-db'] != @properties['ml.app-modules-db']
+      if @properties['ml.schemas-db'] != @properties['ml.modules-db']
         config.gsub!("@ml.schemas-db-xml", schemas_db_xml)
         config.gsub!("@ml.schemas-assignment", schemas_assignment)
       else
@@ -2722,7 +2722,7 @@ private
 
     # Build the test modules db if it is different from the app modules db
     if @properties['ml.test-modules-db'].present? &&
-       @properties['ml.test-modules-db'] != @properties['ml.app-modules-db']
+       @properties['ml.test-modules-db'] != @properties['ml.modules-db']
 
       config.gsub!("@ml.test-modules-db-xml", test_modules_db_xml)
       config.gsub!("@ml.test-modules-db-assignment", test_modules_db_assignment)
@@ -2746,7 +2746,7 @@ private
       config.gsub!("@ml.rest-appserver", rest_appserver)
 
       if @properties['ml.rest-modules-db'].present? &&
-         @properties['ml.rest-modules-db'] != @properties['ml.app-modules-db']
+         @properties['ml.rest-modules-db'] != @properties['ml.modules-db']
          config.gsub!("@ml.rest-modules-db-xml", rest_modules_db_xml)
          config.gsub!("@ml.rest-modules-db-assignment", rest_modules_db_assignment)
       else
