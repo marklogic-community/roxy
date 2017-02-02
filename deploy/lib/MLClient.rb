@@ -19,24 +19,25 @@ rescue LoadError
 end
 
 require 'uri'
+require 'password'
 
 class MLClient
   def MLClient.no_prompt=(no_prompt)
     @@no_prompt = no_prompt
   end
-  
+
   def initialize(options)
     @ml_username = options[:user_name]
     @ml_password = options[:password].xquery_unsafe
     @logger = options[:logger] || logger
     @request = {}
-    
+
     @@no_prompt = options[:no_prompt]
     @@http_connection_retry_count = options[:http_connection_retry_count]
     @@http_connection_open_timeout = options[:http_connection_open_timeout]
     @@http_connection_read_timeout = options[:http_connection_read_timeout]
     @@http_connection_retry_delay = options[:http_connection_retry_delay]
-    
+
   end
 
   def MLClient.logger()
@@ -141,8 +142,7 @@ class MLClient
         raise ExitException.new("--no-prompt parameter prevents prompting for password")
       else
         if STDIN.respond_to?(:noecho)
-          print "Password for #{@ml_username} user: "
-          @ml_password = STDIN.noecho(&:gets).chomp
+          @ml_password = Password.password_prompt("Password for #{@ml_username} user: ")
           print "\n"
         else
           raise ExitException.new("Upgrade to Ruby >= 1.9 for password prompting on the shell. Or you can set password= in your properties file")
