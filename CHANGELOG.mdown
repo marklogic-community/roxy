@@ -1,7 +1,31 @@
 # Roxy Changes
 This file describes changes made to Roxy per release
 
+## 1.7.5
+
+### New Features
+* [#696](https://github.com/marklogic/roxy/issues/696) Allow upgrading to master without passing a branch argument
+* [#693](https://github.com/marklogic/roxy/issues/693) Bootstrap does not create new self-signed certificates
+* [#685](https://github.com/marklogic/roxy/issues/685) Shared Config for multiple applications sharing a single content db
+* [#680](https://github.com/marklogic/roxy/issues/680) Exit code on windows.
+* [#666](https://github.com/marklogic/roxy/issues/666) install/uninstall commands
+* [#651](https://github.com/marklogic/roxy/issues/651) App-modules-db not in synch with modules-db by default
+* [#569](https://github.com/marklogic/roxy/issues/569) How to set "update-policy" property throught Roxy
+* [#533](https://github.com/marklogic/roxy/issues/533) Suggestion: clean -> clear
+
+### Resolved Issues
+* [#716](https://github.com/marklogic/roxy/issues/716) support for roxy.jar
+* [#713](https://github.com/marklogic/roxy/issues/713) capture modules-db results in ERROR: 757: unexpected token
+* [#711](https://github.com/marklogic/roxy/issues/711) changing the action associated with a privilege will cause bootstrap to terminate rather than replacing the privilege
+* [#710](https://github.com/marklogic/roxy/issues/710) Bootstrap will not add an extension to an existing mimetype.
+* [#694](https://github.com/marklogic/roxy/issues/694) property values using ${basedir} not rescanned for additional substitutions
+* [#662](https://github.com/marklogic/roxy/issues/662) *.js files loaded as binary by default
+* [#606](https://github.com/marklogic/roxy/issues/606) Index visible in admin page but not working (following an error in ml-config config)
+* [#568](https://github.com/marklogic/roxy/issues/568) Answering ml new warning with enter breaks.. 
+* [#492](https://github.com/marklogic/roxy/issues/492) setup.xqy fails to validate field range index config
+
 ## 1.7.4
+
 ### New Features
 * [#415](https://github.com/marklogic/roxy/issues/415) Allow deploy rest-config
 * [#521](https://github.com/marklogic/roxy/issues/521) Support custom properties for corb2
