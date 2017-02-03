@@ -19,7 +19,7 @@
       <http-server-name>@ml.app-name</http-server-name>
       <port>@ml.app-port</port>
       <database name="@ml.content-db"/>
-      <modules name="@ml.app-modules-db"/>
+      <modules name="@ml.modules-db"/>
       <last-login>0</last-login>
       <display-last-login>false</display-last-login>
       <address>0.0.0.0</address>
@@ -662,14 +662,14 @@
       <namespace>http://marklogic.com/roxy</namespace>
       <local-name>sample</local-name>
       <doc-uri>/app/models/sample.xqy</doc-uri>
-      <db-name>@ml.app-modules-db</db-name>
+      <db-name>@ml.modules-db</db-name>
       <role-name>admin</role-name>
     </amp>
     <amp>
       <namespace>http://marklogic.com/roxy</namespace>
       <local-name>sample2</local-name>
       <doc-uri>/app/models/sample2.xqy</doc-uri>
-      <db-name>@ml.app-modules-db</db-name>
+      <db-name>@ml.modules-db</db-name>
       <role-name>admin</role-name>
     </amp>
   </amps>
