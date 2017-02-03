@@ -30,7 +30,7 @@
             <task-period>2</task-period>
             <task-start-time>13:00:00-05:00</task-start-time>
             <task-database name="${content-db}"/>
-            <task-modules name="${app-modules-db}"/>
+            <task-modules name="${modules-db}"/>
             <task-user name="${app-name}-user"/>
           </scheduled-task>
           <scheduled-task>
@@ -40,7 +40,7 @@
             <task-period>2</task-period>
             <task-minute>15</task-minute>
             <task-database name="${content-db}"/>
-            <task-modules name="${app-modules-db}"/>
+            <task-modules name="${modules-db}"/>
             <task-user name="${app-name}-user"/>
           </scheduled-task>
           <scheduled-task>
@@ -49,7 +49,7 @@
             <task-type>minutely</task-type>
             <task-period>3</task-period>
             <task-database name="${content-db}"/>
-            <task-modules name="${app-modules-db}"/>
+            <task-modules name="${modules-db}"/>
             <task-user name="${app-name}-user"/>
           </scheduled-task>
           <scheduled-task>
@@ -60,7 +60,7 @@
             <task-month-day>15</task-month-day>
             <task-start-time>13:00:00-05:00</task-start-time>
             <task-database name="${content-db}"/>
-            <task-modules name="${app-modules-db}"/>
+            <task-modules name="${modules-db}"/>
             <task-user name="${app-name}-user"/>
           </scheduled-task>
           <scheduled-task>
@@ -70,7 +70,7 @@
             <task-period>1</task-period>
             <task-start>2019-01-01T13:00:00-05:00</task-start>
             <task-database name="${content-db}"/>
-            <task-modules name="${app-modules-db}"/>
+            <task-modules name="${modules-db}"/>
             <task-user name="${app-name}-user"/>
           </scheduled-task>
           <scheduled-task>
@@ -85,7 +85,7 @@
             </task-days>
             <task-start-time>13:00:00-05:00</task-start-time>
             <task-database name="${content-db}"/>
-            <task-modules name="${app-modules-db}"/>
+            <task-modules name="${modules-db}"/>
             <task-user name="${app-name}-user"/>
           </scheduled-task>
         </scheduled-tasks>
@@ -97,7 +97,7 @@
           <http-server-name>${app-name}</http-server-name>
           <port>${app-port}</port>
           <database name="${content-db}"/>
-          <modules name="${app-modules-db}"/>
+          <modules name="${modules-db}"/>
           <root>${modules-root}</root>
           <authentication>${authentication-method}</authentication>
           <default-user name="${default-user}"/>
@@ -550,7 +550,7 @@
       <namespace>http://marklogic.com/roxy</namespace>
       <local-name>sample</local-name>
       <doc-uri>/app/models/sample.xqy</doc-uri>
-      <db-name>${app-modules-db}</db-name>
+      <db-name>${modules-db}</db-name>
       <role-name>a-privileged-role</role-name>
     </amp>
     -->
