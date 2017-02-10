@@ -4744,7 +4744,6 @@ declare function setup:create-roles(
 {
   (: get the existing role names from the default security DB :)
   let $existing-role-names := setup:get-existing-role-names()
-  return
 
   (: Create all missing roles :)
   for $role in $import-config/sec:roles/sec:role
@@ -4917,7 +4916,6 @@ declare function setup:validate-roles(
 {
   (: get the existing role names from the default security DB :)
   let $existing-roles := setup:get-roles(())
-  return
 
   for $role in $import-config/sec:roles/sec:role
   let $role-name as xs:string := $role/sec:role-name
@@ -4974,7 +4972,6 @@ declare function setup:create-users($import-config as element(configuration))
 {
   (: get the existing user names from the default security DB :)
   let $existing-user-names := setup:get-existing-user-names()
-  return
 
   (: Create all missing users :)
   for $user in $import-config/sec:users/sec:user
@@ -5103,7 +5100,6 @@ declare function setup:validate-users($import-config as element(configuration))
 {
   (: get the existing users from the default security DB :)
   let $existing-users := setup:get-users(())
-  return
 
   for $user in $import-config/sec:users/sec:user
   let $user-name as xs:string := $user/sec:user-name
@@ -5564,12 +5560,12 @@ declare function setup:get-user-id($user-name as xs:string) as xs:unsignedLong? 
 declare function setup:get-existing-role-names() as element(sec:role-name)* {
   let $role-names :=
     xdmp:eval(
-        'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
+      'import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
         /sec:role',
-        (),
-        <options xmlns="xdmp:eval">
-          <database>{$default-security}</database>
-        </options>)/sec:role-name
+      (),
+      <options xmlns="xdmp:eval">
+        <database>{$default-security}</database>
+      </options>)/sec:role-name
   return $role-names
 };
 
