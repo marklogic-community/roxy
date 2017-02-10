@@ -4916,7 +4916,7 @@ declare function setup:validate-roles(
   $import-config as element(configuration))
 {
   (: get the existing role names from the default security DB :)
-  let $existing-role-names := setup:get-existing-role-names()
+  let $existing-roles := setup:get-roles(())
   return
 
   for $role in $import-config/sec:roles/sec:role
@@ -4929,7 +4929,7 @@ declare function setup:validate-roles(
   let $privileges as element(sec:privilege)* := $role/sec:privileges/sec:privilege
   let $amps as element(sec:amp)* := $role/sec:amps/*
   let $external-names as xs:string* := $role/sec:external-names/sec:external-name
-  let $match := $existing-role-names[. = $role-name]
+  let $match := $existing-roles/sec:role[sec:role-name = $role-name]
   return
     if ($match) then
       if ($match/sec:role-name != $role-name or
@@ -5101,8 +5101,8 @@ declare function setup:create-users($import-config as element(configuration))
 
 declare function setup:validate-users($import-config as element(configuration))
 {
-  (: get the existing user names from the default security DB :)
-  let $existing-user-names := setup:get-existing-user-names()
+  (: get the existing users from the default security DB :)
+  let $existing-users := setup:get-users(())
   return
 
   for $user in $import-config/sec:users/sec:user
@@ -5113,7 +5113,7 @@ declare function setup:validate-users($import-config as element(configuration))
   let $permissions as element(sec:permission)* := $user/sec:permissions/*
   let $collections as xs:string* := $user/sec:collections/*
   let $external-names as xs:string* := $user/sec:external-names/sec:external-name
-  let $match := $existing-user-names[. = $user-name]
+  let $match := $existing-users/sec:user[sec:user-name = $user-name]
   return
     if ($match) then
       if ($match/sec:description != $description or
