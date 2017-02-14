@@ -72,6 +72,11 @@ declare variable $replicating-map-file := "/roxy/status/cleanup/replicating-map.
 declare variable $replicating-map-file-internal := "/roxy/status/cleanup/replicating-map-internal.xml";
 declare variable $replicating-map := map:map();
 
+(: Several functions take an optional invalid-values parameter. Use this as the
+ : default value when it's not provided.
+ :)
+declare variable $default-invalid-values := "reject";
+
 declare variable $group-settings :=
   <settings>
     <setting>list-cache-size</setting>
@@ -2258,7 +2263,7 @@ declare function setup:validated-range-element-indexes(
             $index-config/db:localname/fn:string(.),
             fn:string($index-config/db:collation[../db:scalar-type = 'string']),
             ($index-config/db:range-value-positions/xs:boolean(.), false())[1],
-            ($index-config/db:invalid-values, "reject")[1]
+            ($index-config/db:invalid-values, $default-invalid-values)[1]
           )
         else
           xdmp:apply(
@@ -2320,7 +2325,7 @@ declare function setup:validated-range-element-attribute-indexes(
             $index-config/db:localname/fn:string(.),
             fn:string($index-config/db:collation[../db:scalar-type = 'string']),
             ($index-config/db:range-value-positions/xs:boolean(.), false())[1],
-            ($index-config/db:invalid-values, "reject")[1]
+            ($index-config/db:invalid-values, $default-invalid-values)[1]
           )
         else
           xdmp:apply(
@@ -2449,7 +2454,7 @@ declare function setup:add-range-path-indexes(
                $index/db:path-expression,
                $index/db:collation,
                $index/db:range-value-positions,
-               $index/db:invalid-values
+               ($index/db:invalid-values, $default-invalid-values)[1]
              )
          )"
       )
@@ -2478,6 +2483,7 @@ declare function setup:validate-range-path-indexes(
       declare namespace db="http://marklogic.com/xdmp/database";
       declare variable $database external;
       declare variable $x external;
+      declare variable $default-invalid-values external;
 
       admin:database-range-path-index(
        $database,
@@ -2485,9 +2491,10 @@ declare function setup:validate-range-path-indexes(
        $x/db:path-expression,
        fn:string($x/db:collation[../db:scalar-type = "string"]),
        $x/db:range-value-positions,
-       $x/db:invalid-values)',
+       ($x/db:invalid-values, $default-invalid-values)[1])',
       (xs:QName("database"), $database,
-       xs:QName("x"), $expected))
+       xs:QName("x"), $expected,
+       xs:QName("default-invalid-values"), $default-invalid-values))
   return
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
@@ -2689,7 +2696,7 @@ declare function setup:add-range-field-indexes-helper(
             $index/db:field-name,
             ($index/db:collation/fn:string(), "")[1], (: ML6 requires xs:string; later requires xs:string? :)
             $index/db:range-value-positions,
-            $index/db:invalid-values
+            ($index/db:invalid-values, $default-invalid-values)[1]
           )
         else
           admin:database-range-field-index(
@@ -2738,7 +2745,7 @@ declare function setup:add-geospatial-element-indexes(
           $index/db:coordinate-system,
           $index/db:range-value-positions,
           ($index/db:point-format, "point")[1],
-          ($index/db:invalid-values, "ignore")[1]
+          ($index/db:invalid-values, $default-invalid-values)[1]
         )
       else
         admin:database-geospatial-element-index(
@@ -2792,7 +2799,7 @@ declare function setup:add-geospatial-element-attribute-pair-indexes(
           $index/db:longitude-localname,
           $index/db:coordinate-system,
           $index/db:range-value-positions,
-          ($index/db:invalid-values, "ignore")[1]
+          ($index/db:invalid-values, $default-invalid-values)[1]
         )
       else
         admin:database-geospatial-element-attribute-pair-index(
@@ -2849,7 +2856,7 @@ declare function setup:add-geospatial-element-pair-indexes(
           $index/db:longitude-localname,
           $index/db:coordinate-system,
           $index/db:range-value-positions,
-          ($index/db:invalid-values, "ignore")[1]
+          ($index/db:invalid-values, $default-invalid-values)[1]
         )
       else
         admin:database-geospatial-element-pair-index(
@@ -2905,7 +2912,7 @@ declare function setup:add-geospatial-element-child-indexes(
           $index/db:coordinate-system,
           $index/db:range-value-positions,
           ($index/db:point-format, "point")[1],
-          ($index/db:invalid-values, "ignore")[1]
+          ($index/db:invalid-values, $default-invalid-values)[1]
         )
       else
         admin:database-geospatial-element-child-index(
