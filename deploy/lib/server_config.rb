@@ -1046,6 +1046,8 @@ In order to proceed please type: #{expected_response}
         deploy_triggers
       when 'rest-config'
         deploy_rest_config
+      when 'config'
+        deploy_config
       else
         raise HelpException.new("deploy", "Invalid WHAT")
     end
@@ -1863,12 +1865,12 @@ private
   def deploy_modules
     deploy_src()
     deploy_rest()
+    deploy_config()
   end
 
   def deploy_src
     test_dir = @properties['ml.xquery-test.dir']
     xquery_dir = @properties['ml.xquery.dir']
-    # modules_db = @properties['ml.modules-db']
     app_config_file = File.join xquery_dir, "/app/config/config.xqy"
     test_config_file = File.join test_dir, "/test-config.xqy"
     load_html_as_xml = @properties['ml.load-html-as-xml']
@@ -1965,6 +1967,54 @@ private
           },
           { :db_name => dest_db }
 
+      end
+
+      logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
+    end
+  end
+
+  def deploy_config
+    xquery_dir = @properties['ml.xquery.dir']
+    app_configs = @properties['ml.application-conf-file']
+    total_count = 0
+
+    modules_databases.each do |dest_db|
+      if dest_db == "filesystem"
+        logger.info "Skipping deployment of configurations to #{dest_db}.."
+        break
+      end
+
+      src_permissions = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ERU)
+
+      if ['rest', 'hybrid'].include? @properties["ml.app-type"]
+        # This app uses the REST API, so grant permissions to the rest roles. This allows REST extensions to call
+        # modules not deployed through the REST API.
+        # These roles are present in MarkLogic 6+.
+        src_permissions.push permissions('rest-admin', Roxy::ContentCapability::RU)
+        src_permissions.push permissions('rest-extension-user', Roxy::ContentCapability::EXECUTE)
+        src_permissions.flatten!
+      end
+
+      @logger.debug("source permissions: #{src_permissions}")
+
+      if app_configs.present?
+        logger.info "Deploying application configurations"
+        app_configs.split(',').each do |item|
+          buffer = File.read item
+          replace_properties(buffer, File.basename(item))
+          item_name = item
+          if item.start_with?("src/")
+            item_name = item[4, item.length]
+          end
+          item_name = '/' + item_name
+          logger.info "deploying application configuration #{item} with name #{item_name} on #{dest_db}"
+          total_count += xcc.load_buffer item_name,
+                                         buffer,
+                                         :db => dest_db,
+                                         :add_prefix => File.join(@properties["ml.modules-root"], "app/config/"),
+                                         :permissions => src_permissions
+        end
+        logger.info "Done deploying application configurations"
       end
 
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
