@@ -248,6 +248,10 @@ class ServerConfig < MLClient
         properties_file.gsub!(/error-handler=\/roxy\/error.xqy/, "error-handler=/MarkLogic/rest-api/error-handler.xqy")
       end
 
+      if app_type == "mvc"
+        properties_file.gsub!(/application-conf-file=deploy\/sample\/custom-config.xqy/, 'application-conf-file=src/app/config/config.xqy,deploy/sample/custom-config.xqy')
+      end
+
       # replace the text =random with a random string
       o = (33..126).to_a
       properties_file.gsub!(/=random/) do |match|
@@ -1046,8 +1050,6 @@ In order to proceed please type: #{expected_response}
         deploy_triggers
       when 'rest-config'
         deploy_rest_config
-      when 'config'
-        deploy_config
       else
         raise HelpException.new("deploy", "Invalid WHAT")
     end
@@ -1865,13 +1867,12 @@ private
   def deploy_modules
     deploy_src()
     deploy_rest()
-    deploy_config()
   end
 
   def deploy_src
     test_dir = @properties['ml.xquery-test.dir']
     xquery_dir = @properties['ml.xquery.dir']
-    app_config_file = File.join xquery_dir, "/app/config/config.xqy"
+    app_configs = @properties['ml.application-conf-file']
     test_config_file = File.join test_dir, "/test-config.xqy"
     load_html_as_xml = @properties['ml.load-html-as-xml']
     load_js_as_binary = @properties['ml.load-js-as-binary']
@@ -1898,6 +1899,7 @@ private
 
     end
 
+    total_count = 0
     modules_databases.each do |dest_db|
       if dest_db == "filesystem"
         logger.info "Skipping deployment of src to #{dest_db}.."
@@ -1906,7 +1908,6 @@ private
 
       ignore_us = []
       ignore_us << "^#{test_dir}.*$" unless test_dir.blank? || deploy_tests?(dest_db)
-      ignore_us << "^#{app_config_file}$"
       ignore_us << "^#{test_config_file}$"
       ignore_us << "^#{folders_to_ignore}$" unless folders_to_ignore.blank?
 
@@ -1921,7 +1922,34 @@ private
         src_permissions.flatten!
       end
 
-      @logger.debug("source permissions: #{src_permissions}")
+      @logger.debug "source permissions: #{src_permissions}"
+      if app_configs.present?
+        logger.debug "Deploying application configurations"
+
+        app_configs.split(',').each do |item|
+          buffer = File.read item
+          replace_properties(buffer, File.basename(item))
+
+          item_name = item
+          prefix = '/'
+          if item_name === 'src/app/config/config.xqy'
+            item_name = '/config.xqy'
+            ignore_us << '/app/config/config.xqy'
+            prefix = 'app/config/'
+          elsif item.start_with?("src/")
+            item_name = '/' + item[4, item.length]
+            ignore_us << item_name
+          end
+
+          logger.debug "deploying application configuration #{item} with name #{item_name} on #{dest_db}"
+          total_count += xcc.load_buffer item_name,
+                                         buffer,
+                                         :db => dest_db,
+                                         :add_prefix => File.join(@properties["ml.modules-root"], prefix),
+                                         :permissions => src_permissions
+        end
+        logger.debug "Done deploying application configurations"
+      end
 
       total_count = load_data xquery_dir,
                               :add_prefix => @properties["ml.modules-prefix"],
@@ -1933,16 +1961,6 @@ private
                               :load_css_as_binary => load_css_as_binary,
                               :permissions => src_permissions
 
-      if File.exist? app_config_file
-        buffer = File.read app_config_file
-        replace_properties(buffer, File.basename(app_config_file))
-
-        total_count += xcc.load_buffer "/config.xqy",
-                                       buffer,
-                                       :db => dest_db,
-                                       :add_prefix => File.join(@properties["ml.modules-root"], "app/config"),
-                                       :permissions => src_permissions
-      end
 
       if deploy_tests?(dest_db) && File.exist?(test_config_file)
         buffer = File.read test_config_file
@@ -1967,54 +1985,6 @@ private
           },
           { :db_name => dest_db }
 
-      end
-
-      logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
-    end
-  end
-
-  def deploy_config
-    xquery_dir = @properties['ml.xquery.dir']
-    app_configs = @properties['ml.application-conf-file']
-    total_count = 0
-
-    modules_databases.each do |dest_db|
-      if dest_db == "filesystem"
-        logger.info "Skipping deployment of configurations to #{dest_db}.."
-        break
-      end
-
-      src_permissions = permissions(@properties['ml.app-role'], Roxy::ContentCapability::ERU)
-
-      if ['rest', 'hybrid'].include? @properties["ml.app-type"]
-        # This app uses the REST API, so grant permissions to the rest roles. This allows REST extensions to call
-        # modules not deployed through the REST API.
-        # These roles are present in MarkLogic 6+.
-        src_permissions.push permissions('rest-admin', Roxy::ContentCapability::RU)
-        src_permissions.push permissions('rest-extension-user', Roxy::ContentCapability::EXECUTE)
-        src_permissions.flatten!
-      end
-
-      @logger.debug("source permissions: #{src_permissions}")
-
-      if app_configs.present?
-        logger.info "Deploying application configurations"
-        app_configs.split(',').each do |item|
-          buffer = File.read item
-          replace_properties(buffer, File.basename(item))
-          item_name = item
-          if item.start_with?("src/")
-            item_name = item[4, item.length]
-          end
-          item_name = '/' + item_name
-          logger.info "deploying application configuration #{item} with name #{item_name} on #{dest_db}"
-          total_count += xcc.load_buffer item_name,
-                                         buffer,
-                                         :db => dest_db,
-                                         :add_prefix => File.join(@properties["ml.modules-root"], "app/config/"),
-                                         :permissions => src_permissions
-        end
-        logger.info "Done deploying application configurations"
       end
 
       logger.info "\nLoaded #{total_count} #{pluralize(total_count, "document", "documents")} from #{xquery_dir} to #{xcc.hostname}:#{xcc.port}/#{dest_db} at #{DateTime.now.strftime('%m/%d/%Y %I:%M:%S %P')}\n"
