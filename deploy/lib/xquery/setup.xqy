@@ -1175,9 +1175,9 @@ declare function setup:do-restart($group-name as xs:string?) as item()*
         "Restarting hosts to make configuration changes take effect"),
 
       if ($group-id) then
-        fn:concat("Group ", $group-name, " restarted")
+        fn:concat("Invoked group ", $group-name, " restart")
       else
-        fn:concat("Cluster restarted")
+        fn:concat("Invoked cluster restart")
     )
   }
   catch ($ex)
