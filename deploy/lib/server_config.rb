@@ -566,8 +566,8 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       old_timestamp = go(%Q{http://#{@properties["ml.server"]}:8001/admin/v1/timestamp}, "get").body
       restart_basic
       retry_count = 0
-      retry_max = 5
-      retry_interval= 10
+      retry_max = @properties["ml.verify_retry_max"].to_i
+      retry_interval = @properties["ml.verify_retry_interval"].to_i
       new_timestamp = old_timestamp
       while retry_count < retry_max do
         begin
