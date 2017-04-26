@@ -68,7 +68,7 @@ declare variable $c:ROXY-ROUTES :=
  :
  : ***********************************************
  :)
-declare variable $c:CTRL-EXT := ("@ml.controller-ext", $def:CTRL-EXT)[1];
+declare variable $c:CTRL-EXT := ("@ml.controller-ext", $def:CTRL-EXT)[fn:not(. eq "@" || "ml.controller-ext")][1];
 
 (:
  : ***********************************************

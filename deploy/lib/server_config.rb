@@ -533,7 +533,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     return r
   end
 
-  def restart
+  def restart_basic
     @ml_username = @properties['ml.bootstrap-user'] || @properties['ml.user']
     if @ml_username == @properties['ml.bootstrap-user']
       @ml_password = @properties['ml.bootstrap-password']
@@ -567,6 +567,43 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     r.body = parse_body(r.body)
     logger.info r.body
     return true
+  end
+
+  # implemented verified restart
+  def restart
+    verify = find_arg(['--verify'])
+    if verify==='false'
+      restart_basic
+    else
+      # defaults to verified restart
+      old_timestamp = go(%Q{http://#{@properties["ml.server"]}:8001/admin/v1/timestamp}, "get").body
+      restart_basic
+      retry_count = 0
+      retry_max = @properties["ml.verify_retry_max"].to_i
+      retry_interval = @properties["ml.verify_retry_interval"].to_i
+      new_timestamp = old_timestamp
+      while retry_count < retry_max do
+        begin
+          new_timestamp = go(%Q{http://#{@properties["ml.server"]}:8001/admin/v1/timestamp}, "get").body
+        rescue
+          logger.info 'Verifying restart ...'
+          logger.debug 'Retry attempt ' + retry_count.to_s + ' failed'
+        end
+        if new_timestamp != old_timestamp
+          # indicates that restart is confirmed successful
+          break
+        end
+        logger.debug "Verifying restart..."
+        sleep retry_interval
+        retry_count += 1
+      end
+      if new_timestamp == old_timestamp
+        logger.warn "Could not verify restart"
+      else
+        logger.info 'Verified restart.'
+        logger.debug "Verified restart new #{new_timestamp} old #{old_timestamp}"
+      end
+    end
   end
 
   def merge
