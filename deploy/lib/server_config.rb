@@ -186,22 +186,26 @@ class ServerConfig < MLClient
       sample_properties = "roxy/sample/build.sample.properties"
       sample_options = "roxy/sample/all.sample.xml"
       sample_rest_properties = "roxy/sample/properties.sample.xml"
+      sample_app_config = "roxy/deploy/sample/custom-config.xqy"
     else
-    sample_config = ServerConfig.expand_path("#{@@path}/sample/ml-config.sample.xml")
-    sample_properties = ServerConfig.expand_path("#{@@path}/sample/build.sample.properties")
+      sample_config = ServerConfig.expand_path("#{@@path}/sample/ml-config.sample.xml")
+      sample_properties = ServerConfig.expand_path("#{@@path}/sample/build.sample.properties")
       sample_options = ServerConfig.expand_path("#{@@path}/sample/all.sample.xml")
       sample_rest_properties = ServerConfig.expand_path("#{@@path}/sample/properties.sample.xml")
+      sample_app_config = ServerConfig.expand_path("#{@@path}/sample/custom-config.xqy")
     end
 
     # output files
     build_properties = ServerConfig.expand_path("#{@@path}/build.properties")
     options_file = ServerConfig.expand_path("#{@@path}/../rest-api/config/options/all.xml")
     rest_properties = ServerConfig.expand_path("#{@@path}/../rest-api/config/properties.xml")
+    app_config = ServerConfig.expand_path("#{@@path}/../src/config/config.xqy")
 
     # dirs to create
     rest_ext_dir = ServerConfig.expand_path("#{@@path}/../rest-api/ext")
     rest_transforms_dir = ServerConfig.expand_path("#{@@path}/../rest-api/transforms")
     options_dir = ServerConfig.expand_path("#{@@path}/../rest-api/config/options")
+    config_dir = ServerConfig.expand_path("#{@@path}/../src/config")
 
     # get supplied options
     force = find_arg(['--force']).present?
@@ -248,10 +252,6 @@ class ServerConfig < MLClient
         properties_file.gsub!(/error-handler=\/roxy\/error.xqy/, "error-handler=/MarkLogic/rest-api/error-handler.xqy")
       end
 
-      if app_type == "mvc"
-        properties_file.gsub!(/application-conf-file=deploy\/sample\/custom-config.xqy/, 'application-conf-file=src/app/config/config.xqy,deploy/sample/custom-config.xqy')
-      end
-
       # replace the text =random with a random string
       o = (33..126).to_a
       properties_file.gsub!(/=random/) do |match|
@@ -261,6 +261,10 @@ class ServerConfig < MLClient
 
       # Update properties file to set server-version to value specified on command-line
       properties_file.gsub!(/server-version=6/, "server-version=#{server_version}")
+
+      if ["rest", "bare"].include? app_type
+        properties_file.gsub!(/application-conf-file=src\/app\/config\/config.xqy/, 'application-conf-file=src/config/config.xqy')
+      end
 
       # save the replacements
       open(build_properties, 'w') {|f| f.write(properties_file) }
@@ -273,6 +277,11 @@ class ServerConfig < MLClient
       FileUtils.mkdir_p options_dir
       copy_file sample_options, options_file
       copy_file sample_rest_properties, rest_properties
+    end
+
+    if ["rest", "bare"].include? app_type
+      FileUtils.mkdir_p config_dir
+      copy_file sample_app_config, app_config
     end
 
     target_config = ServerConfig.expand_path(ServerConfig.properties["ml.config.file"])
