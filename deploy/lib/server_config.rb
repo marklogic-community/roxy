@@ -186,22 +186,26 @@ class ServerConfig < MLClient
       sample_properties = "roxy/sample/build.sample.properties"
       sample_options = "roxy/sample/all.sample.xml"
       sample_rest_properties = "roxy/sample/properties.sample.xml"
+      sample_app_config = "roxy/deploy/sample/custom-config.xqy"
     else
-    sample_config = ServerConfig.expand_path("#{@@path}/sample/ml-config.sample.xml")
-    sample_properties = ServerConfig.expand_path("#{@@path}/sample/build.sample.properties")
+      sample_config = ServerConfig.expand_path("#{@@path}/sample/ml-config.sample.xml")
+      sample_properties = ServerConfig.expand_path("#{@@path}/sample/build.sample.properties")
       sample_options = ServerConfig.expand_path("#{@@path}/sample/all.sample.xml")
       sample_rest_properties = ServerConfig.expand_path("#{@@path}/sample/properties.sample.xml")
+      sample_app_config = ServerConfig.expand_path("#{@@path}/sample/custom-config.xqy")
     end
 
     # output files
     build_properties = ServerConfig.expand_path("#{@@path}/build.properties")
     options_file = ServerConfig.expand_path("#{@@path}/../rest-api/config/options/all.xml")
     rest_properties = ServerConfig.expand_path("#{@@path}/../rest-api/config/properties.xml")
+    app_config = ServerConfig.expand_path("#{@@path}/../src/config/config.xqy")
 
     # dirs to create
     rest_ext_dir = ServerConfig.expand_path("#{@@path}/../rest-api/ext")
     rest_transforms_dir = ServerConfig.expand_path("#{@@path}/../rest-api/transforms")
     options_dir = ServerConfig.expand_path("#{@@path}/../rest-api/config/options")
+    config_dir = ServerConfig.expand_path("#{@@path}/../src/config")
 
     # get supplied options
     force = find_arg(['--force']).present?
@@ -258,6 +262,10 @@ class ServerConfig < MLClient
       # Update properties file to set server-version to value specified on command-line
       properties_file.gsub!(/server-version=6/, "server-version=#{server_version}")
 
+      if ["rest", "bare"].include? app_type
+        properties_file.gsub!(/application-conf-file=src\/app\/config\/config.xqy/, 'application-conf-file=src/config/config.xqy')
+      end
+
       # save the replacements
       open(build_properties, 'w') {|f| f.write(properties_file) }
     end
@@ -269,6 +277,11 @@ class ServerConfig < MLClient
       FileUtils.mkdir_p options_dir
       copy_file sample_options, options_file
       copy_file sample_rest_properties, rest_properties
+    end
+
+    if ["rest", "bare"].include? app_type
+      FileUtils.mkdir_p config_dir
+      copy_file sample_app_config, app_config
     end
 
     target_config = ServerConfig.expand_path(ServerConfig.properties["ml.config.file"])
@@ -1905,8 +1918,7 @@ private
   def deploy_src
     test_dir = @properties['ml.xquery-test.dir']
     xquery_dir = @properties['ml.xquery.dir']
-    # modules_db = @properties['ml.modules-db']
-    app_config_file = File.join xquery_dir, "/app/config/config.xqy"
+    app_configs = @properties['ml.application-conf-file']
     test_config_file = File.join test_dir, "/test-config.xqy"
     load_html_as_xml = @properties['ml.load-html-as-xml']
     load_js_as_binary = @properties['ml.load-js-as-binary']
@@ -1933,6 +1945,7 @@ private
 
     end
 
+    total_count = 0
     modules_databases.each do |dest_db|
       if dest_db == "filesystem"
         logger.info "Skipping deployment of src to #{dest_db}.."
@@ -1941,7 +1954,6 @@ private
 
       ignore_us = []
       ignore_us << "^#{test_dir}.*$" unless test_dir.blank? || deploy_tests?(dest_db)
-      ignore_us << "^#{app_config_file}$"
       ignore_us << "^#{test_config_file}$"
       ignore_us << "^#{folders_to_ignore}$" unless folders_to_ignore.blank?
 
@@ -1956,7 +1968,34 @@ private
         src_permissions.flatten!
       end
 
-      @logger.debug("source permissions: #{src_permissions}")
+      @logger.debug "source permissions: #{src_permissions}"
+      if app_configs.present?
+        logger.debug "Deploying application configurations"
+
+        app_configs.split(',').each do |item|
+          buffer = File.read item
+          replace_properties(buffer, File.basename(item))
+
+          item_name = item
+          prefix = '/'
+          if item_name === 'src/app/config/config.xqy'
+            item_name = '/config.xqy'
+            ignore_us << '/app/config/config.xqy'
+            prefix = 'app/config/'
+          elsif item.start_with?("src/")
+            item_name = '/' + item[4, item.length]
+            ignore_us << item_name
+          end
+
+          logger.debug "deploying application configuration #{item} with name #{item_name} on #{dest_db}"
+          total_count += xcc.load_buffer item_name,
+                                         buffer,
+                                         :db => dest_db,
+                                         :add_prefix => File.join(@properties["ml.modules-root"], prefix),
+                                         :permissions => src_permissions
+        end
+        logger.debug "Done deploying application configurations"
+      end
 
       total_count = load_data xquery_dir,
                               :add_prefix => @properties["ml.modules-prefix"],
@@ -1968,16 +2007,6 @@ private
                               :load_css_as_binary => load_css_as_binary,
                               :permissions => src_permissions
 
-      if File.exist? app_config_file
-        buffer = File.read app_config_file
-        replace_properties(buffer, File.basename(app_config_file))
-
-        total_count += xcc.load_buffer "/config.xqy",
-                                       buffer,
-                                       :db => dest_db,
-                                       :add_prefix => File.join(@properties["ml.modules-root"], "app/config"),
-                                       :permissions => src_permissions
-      end
 
       if deploy_tests?(dest_db) && File.exist?(test_config_file)
         buffer = File.read test_config_file
