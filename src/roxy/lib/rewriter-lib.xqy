@@ -184,7 +184,7 @@ declare function rewriter:rewrite(
 
             return (
               if ($has-params or $i gt 1)
-                then "&amp;amp;"
+                then "&amp;"
                 else "?",
               subsequence($step-names,$i,1),
               "=",
