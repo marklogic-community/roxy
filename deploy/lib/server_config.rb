@@ -2487,19 +2487,61 @@ private
   end
 
   def execute_query_8(query, properties = {})
-    if properties[:app_name] != nil
-      raise ExitException.new("Executing queries with an app_name (currently) not supported with ML8+")
-    end
-
     headers = {
       "Content-Type" => "application/x-www-form-urlencoded"
     }
+    params = {}
 
-    params = {
-      :xquery => query,
-      :locale => LOCALE,
-      :tzoffset => "-18000"
-    }
+    if properties[:app_name] != nil
+      params[:xquery] = %Q{
+        xquery version "1.0-ml";
+
+        (: derived from qconsole-amped.xqy :)
+        declare function local:eval-options(
+          $server-id as xs:unsignedLong
+        ) as element()
+        {
+          let $database-id := xdmp:server-database($server-id)
+          let $collation := xdmp:server-collation($server-id)
+          let $modules-id := xdmp:server-modules-database($server-id)
+          let $xquery-version := xdmp:server-default-xquery-version($server-id)
+          let $modules-root := xdmp:server-root($server-id)
+          let $default-coordinate-system := xdmp:server-coordinate-system($server-id)
+          return
+            <options xmlns="xdmp:eval">{
+              if ($database-id eq xdmp:database()) then ()
+              else element database { $database-id },
+
+              if ($modules-id eq xdmp:modules-database()) then ()
+              else element modules { $modules-id },
+
+              if ($collation eq default-collation()) then ()
+              else element default-collation { $collation },
+
+              if (empty($default-coordinate-system)) then ()
+              else element default-coordinate-system { $default-coordinate-system },
+
+              if ($xquery-version eq xdmp:xquery-version()) then ()
+              else element default-xquery-version { $xquery-version },
+
+              (: we should always have a root path, but better safe than sorry :)
+              if (empty($modules-root) or $modules-root eq xdmp:modules-root()) then ()
+              else element root { $modules-root },
+
+              element isolation { "different-transaction" }
+            }</options>
+        };
+
+        let $query := <query><![CDATA[#{query}]]></query>
+        return xdmp:eval(
+          string($query),
+          (),
+          local:eval-options(xdmp:server("#{properties[:app_name]}"))
+        )
+      }
+    else
+      params[:xquery] = query
+    end
 
     if properties[:db_name] != nil
       params[:database] = properties[:db_name]
