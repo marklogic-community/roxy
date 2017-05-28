@@ -323,15 +323,19 @@ class ServerConfig < MLClient
   def self.prompt_server_version
     if @@no_prompt
       puts 'Required option --server-version=[version] not specified with valid value,
-but --no-prompt parameter prevents prompting for password. Assuming 8.'
+but --no-prompt parameter prevents prompting for password.'
+      server_version = 0
     else
       puts 'Required option --server-version=[version] not specified with valid value.
 
   What is the version number of the target MarkLogic server? [5, 6, 7, 8, or 9]'
       server_version = STDIN.gets.chomp.to_i
-      server_version = 8 if server_version == 0
-      server_version
     end
+    if server_version == 0
+      puts "Defaulting to 8.."
+      server_version = 8
+    end
+    server_version
   end
 
   def self.index
@@ -1261,10 +1265,10 @@ In order to proceed please type: #{expected_response}
     if File.exist?(@properties["ml.schemas.dir"])
       deploy_schemas
     end
-    if @properties["ml.triggers-db"] then
+    if @properties["ml.triggers-db"]
       deploy_triggers
     end
-    if @properties["ml.triggers-db"] and @properties["ml.data.dir"] and File.exist?(ServerConfig.expand_path(@properties["ml.pipeline-config-file"])) then
+    if @properties["ml.triggers-db"] and @properties["ml.data.dir"] and File.exist?(ServerConfig.expand_path(@properties["ml.pipeline-config-file"]))
       deploy_cpf
     end
     deploy_content
@@ -3046,7 +3050,7 @@ private
     properties.merge!(ServerConfig.load_properties(properties_file, "ml."))
 
     #Look for optional shared_config, if it is set grab the properties from path relative to the root of the roxy project
-    if properties['ml.shared_config'] then
+    if properties['ml.shared_config']
       shared_properties_file = ServerConfig.expand_path("#{@@path}/../#{properties['ml.shared_config']}")
       properties.merge!(ServerConfig.load_properties(shared_properties_file))
     end
