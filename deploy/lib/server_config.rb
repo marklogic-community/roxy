@@ -2238,7 +2238,7 @@ private
         :http_connection_open_timeout => @properties["ml.http.open-timeout"].to_i,
         :http_connection_read_timeout => @properties["ml.http.read-timeout"].to_i,
         :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i,
-        :use_https_for_rest => @properties["ml.ssl-certificate-template"].present?
+        :use_https_for_rest => @properties["ml.ssl-certificate-template"].present? || @properties["ml.use-https-for-rest"] == "true"
       })
     else
       @mlRest
