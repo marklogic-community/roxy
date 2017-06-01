@@ -561,7 +561,6 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "roles")) then setup:create-roles($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "users")) then setup:create-users($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "users") or map:contains($optionsMap, "roles")) then setup:associate-users-with-roles($import-config) else (),
-        if(map:contains($optionsMap, "all") or map:contains($optionsMap, "amps")) then setup:create-amps($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "external-security")) then setup:create-external-security($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "external-security")) then setup:apply-external-security-settings($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "credentials")) then setup:create-credentials($import-config) else (),
@@ -579,6 +578,7 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
       if(fn:not($do-internals)) then (
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "databases")) then setup:create-databases($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "databases")) then setup:attach-forests($import-config) else (),
+        if(map:contains($optionsMap, "all") or map:contains($optionsMap, "amps")) then setup:create-amps($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "databases")) then setup:apply-database-settings($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "databases")) then setup:configure-databases($import-config) else (),
         if(map:contains($optionsMap, "all") or map:contains($optionsMap, "indexes")) then setup:configure-indexes($import-config) else (),
