@@ -543,23 +543,48 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
     if group == "cluster"
       logger.info "Restarting MarkLogic Server cluster of #{@hostname}"
-      r = go(%Q{http://#{@properties["ml.server"]}:#{@properties["ml.bootstrap-port"]}/manage/v2?format=json}, "post", {
-        'Content-Type' => 'application/json'
-      }, nil, %Q{
-        { "operation": "restart-local-cluster" }
-      })
     else
       logger.info "Restarting MarkLogic Server group #{group}"
-      r = go(%Q{http://#{@properties["ml.server"]}:#{@properties["ml.bootstrap-port"]}/manage/v2/groups/#{group}?format=json}, "post", {
-        'Content-Type' => 'application/json'
-      }, nil, %Q{
-        { "operation": "restart-group" }
-      })
     end
 
-    raise ExitException.new(r.body) unless r.code.to_i == 202
+    if @server_version > 7
+      # MarkLogic 8+, make use of Management REST api and return details of all involved hosts
 
-    return JSON.parse(r.body)['restart']['last-startup']
+      if group == "cluster"
+        r = go(%Q{http://#{@properties["ml.server"]}:#{@properties["ml.bootstrap-port"]}/manage/v2?format=json}, "post", {
+          'Content-Type' => 'application/json'
+        }, nil, %Q{
+          { "operation": "restart-local-cluster" }
+        })
+      else
+        r = go(%Q{http://#{@properties["ml.server"]}:#{@properties["ml.bootstrap-port"]}/manage/v2/groups/#{group}?format=json}, "post", {
+          'Content-Type' => 'application/json'
+        }, nil, %Q{
+          { "operation": "restart-group" }
+        })
+      end
+
+      raise ExitException.new(r.body) unless r.code.to_i == 202
+
+      return JSON.parse(r.body)['restart']['last-startup']
+    else
+      # MarkLogic 7- fallback, restart as before, and only verify restart of bootstrap host
+
+      old_timestamp = go(%Q{http://#{@properties["ml.server"]}:8001/admin/v1/timestamp}, "get").body
+
+      logger.debug "this: #{self}"
+      setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
+      r = execute_query %Q{#{setup} setup:do-restart("#{group}")}
+      logger.debug "code: #{r.code.to_i}"
+
+      r.body = parse_body(r.body)
+      logger.info r.body
+
+      return [{
+        'host-id' => @properties["ml.server"],
+        'value' => old_timestamp
+      }]
+    end
   end
 
   def get_host_names
@@ -567,7 +592,8 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
     raise ExitException.new(r.body) unless r.code.to_i == 200
 
-    names = {}
+    names = { @properties["ml.server"] => @properties["ml.server"] } # ml7 fallback
+
     JSON.parse(r.body)['host-default-list']['list-items']['list-item'].each do |host|
       names[host['idref']] = host['nameref']
     end
