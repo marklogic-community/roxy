@@ -1337,7 +1337,7 @@ In order to proceed please type: #{expected_response}
 
     password_prompt
     encoded_password = url_encode(@ml_password)
-    connection_string = %Q{xcc://#{@properties['ml.user']}:#{encoded_password}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
+    connection_string = %Q{xcc://#{@ml_username}:#{encoded_password}@#{@properties['ml.server']}:#{@properties['ml.xcc-port']}/#{@properties['ml.content-db']}}
 
     options = Hash.new("")
     # handle Roxy convention for CoRB properties first
