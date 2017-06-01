@@ -2870,6 +2870,15 @@ private
   end
 
   def replace_properties(contents, name)
+    # warn for deprecated properties
+    deprecated={
+      "app-modules-db" => "modules-db"
+    }
+    contents.scan(/(@ml.|[@$]\{)(app-modules-db)(\}?)/).each do |match|
+      key=match[1]
+      logger.warn("Deprecated property #{match.join} used in #{name}, please use ${#{deprecated[key]}} instead!")
+    end
+
     # make sure to apply descending order to replace @ml.foo-bar before @ml.foo
     @properties.sort {|x,y| y <=> x}.each do |k, v|
       # new property syntax: @{app-name} or ${app-name}
