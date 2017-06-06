@@ -195,15 +195,18 @@ declare function cpf:install-cpf-pipelines(
       </options>
     )
   return
-    xdmp:eval(
-      'import module namespace p="http://marklogic.com/cpf/pipelines" at "/MarkLogic/cpf/pipelines.xqy";
-       declare variable $doc external;
-       p:insert($doc/*)',
-      (xs:QName("doc"), $doc),
-      <options xmlns="xdmp:eval">
-        <database>{xdmp:triggers-database()}</database>
-      </options>
-    )
+    if (fn:empty($doc)) then
+      fn:error(xs:QName("NOTFOUND"), "Pipeline config " || $uri || " not found. Did you deploy modules?")
+    else
+      xdmp:eval(
+        'import module namespace p="http://marklogic.com/cpf/pipelines" at "/MarkLogic/cpf/pipelines.xqy";
+         declare variable $doc external;
+         p:insert($doc/*)',
+        (xs:QName("doc"), $doc),
+        <options xmlns="xdmp:eval">
+          <database>{xdmp:triggers-database()}</database>
+        </options>
+      )
 };
 
 (:

@@ -147,6 +147,11 @@ class ServerConfig < MLClient
     return result
   end
 
+  def ServerConfig.strip_path(path)
+    basepath = File.expand_path(@@path + "/..", @@context)
+    return path.sub(basepath + '/', '')
+  end
+
   def self.jar
     raise HelpException.new("jar", "You must be using JRuby to create a jar") unless RUBY_PLATFORM == "java"
     begin
@@ -302,9 +307,9 @@ class ServerConfig < MLClient
     if @@is_jar
       sample_config = "roxy/sample/pipeline-config.sample.xml"
     else
-    sample_config = ServerConfig.expand_path("#{@@path}/sample/pipeline-config.sample.xml")
+      sample_config = ServerConfig.expand_path("#{@@path}/sample/pipeline-config.sample.xml")
     end
-    target_config = ServerConfig.expand_path("#{@@path}/pipeline-config.xml")
+    target_config = ServerConfig.expand_path(ServerConfig.properties["ml.pipeline-config-file"])
 
     force = find_arg(['--force']).present?
     if !force && File.exists?(target_config)
@@ -1194,7 +1199,7 @@ In order to proceed please type: #{expected_response}
     if @properties["ml.triggers-db"] then
       deploy_triggers
     end
-    if @properties["ml.triggers-db"] and @properties["ml.data.dir"] and File.exist?(ServerConfig.expand_path("#{@@path}/pipeline-config.xml")) then
+    if @properties["ml.triggers-db"] and @properties["ml.data.dir"] and File.exist?(ServerConfig.expand_path(@properties["ml.pipeline-config-file"])) then
       deploy_cpf
     end
     deploy_content
@@ -2182,18 +2187,24 @@ private
   end
 
   def deploy_cpf
+    default_cpf_config_file = ServerConfig.expand_path(ServerConfig.properties["ml.pipeline-config-file"])
+    cpf_config_file = ServerConfig.expand_path(@properties["ml.pipeline-config-file"])
+
     if @properties["ml.triggers-db"].blank? || @properties["ml.data.dir"].blank?
-      logger.error "To use CPF, you must define the triggers-db property in your build.properties file"
-    elsif !File.exist?(ServerConfig.expand_path("#{@@path}/pipeline-config.xml"))
-      logger.error <<-ERR.strip_heredoc
-        Before you can deploy CPF, you must define a configuration. Steps:
-        1. Run 'ml initcpf'
-        2. Edit deploy/pipeline-config.xml to set up your domain and pipelines
-        3. Run 'ml <env> deploy cpf')
-      ERR
+      logger.error "To use CPF, you must define the triggers-db property in your deploy/build.properties file"
+    elsif !File.exist?(cpf_config_file)
+      msg = "Before you can deploy CPF, you must define a configuration. Steps:"
+      if !File.exist?(default_cpf_config_file) && !File.exist?(cpf_config_file)
+        msg = msg + "\n- CPF requires a pipeline-config file, run ml initcpf to create a sample."
+      end
+      if !File.exist?(cpf_config_file) && cpf_config_file != default_cpf_config_file
+        msg = msg + "\n- Copy #{ServerConfig.strip_path(default_cpf_config_file)} to #{ServerConfig.strip_path(cpf_config_file)}."
+      end
+      msg = msg + "\n- Edit #{ServerConfig.strip_path(cpf_config_file)} to customize your domain and pipelines for the given environment."
+      logger.error msg
     else
-      cpf_config = File.read ServerConfig.expand_path("#{@@path}/pipeline-config.xml")
-      replace_properties(cpf_config, "pipeline-config.xml")
+      cpf_config = File.read cpf_config_file
+      replace_properties(cpf_config, ServerConfig.strip_path(cpf_config_file))
       cpf_code = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/cpf.xqy")
       query = %Q{#{cpf_code} cpf:load-from-config(#{cpf_config})}
       logger.debug(query)
