@@ -652,7 +652,9 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
           retry_count += 1
         end
 
-        if new_timestamp == old_timestamp
+        if retry_max < 1
+          puts ": SKIPPED"
+        elsif new_timestamp == old_timestamp
           puts ": FAILED"
         else
           puts ": OK"
