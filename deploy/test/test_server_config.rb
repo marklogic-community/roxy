@@ -58,16 +58,18 @@ describe ServerConfig do
   describe "bootstrap" do
 
     before do
-      @version = ENV['ROXY_TEST_SERVER_VERSION'] || 7
+      @version = ENV['ROXY_TEST_SERVER_VERSION'] || 8
+      @datadir = ENV['ROXY_TEST_SERVER_VERSION'] || 7
       @logger = Logger.new(STDOUT)
       @logger.info "Testing against MarkLogic version #{@version}.."
 
       # cheat the local environment into the command line
       ARGV << "local"
 
-      @properties = ServerConfig.properties(File.expand_path("../data/ml#{@version}-properties/", __FILE__))
+      @properties = ServerConfig.properties(File.expand_path("../data/ml#{@datadir}-properties/", __FILE__))
+      @properties['ml.server-version'] = @version.to_s
       @s = ServerConfig.new({
-          :config_file => File.expand_path("../data/ml#{@version}-config.xml", __FILE__),
+          :config_file => File.expand_path("../data/ml#{@datadir}-config.xml", __FILE__),
           :properties => @properties,
           :logger => @logger
         })
