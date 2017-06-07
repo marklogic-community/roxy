@@ -104,6 +104,9 @@ class ServerConfig < MLClient
     else
       @qconsole_port = @bootstrap_port
     end
+
+    r = execute_query %Q{xdmp:host-name()}
+    @properties["ml.server-name"] = parse_body(r.body)
   end
 
   def get_properties
