@@ -533,7 +533,10 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     return r
   end
 
-  def restart_group(group = nil)
+  def restart_group(group = nil, legacy = false)
+    logger.debug "group: #{group}"
+    logger.debug "legacy: #{legacy}"
+
     if ! group
       # Note:
       # Restarting partial cluster is unsafe when working with multiple groups.
@@ -547,7 +550,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       logger.info "Restarting MarkLogic Server group #{group}"
     end
 
-    if @server_version > 7
+    if @server_version > 7 && !legacy
       # MarkLogic 8+, make use of Management REST api and return details of all involved hosts
 
       if group == "cluster"
@@ -572,7 +575,6 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
       old_timestamp = go(%Q{http://#{@properties["ml.server"]}:8001/admin/v1/timestamp}, "get").body
 
-      logger.debug "this: #{self}"
       setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
       r = execute_query %Q{#{setup} setup:do-restart("#{group}")}
       logger.debug "code: #{r.code.to_i}"
@@ -604,6 +606,11 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
   def restart
     # Default to verified restart
     verify = find_arg(['--verify']) != 'false'
+    # Default to using Management Rest api (if available)
+    legacy = find_arg(['--legacy']) != nil
+
+    logger.debug "verify: #{verify}"
+    logger.debug "legacy: #{legacy}"
 
     group = next_arg("^[^-]")
 
@@ -615,11 +622,11 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
     end
 
     if ! verify
-      restart_group(group)
+      restart_group(group, legacy)
     else
-      old_timestamps = restart_group(group)
-
       host_names = get_host_names()
+
+      old_timestamps = restart_group(group, legacy)
 
       # Iterate until all hosts have restarted (or max is reached)
       old_timestamps.each do |host|
