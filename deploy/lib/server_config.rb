@@ -1655,10 +1655,10 @@ Provides listings of various kinds of settings supported within ml-config.xml.
       raise ExitException.new("Deploy triggers requires a triggers database")
     end
 
-    target_config = ServerConfig.expand_path(ServerConfig.properties["ml.triggers.file"])
+    target_config = ServerConfig.expand_path(@properties["ml.triggers.file"])
 
     if !File.exist?(target_config)
-      logger.error "ml.triggers.file=#{ServerConfig.properties['ml.triggers.file']}"
+      logger.error "ml.triggers.file=#{@properties['ml.triggers.file']}"
       logger.error <<-ERR.strip_heredoc
         Before you can deploy triggers, you must define a configuration. Steps:
         1. Copy deploy/sample/triggers-config.sample.xml to #{target_config}
@@ -2473,10 +2473,6 @@ private
       end
     end while (needs_rescan == true)
 
-    sub_me.each do |k,v|
-      sub_me[k] = v.xquery_safe
-    end
-
     raise DanglingVarsException.new(dangling_vars) if dangling_vars.length > 0
 
     sub_me
@@ -2717,151 +2713,151 @@ private
     config_files.split(",").each do |config_file|
       config = File.read(config_file)
 
-    # Build the triggers db if it is provided
-    if @properties['ml.triggers-db'].present?
+      # Build the triggers db if it is provided
+      if @properties['ml.triggers-db'].present?
 
-      if @properties['ml.triggers-db'] != @properties['ml.modules-db']
-        config.gsub!("@ml.triggers-db-xml", triggers_db_xml)
-        config.gsub!("@ml.triggers-assignment", triggers_assignment)
+        if @properties['ml.triggers-db'] != @properties['ml.modules-db']
+          config.gsub!("@ml.triggers-db-xml", triggers_db_xml)
+          config.gsub!("@ml.triggers-assignment", triggers_assignment)
+        else
+          config.gsub!("@ml.triggers-db-xml", "")
+          config.gsub!("@ml.triggers-assignment", "")
+        end
+
+        config.gsub!("@ml.triggers-mapping",
+          %Q{
+          <triggers-database name="@ml.triggers-db"/>
+          })
+
       else
         config.gsub!("@ml.triggers-db-xml", "")
         config.gsub!("@ml.triggers-assignment", "")
+        config.gsub!("@ml.triggers-mapping", "")
       end
 
-      config.gsub!("@ml.triggers-mapping",
-        %Q{
-        <triggers-database name="@ml.triggers-db"/>
-        })
+      if @properties['ml.xcc-port'].present? and @properties['ml.install-xcc'] != 'false'
+        config.gsub!("@ml.xdbc-server", xdbc_server)
+      else
+        config.gsub!("@ml.xdbc-server", "")
+      end
 
-    else
-      config.gsub!("@ml.triggers-db-xml", "")
-      config.gsub!("@ml.triggers-assignment", "")
-      config.gsub!("@ml.triggers-mapping", "")
-    end
+      if @properties['ml.odbc-port'].present?
+        config.gsub!("@ml.odbc-server", odbc_server)
+      else
+        config.gsub!("@ml.odbc-server", "")
+      end
 
-    if @properties['ml.xcc-port'].present? and @properties['ml.install-xcc'] != 'false'
-      config.gsub!("@ml.xdbc-server", xdbc_server)
-    else
-      config.gsub!("@ml.xdbc-server", "")
-    end
+      # Build the schemas db if it is provided
+      if @properties['ml.schemas-db'].present?
 
-    if @properties['ml.odbc-port'].present?
-      config.gsub!("@ml.odbc-server", odbc_server)
-    else
-      config.gsub!("@ml.odbc-server", "")
-    end
+        if @properties['ml.schemas-db'] != @properties['ml.modules-db']
+          config.gsub!("@ml.schemas-db-xml", schemas_db_xml)
+          config.gsub!("@ml.schemas-assignment", schemas_assignment)
+        else
+          config.gsub!("@ml.schemas-db-xml", "")
+          config.gsub!("@ml.schemas-assignment", "")
+        end
 
-    # Build the schemas db if it is provided
-    if @properties['ml.schemas-db'].present?
+        config.gsub!("@ml.schemas-mapping",
+          %Q{
+          <schema-database name="@ml.schemas-db"/>
+          })
 
-      if @properties['ml.schemas-db'] != @properties['ml.modules-db']
-        config.gsub!("@ml.schemas-db-xml", schemas_db_xml)
-        config.gsub!("@ml.schemas-assignment", schemas_assignment)
       else
         config.gsub!("@ml.schemas-db-xml", "")
         config.gsub!("@ml.schemas-assignment", "")
+        config.gsub!("@ml.schemas-mapping", "")
       end
 
-      config.gsub!("@ml.schemas-mapping",
-        %Q{
-        <schema-database name="@ml.schemas-db"/>
-        })
+      # Build the test appserver and db if it is provided
+      if @properties['ml.test-content-db'].present? &&
+         @properties['ml.test-port'].present? &&
+         @environment != "prod"
 
-    else
-      config.gsub!("@ml.schemas-db-xml", "")
-      config.gsub!("@ml.schemas-assignment", "")
-      config.gsub!("@ml.schemas-mapping", "")
-    end
+        config.gsub!("@ml.test-content-db-xml", test_content_db_xml)
+        config.gsub!("@ml.test-content-db-assignment", test_content_db_assignment)
+        config.gsub!("@ml.test-appserver", test_appserver)
 
-    # Build the test appserver and db if it is provided
-    if @properties['ml.test-content-db'].present? &&
-       @properties['ml.test-port'].present? &&
-       @environment != "prod"
-
-      config.gsub!("@ml.test-content-db-xml", test_content_db_xml)
-      config.gsub!("@ml.test-content-db-assignment", test_content_db_assignment)
-      config.gsub!("@ml.test-appserver", test_appserver)
-
-    else
-      config.gsub!("@ml.test-content-db-xml", "")
-      config.gsub!("@ml.test-content-db-assignment", "")
-      config.gsub!("@ml.test-appserver", "")
-    end
-
-    # Build the test modules db if it is different from the app modules db
-    if @properties['ml.test-modules-db'].present? &&
-       @properties['ml.test-modules-db'] != @properties['ml.modules-db']
-
-      config.gsub!("@ml.test-modules-db-xml", test_modules_db_xml)
-      config.gsub!("@ml.test-modules-db-assignment", test_modules_db_assignment)
-
-    else
-      config.gsub!("@ml.test-modules-db-xml", "")
-      config.gsub!("@ml.test-modules-db-assignment", "")
-    end
-
-    if @properties['ml.test-user'].present?
-
-      config.gsub!("@ml.test-user-xml", test_user_xml)
-
-    else
-      config.gsub!("@ml.test-user-xml", "")
-    end
-
-    if @properties['ml.rest-port'].present?
-
-      # Set up a REST API app server, distinct from the main application.
-      config.gsub!("@ml.rest-appserver", rest_appserver)
-
-      if @properties['ml.rest-modules-db'].present? &&
-         @properties['ml.rest-modules-db'] != @properties['ml.modules-db']
-         config.gsub!("@ml.rest-modules-db-xml", rest_modules_db_xml)
-         config.gsub!("@ml.rest-modules-db-assignment", rest_modules_db_assignment)
       else
+        config.gsub!("@ml.test-content-db-xml", "")
+        config.gsub!("@ml.test-content-db-assignment", "")
+        config.gsub!("@ml.test-appserver", "")
+      end
+
+      # Build the test modules db if it is different from the app modules db
+      if @properties['ml.test-modules-db'].present? &&
+         @properties['ml.test-modules-db'] != @properties['ml.modules-db']
+
+        config.gsub!("@ml.test-modules-db-xml", test_modules_db_xml)
+        config.gsub!("@ml.test-modules-db-assignment", test_modules_db_assignment)
+
+      else
+        config.gsub!("@ml.test-modules-db-xml", "")
+        config.gsub!("@ml.test-modules-db-assignment", "")
+      end
+
+      if @properties['ml.test-user'].present?
+
+        config.gsub!("@ml.test-user-xml", test_user_xml)
+
+      else
+        config.gsub!("@ml.test-user-xml", "")
+      end
+
+      if @properties['ml.rest-port'].present?
+
+        # Set up a REST API app server, distinct from the main application.
+        config.gsub!("@ml.rest-appserver", rest_appserver)
+
+        if @properties['ml.rest-modules-db'].present? &&
+           @properties['ml.rest-modules-db'] != @properties['ml.modules-db']
+           config.gsub!("@ml.rest-modules-db-xml", rest_modules_db_xml)
+           config.gsub!("@ml.rest-modules-db-assignment", rest_modules_db_assignment)
+        else
+          config.gsub!("@ml.rest-modules-db-xml", "")
+          config.gsub!("@ml.rest-modules-db-assignment", "")
+        end
+
+      else
+        config.gsub!("@ml.rest-appserver", "")
         config.gsub!("@ml.rest-modules-db-xml", "")
         config.gsub!("@ml.rest-modules-db-assignment", "")
       end
 
-    else
-      config.gsub!("@ml.rest-appserver", "")
-      config.gsub!("@ml.rest-modules-db-xml", "")
-      config.gsub!("@ml.rest-modules-db-assignment", "")
-    end
+      if @properties['ml.forest-data-dir'].present?
+        config.gsub!("@ml.forest-data-dir-xml",
+          %Q{
+            <data-directory>@ml.forest-data-dir</data-directory>
+          })
+      else
+        config.gsub!("@ml.forest-data-dir-xml", "")
+      end
 
-    if @properties['ml.forest-data-dir'].present?
-      config.gsub!("@ml.forest-data-dir-xml",
-        %Q{
-          <data-directory>@ml.forest-data-dir</data-directory>
-        })
-    else
-      config.gsub!("@ml.forest-data-dir-xml", "")
-    end
+      if !@properties['ml.rewrite-resolves-globally'].nil?
+        config.gsub!("@ml.rewrite-resolves-globally",
+          %Q{
+            <rewrite-resolves-globally>#{@properties['ml.rewrite-resolves-globally']}</rewrite-resolves-globally>
+          })
+      elsif ['rest', 'hybrid'].include?(@properties["ml.app-type"])
+        config.gsub!("@ml.rewrite-resolves-globally",
+          %Q{
+            <rewrite-resolves-globally>true</rewrite-resolves-globally>
+          })
+      else
+        config.gsub!("@ml.rewrite-resolves-globally", "")
+      end
 
-    if !@properties['ml.rewrite-resolves-globally'].nil?
-      config.gsub!("@ml.rewrite-resolves-globally",
-        %Q{
-          <rewrite-resolves-globally>#{@properties['ml.rewrite-resolves-globally']}</rewrite-resolves-globally>
-        })
-    elsif ['rest', 'hybrid'].include?(@properties["ml.app-type"])
-      config.gsub!("@ml.rewrite-resolves-globally",
-        %Q{
-          <rewrite-resolves-globally>true</rewrite-resolves-globally>
-        })
-    else
-      config.gsub!("@ml.rewrite-resolves-globally", "")
-    end
+      if @properties['ml.ssl-certificate-template'].present?
+        config.gsub!("@ml.ssl-certificate-xml", ssl_certificate_xml)
+      else
+        config.gsub!("@ml.ssl-certificate-xml", "")
+      end
 
-    if @properties['ml.ssl-certificate-template'].present?
-      config.gsub!("@ml.ssl-certificate-xml", ssl_certificate_xml)
-    else
-      config.gsub!("@ml.ssl-certificate-xml", "")
-    end
+      replace_properties(config, File.basename(config_file), true)
 
-    replace_properties(config, File.basename(config_file))
-
-    # escape unresolved braces, they have special meaning in XQuery
-    config.gsub!("{", "{{")
-    config.gsub!("}", "}}")
+      # escape unresolved braces, they have special meaning in XQuery
+      config.gsub!("{", "{{")
+      config.gsub!("}", "}}")
 
       configs << config
     end
@@ -2869,7 +2865,7 @@ private
     %Q{(#{configs.join(", ")})}
   end
 
-  def replace_properties(contents, name)
+  def replace_properties(contents, name, xquery = false)
     # warn for deprecated properties
     deprecated={
       "app-modules-db" => "modules-db"
@@ -2881,6 +2877,11 @@ private
 
     # make sure to apply descending order to replace @ml.foo-bar before @ml.foo
     @properties.sort {|x,y| y <=> x}.each do |k, v|
+      if xquery
+        # escape XML specials, they have special meaning in XQuery
+        v = v.xquery_safe
+      end
+
       # new property syntax: @{app-name} or ${app-name}
       n = k.sub("ml.", "")
       contents.gsub!("@{#{n}}", v)
@@ -2914,7 +2915,9 @@ private
     environments = properties['ml.environments'].split(",") if properties['ml.environments']
     environments = ["local", "dev", "prod"] unless environments
 
-    environment = find_arg(environments)
+    if environments.index(ARGV[0])
+      environment = ARGV.shift
+    end
 
     properties["environment"] = environment if environment
     properties["ml.environment"] = environment if environment
