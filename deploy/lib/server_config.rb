@@ -605,7 +605,7 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
 
   def restart
     # Default to verified restart
-    verify = find_arg(['--verify']) != 'false'
+    verify = find_arg(['--no-verify']) == nil  && find_arg(['--verify']) != 'false'
     # Default to using Management Rest api (if available)
     legacy = find_arg(['--legacy']) != nil
 
