@@ -2039,7 +2039,7 @@ private
     end
   end
 
-  def deploy_rest
+  def deploy_rest(test = false)
     # Deploy options, extensions to the REST API server
     if ['rest', 'hybrid'].include? @properties["ml.app-type"]
       # Verify that we're not trying to run REST from the filesystem
@@ -2058,6 +2058,37 @@ private
       deploy_rest_config()
       deploy_ext()
       deploy_transform()
+
+      if !test &&
+         @properties['ml.test-content-db'].present? &&
+         @properties['ml.test-port'].present? &&
+         !@properties['ml.do-not-deploy-tests'].split(",").include?(@environment)
+
+         # preserve original mlRest client
+         org_mlRest = @mlRest
+
+         # recreate client, with test settings
+         @mlRest = Roxy::MLRest.new({
+           :user_name => @ml_username,
+           :password => @ml_password,
+           :server => @hostname,
+           :app_port => @properties["ml.app-port"],
+           :rest_port => @properties["ml.test-port"],
+           :logger => @logger,
+           :server_version => @server_version,
+           :http_connection_retry_count => @properties["ml.http.retry-count"].to_i,
+           :http_connection_open_timeout => @properties["ml.http.open-timeout"].to_i,
+           :http_connection_read_timeout => @properties["ml.http.read-timeout"].to_i,
+           :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i,
+           :use_https_for_rest => @properties["ml.ssl-certificate-template"].present? || @properties["ml.use-https-for-rest"] == "true"
+         })
+
+         # rerun deploy rest
+         deploy_rest(true)
+
+         # restore original client
+         @mlRest = org_mlRest
+      end
     end
   end
 
