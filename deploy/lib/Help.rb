@@ -213,11 +213,14 @@ class Help
 
       General options:
         -v, [--verbose]  # Verbose output
+        --no-verify      # Skip verifying the restart
+        --legacy         # Don't use Management REST api
 
       Restart the MarkLogic process in the given environment on each host in the
       specified group. If no group is specified, restart the MarkLogic process
       on each host in the group to which the target host belongs. Use 'cluster'
-      to restart all hosts within the cluster to which the target belongs.
+      to restart all hosts within the cluster to which the target belongs. Restart
+      is verified by default, Management REST api is used if available.
     DOC
   end
 

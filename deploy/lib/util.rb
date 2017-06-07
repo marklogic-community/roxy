@@ -36,6 +36,22 @@ def find_arg(args = [])
   nil
 end
 
+def next_arg(match)
+  ARGV.each do |arg|
+    # Exclude any argument passed from command line.
+    if arg.match(match)
+
+      # Remove group from arguments list
+      index = ARGV.index(arg)
+      ARGV.slice!(index)
+
+      # Bail out on first valid arg
+      return arg
+    end
+  end
+  nil
+end
+
 def load_prop_from_args(props)
   ARGV.each do |a|
     if a.match(/(^--)(ml\..*)(=)(.*)/)
