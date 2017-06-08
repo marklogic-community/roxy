@@ -363,6 +363,10 @@ declare function local:run() {
   return
     if ($suite) then
       let $result := t:run-suite($suite, $tests, $run-suite-teardown, $run-teardown)
+      let $_ :=
+        if (fn:number($result/@failed) > 0) then
+          xdmp:set-response-code(409, "There are failed tests")
+        else ()
       return
         if ($format eq "junit") then
           local:format-junit($result)
