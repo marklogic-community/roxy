@@ -12,9 +12,9 @@ describe ServerConfig do
 
     it "should load the properties" do
       @properties.must_be_kind_of Hash
-      @properties['test.user'].must_equal 'admin'
-      @properties['test.password'].must_equal 'admin'
       @properties['test.app-name'].must_equal 'roxy'
+      @properties['test.modules-root'].must_equal '/'
+      @properties['test.content-forests-per-host'].must_equal '1'
     end
   end
 
