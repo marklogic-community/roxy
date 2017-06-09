@@ -2412,8 +2412,10 @@ private
     # 4. Any database
     if properties[:db_name] != nil
       db_id = get_db_id(properties[:db_name])
+      logger.warn "WARN: No Database with name #{properties[:db_name]} found" if db_id.nil?
     elsif properties[:app_name] != nil
       sid = get_sid(properties[:app_name])
+      logger.warn "WARN: No App-Server with name #{properties[:app_name]} found" if sid.nil?
     else
       sid = get_sid("Manage")
     end
@@ -2454,8 +2456,10 @@ private
     # 4. Any database
     if properties[:db_name] != nil
       db_id = get_db_id(properties[:db_name])
+      logger.warn "WARN: No Database with name #{properties[:db_name]} found" if db_id.nil?
     elsif properties[:app_name] != nil
       sid = get_sid(properties[:app_name])
+      logger.warn "WARN: No App-Server with name #{properties[:app_name]} found" if sid.nil?
     else
       sid = get_sid("Manage")
     end
@@ -2487,22 +2491,80 @@ private
   end
 
   def execute_query_8(query, properties = {})
-    if properties[:app_name] != nil
-      raise ExitException.new("Executing queries with an app_name (currently) not supported with ML8+")
+    # check input like in older versions
+    if properties[:db_name] != nil
+      db_id = get_db_id(properties[:db_name])
+      raise ExitException.new("No Database with name #{properties[:db_name]} found") if db_id.nil?
+    elsif properties[:app_name] != nil
+      sid = get_sid(properties[:app_name])
+      raise ExitException.new("No Server with name #{properties[:app_name]} found") if sid.nil?
     end
 
     headers = {
       "Content-Type" => "application/x-www-form-urlencoded"
     }
+    params = {}
 
-    params = {
-      :xquery => query,
-      :locale => LOCALE,
-      :tzoffset => "-18000"
-    }
+    # If app_name is specified, wrap the eval in an xdmp:eval to create an eval context
+    # that matches that of the selected app-server
+    if properties[:app_name] != nil
+      params[:xquery] = %Q{
+        xquery version "1.0-ml";
 
-    if properties[:db_name] != nil
-      params[:database] = properties[:db_name]
+        (: derived from qconsole-amped.xqy :)
+        declare function local:eval-options(
+          $server-id as xs:unsignedLong
+        ) as element()
+        {
+          let $database-id := xdmp:server-database($server-id)
+          let $collation := xdmp:server-collation($server-id)
+          let $modules-id := xdmp:server-modules-database($server-id)
+          let $xquery-version := xdmp:server-default-xquery-version($server-id)
+          let $modules-root := xdmp:server-root($server-id)
+          let $default-coordinate-system :=
+            (: xdmp:server-coordinate-system not supported in ML8 and older :)
+            for $f in fn:function-lookup(xs:QName("xdmp:server-coordinate-system"), 1)
+            return $f($server-id)
+          return
+            <options xmlns="xdmp:eval">{
+              if ($database-id eq xdmp:database()) then ()
+              else element database { $database-id },
+
+              if ($modules-id eq xdmp:modules-database()) then ()
+              else element modules { $modules-id },
+
+              if ($collation eq default-collation()) then ()
+              else element default-collation { $collation },
+
+              if (empty($default-coordinate-system)) then ()
+              else element default-coordinate-system { $default-coordinate-system },
+
+              if ($xquery-version eq xdmp:xquery-version()) then ()
+              else element default-xquery-version { $xquery-version },
+
+              (: we should always have a root path, but better safe than sorry :)
+              if (empty($modules-root) or $modules-root eq xdmp:modules-root()) then ()
+              else element root { $modules-root },
+
+              element isolation { "different-transaction" }
+            }</options>
+        };
+
+        let $query := <query><![CDATA[#{query}]]></query>
+        return xdmp:eval(
+          string($query),
+          (),
+          local:eval-options(xdmp:server("#{properties[:app_name]}"))
+        )
+      }
+    else
+      # No app_name, just run the straight query
+      params[:xquery] = query
+
+      # Pass through selected database if specified, otherwise run against App-Services
+      if properties[:db_name] != nil
+        params[:database] = properties[:db_name]
+      end
     end
 
     r = go "#{@protocol}://#{@hostname}:#{@qconsole_port}/v1/eval", "post", headers, params
