@@ -941,7 +941,8 @@ but --no-prompt parameter prevents prompting for password. Assuming 8.'
       @ml_password = @properties['ml.password']
     end
 
-    if @environment != "local"
+    wipe_environments = (@properties['ml.wipe-environments'] || 'local').split(',')
+    if ! wipe_environments.index(@environment)
       expected_response = %Q{I WANT TO WIPE #{@environment.upcase}}
       print %Q{
 *******************************************************************************
