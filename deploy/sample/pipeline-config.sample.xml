@@ -6,7 +6,7 @@
       <description>This domain is awesome!!!</description>
       <pipelines>
         <!-- one <pipeline> for each cpf pipeline to install in this domain -->
-        <pipeline>/locaton/to/your/pipeline.xml</pipeline>
+        <pipeline>/location/to/your/pipeline.xml</pipeline>
       </pipelines>
       <system-pipelines>
         <system-pipeline>Status Change Handling</system-pipeline>
