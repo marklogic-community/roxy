@@ -1,6 +1,31 @@
 # Roxy Changes
 This file describes changes made to Roxy per release
 
+## 1.7.6
+
+### New Features
+ * [#609](https://github.com/marklogic/roxy/issues/609) Upgrade xcc jar to latest (8.0-5)
+ * [#665](https://github.com/marklogic/roxy/issues/665) Configurable /app/config/config.xqy file
+ * [#703](https://github.com/marklogic/roxy/issues/703) Timestamp-verified restart
+ * [#722](https://github.com/marklogic/roxy/issues/722) Upgrade xstream java library
+ * [#732](https://github.com/marklogic/roxy/issues/732) Suppress the complaint about schemas if dir does not exist
+ * [#738](https://github.com/marklogic/roxy/issues/738) Slow bootstrap for many users and roles in security DB
+
+### Resolved Issues
+ * [#194](https://github.com/marklogic/roxy/issues/194) bootstrapping app-level authentication with limited user breaks deploy of REST apps
+ * [#653](https://github.com/marklogic/roxy/issues/653) Allow content-forests-per-host=0
+ * [#661](https://github.com/marklogic/roxy/issues/661) Allow execute_query with app_name set to ml.app-name
+ * [#668](https://github.com/marklogic/roxy/issues/668) Better handling of app-level auth
+ * [#706](https://github.com/marklogic/roxy/issues/706) ML-9 Bootstrap Error: Invalid coercion: on external-security at ml.rb line 170
+ * [#733](https://github.com/marklogic/roxy/issues/733) Bootstrap of range-field-index fails after upgrade to 1.7.5 (due to missing invalid-values in ml-config)
+ * [#735](https://github.com/marklogic/roxy/issues/735) replicating Security DB results in failed bootstrap
+ * [#736](https://github.com/marklogic/roxy/issues/736) config.xqy $CTRL-EXT does not work from filesystem modules
+ * [#740](https://github.com/marklogic/roxy/issues/740) $CTRL-EXT does not work when running from modules as "xqy"
+ * [#749](https://github.com/marklogic/roxy/issues/749) Upgrading Roxy in projects still using app-modules-db causes bootstrap to fail
+ * [#753](https://github.com/marklogic/roxy/issues/753) use-https should control use of https for REST configuration
+ * [#758](https://github.com/marklogic/roxy/issues/758) Typo in roxy rewriter-lib
+ * [#773](https://github.com/marklogic/roxy/issues/773) Corb command ignores corb-user
+
 ## 1.7.5
 
 ### New Features
