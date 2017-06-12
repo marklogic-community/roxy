@@ -105,8 +105,12 @@ class ServerConfig < MLClient
       @qconsole_port = @bootstrap_port
     end
 
-    r = execute_query %Q{xdmp:host-name()}
-    @properties["ml.server-name"] = parse_body(r.body)
+    begin
+      r = execute_query %Q{xdmp:host-name()}
+      @properties["ml.server-name"] = parse_body(r.body)
+    rescue
+      logger.warn "WARN: unable to determine MarkLogic Host name of #{@hostname}"
+    end
   end
 
   def get_properties
