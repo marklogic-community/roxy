@@ -31,7 +31,7 @@ usage()
   use --force to force installation into an existing directory\n"
 }
 
-PARAMS=("${@}")
+PARAMS=("$@")
 
 if [ "$1" == 'new' ]
 then
@@ -115,7 +115,7 @@ then
       printf "\nNo initial source code is provided for non-MVC apps. You can capture code from a REST application, or add your own code.\n"
     fi
 
-    ./ml init ${app_name} ${@} || exit 1
+    ./ml init ${app_name} "$@" || exit 1
     popd > /dev/null || exit 1
     printf " done\n"
     if [ -e $app_name ]
@@ -155,7 +155,7 @@ then
 else
   if [ -e deploy/lib/ml.rb ]
   then
-    ruby -I deploy -I deploy/lib deploy/lib/ml.rb $* || exit $?
+    ruby -I deploy -I deploy/lib deploy/lib/ml.rb "$@" || exit $?
   else
     printf "\nERROR: You must run this command inside a valid Roxy Project. Use 'ml new' to create a project.\n\n"
     usage
