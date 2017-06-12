@@ -23,6 +23,7 @@ module Roxy
     def initialize(options)
       @logger = options[:logger]
       @app_type = options[:properties]["ml.app-type"]
+      @server_version = options[:properties]["ml.server-version"].to_i
       @no_prompt = options[:no_prompt]
     end
 
@@ -56,6 +57,10 @@ module Roxy
       else
         fork = find_arg(['--fork']) || 'marklogic'
         branch = find_arg(['--branch']) || 'master'
+
+        if @server_version < 7 && branch != "v1.7.0"
+          raise ExitException.new("Upgrades to branch #{branch} no longer supported for MarkLogic #{@server_version}, use 'v1.7.0' instead")
+        end
 
         print "This command will attempt to upgrade to the latest Roxy files.\n"
         print "Before running this command, you should have checked all your code\n"
