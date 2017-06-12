@@ -9,7 +9,7 @@ describe Roxy::Framework do
   before do
     # initialize roxy or these tests will fail
     ARGV.push "roxy"
-    ARGV.push "--server-version=7"
+    ARGV.push "--server-version=9"
     ARGV.push "--app-type=hybrid"
     begin
       ServerConfig.init
