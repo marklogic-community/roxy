@@ -88,6 +88,14 @@ class ServerConfig < MLClient
 
     @server_version = @properties["ml.server-version"].to_i
 
+    if (@server_version < 7)
+      logger.warn "WARN: This version of Roxy is not tested against MarkLogic #{@server_version}."
+      if (@server_version > 4)
+        logger.info "      Consider downgrading to v1.7.0 using `./ml upgrade --branch=v1.7.0`."
+      end
+      logger.warn "Note: MarkLogic #{@server_version} is EOL."
+    end
+
     if @properties["ml.bootstrap-port"]
       @bootstrap_port = @properties["ml.bootstrap-port"]
     else
@@ -328,12 +336,12 @@ but --no-prompt parameter prevents prompting for password.'
     else
       puts 'Required option --server-version=[version] not specified with valid value.
 
-  What is the version number of the target MarkLogic server? [5, 6, 7, 8, or 9]'
+  What is the version number of the target MarkLogic server? [7, 8, or 9]'
       server_version = STDIN.gets.chomp.to_i
     end
     if server_version == 0
-      puts "Defaulting to 8.."
-      server_version = 8
+      puts "Defaulting to 9.."
+      server_version = 9
     end
     server_version
   end
