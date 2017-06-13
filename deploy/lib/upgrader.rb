@@ -44,7 +44,16 @@ module Roxy
     end
 
     def upgrade_base(tmp_dir)
-      FileUtils.cp tmp_dir + '/CHANGELOG.mdown', '.'
+      if File.exists?('CHANGELOG.mdown') then
+        FileUtils.rm_f 'CHANGELOG.mdown'
+      elsif File.exists?('CHANGELOG.md') then
+        FileUtils.rm_f 'CHANGELOG.md'
+      end
+      if File.exists?(tmp_dir + '/CHANGELOG.mdown') then
+        FileUtils.cp tmp_dir + '/CHANGELOG.mdown', '.'
+      elsif File.exists?(tmp_dir + '/CHANGELOG.md') then
+        FileUtils.cp tmp_dir + '/CHANGELOG.md', '.'
+      end
       FileUtils.cp tmp_dir + '/ml', '.'
       FileUtils.cp tmp_dir + '/ml.bat', '.'
       FileUtils.cp tmp_dir + '/version.txt', '.'
