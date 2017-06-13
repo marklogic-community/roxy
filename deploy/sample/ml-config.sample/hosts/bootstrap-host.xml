@@ -1,0 +1,4 @@
+<host xmlns="http://marklogic.com/xdmp/hosts">
+  <host-name>@ml.server-name</host-name>
+  <group name="${group}"/>
+</host>

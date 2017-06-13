@@ -324,8 +324,8 @@ class ServerConfig < MLClient
     if !force && !force_config && File.exists?(target_config)
       error_msg << "ml-config.xml has already been created."
     else
-      #create clean marklogic configuration file
-      copy_file sample_config, target_config
+      #create clean marklogic configuration file(s)
+      FileUtils.cp_r sample_config, target_config
     end
 
     raise HelpException.new("init", error_msg.join("\n")) if error_msg.length > 0
@@ -2977,9 +2977,22 @@ private
     }
   end
 
-  def build_config(config_files)
+  def build_config(config_paths)
+    config_files = []
+    config_paths.split(",").each do |config_path|
+      if File.directory?(config_path)
+        Dir.glob(File.join(config_path, '**', '*')).reject {
+          |p| File.directory? p
+        }.each do |file|
+          config_files.push file
+        end
+      else
+        config_files.push config_path
+      end
+    end
+
     configs = []
-    config_files.split(",").each do |config_file|
+    config_files.each do |config_file|
       config = File.read(config_file)
 
       # Build the triggers db if it is provided

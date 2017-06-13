@@ -571,6 +571,67 @@ declare function setup:unique-attributes($attrs) {
   return map:keys($result) ! map:get($result, .)
 };
 
+declare function setup:wrap-config-fragments($fragments) {
+  if (fn:exists($fragments)) then
+    <configuration>
+      <hosts xmlns="http://marklogic.com/xdmp/hosts">{
+        setup:unique-attributes($fragments/self::ho:hosts/@*),
+        $fragments/self::ho:hosts/*,
+        $fragments/self::ho:host
+      }</hosts>
+      <assignments xmlns="http://marklogic.com/xdmp/assignments">{
+        setup:unique-attributes($fragments/self::as:assignments/@*),
+        $fragments/self::as:assignments/*,
+        $fragments/self::as:assignment
+      }</assignments>
+      <databases xmlns="http://marklogic.com/xdmp/database">{
+        setup:unique-attributes($fragments/self::db:databases/@*),
+        $fragments/self::db:databases/*,
+        $fragments/self::db:database
+      }</databases>
+      <certificates xmlns="http://marklogic.com/xdmp/pki">{
+        setup:unique-attributes($fragments/self::pki:certificates/@*),
+        $fragments/self::pki:certificates/*,
+        $fragments/self::pki:certificate
+      }</certificates>
+      <roles xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:roles/@*),
+        $fragments/self::sec:roles/*,
+        $fragments/self::sec:role
+      }</roles>
+      <users xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:users/@*),
+        $fragments/self::sec:users/*,
+        $fragments/self::sec:user
+      }</users>
+      <amps xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:amps/@*),
+        $fragments/self::sec:amps/*,
+        $fragments/self::sec:amp
+      }</amps>
+      <privileges xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:privileges/@*),
+        $fragments/self::sec:privileges/*,
+        $fragments/self::sec:privilege
+      }</privileges>
+      <mimetypes xmlns="http://marklogic.com/xdmp/mimetypes">{
+        setup:unique-attributes($fragments/self::mt:mimetypes/@*),
+        $fragments/self::mt:mimetypes/*,
+        $fragments/self::mt:mimetype
+      }</mimetypes>
+      <external-securities xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:external-securities/@*),
+        $fragments/self::sec:external-securities/*,
+        $fragments/self::sec:external-security
+      }</external-securities>
+      <credentials xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:credentials/@*),
+        $fragments/self::sec:credentials/*
+      }</credentials>
+    </configuration>/*
+  else ()
+};
+
 (: for backwards-compatibility :)
 declare function setup:rewrite-config($import-configs as node()+, $properties as map:map) as element(configuration)
 {
@@ -586,28 +647,43 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
 {
   let $import-configs := setup:process-conditionals($import-configs, $properties)
   let $config :=
-    element { fn:node-name($import-configs[1]) } {
-      setup:unique-attributes($import-configs/@*),
+    element configuration {
+      setup:unique-attributes($import-configs/self::configuration/@*),
 
       (: capture comments before gr:groups, and its older counterparts :)
-      $import-configs/(
+      $import-configs/self::configuration/(
         gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
       )/preceding-sibling::node(),
 
       <groups xmlns="http://marklogic.com/xdmp/group">{
         setup:unique-attributes($import-configs/gr:groups/@*),
 
-        let $default-group := ($import-configs/@default-group, "Default")[1]
-        for $group in fn:distinct-values(
-          ($import-configs/gr:groups/gr:group/gr:group-name, $import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
-            gr:odbc-servers/gr:odbc-server, gr:task-server, db:databases/db:database)/@group, $default-group))
-        let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $odbc-servers := $import-configs/gr:odbc-servers/gr:odbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $task-server := $import-configs/gr:task-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $default-group := ($import-configs/self::*:configuration/@default-group, "Default")[1]
+        for $group in fn:distinct-values((
+          $import-configs/descendant-or-self::gr:group/gr:group-name,
+          $import-configs/descendant-or-self::*/(
+            self::gr:http-server, self::gr:xdbc-server,
+            self::gr:odbc-server, self::gr:task-server, self::db:database
+          )/@group,
+          $default-group
+        ))
+        let $http-servers := $import-configs/descendant-or-self::gr:http-server[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
+        let $xdbc-servers := $import-configs/descendant-or-self::gr:xdbc-server[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
+        let $odbc-servers := $import-configs/descendant-or-self::gr:odbc-server[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
+        let $task-server := $import-configs/descendant-or-self::gr:task-server[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
         let $servers := ($http-servers, $xdbc-servers, $odbc-servers, $task-server)
-        let $databases := $import-configs/db:databases/db:database[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $group-config := $import-configs/gr:groups/gr:group[gr:group-name = $group]
+        let $databases := $import-configs/descendant-or-self::db:database[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
+        let $group-config := $import-configs/descendant-or-self::gr:group[gr:group-name = $group]
         where fn:exists($servers | $databases | $group-config)
         return
           <group>
@@ -632,14 +708,24 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
       }</groups>,
 
       (: capture anything following gr:groups, and its older counterparts :)
-      $import-configs/(
+      $import-configs/self::*:configuration/(
         gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
       )/following-sibling::node(),
 
-      (: other fragments with configuration as root :)
-      $import-configs[fn:empty((
-        gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
-      ))]/node()
+      (: in case of config fragments, merge and wrap them :)
+      setup:wrap-config-fragments((
+        (: fragments with configuration as root :)
+        $import-configs/self::*:configuration[fn:empty((
+          gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
+        ))]/node(),
+
+        (: other fragments :)
+        $import-configs[fn:not(self::*:configuration)]/(self::node() except (
+          self::gr:groups, self::gr:group, self::gr:http-servers, self::gr:http-server,
+          self::gr:xdbc-servers, self::gr:xdbc-server, self::gr:odbc-servers, self::gr:odbc-server,
+          self::gr:task-server
+        ))
+      ))
     }
 
   (: Check config on group consistency! :)

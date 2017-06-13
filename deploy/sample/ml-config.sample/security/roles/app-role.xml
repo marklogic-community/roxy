@@ -1,0 +1,51 @@
+<role xmlns="http://marklogic.com/xdmp/security">
+  <role-name>${app-role}</role-name>
+  <description>A role for users of the ${app-name} application</description>
+  <role-names>
+  </role-names>
+  <permissions>
+    <permission>
+      <capability>execute</capability>
+      <role-name>${app-role}</role-name>
+    </permission>
+    <permission>
+      <capability>update</capability>
+      <role-name>${app-role}</role-name>
+    </permission>
+    <permission>
+      <capability>insert</capability>
+      <role-name>${app-role}</role-name>
+    </permission>
+    <permission>
+      <capability>read</capability>
+      <role-name>${app-role}</role-name>
+    </permission>
+  </permissions>
+  <collections>
+  </collections>
+  <privileges>
+    <privilege>
+      <privilege-name>rest-reader</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:value</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:add-response-header</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:invoke</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:with-namespaces</privilege-name>
+    </privilege>
+    <!-- START: required to run Roxy's rewriter-lib -->
+    <privilege>
+      <privilege-name>xdmp:get-server-field</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:set-server-field</privilege-name>
+    </privilege>
+    <!-- END: required to run Roxy's rewriter-lib -->
+  </privileges>
+</role>

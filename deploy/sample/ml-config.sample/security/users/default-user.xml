@@ -1,0 +1,10 @@
+<user xmlns="http://marklogic.com/xdmp/security">
+  <user-name>${default-user}</user-name>
+  <description>A user for the ${app-name} application</description>
+  <password>${appuser-password}</password>
+  <role-names>
+    <role-name>${app-role}</role-name>
+  </role-names>
+  <permissions/>
+  <collections/>
+</user>

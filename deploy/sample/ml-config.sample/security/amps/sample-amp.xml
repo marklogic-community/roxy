@@ -1,0 +1,12 @@
+<!--
+  Sample amp. See the Understanding and Using Security Guide section 5.2 for
+  information about amps.
+  http://community.marklogic.com/pubs/5.0/books/security.pdf
+  -->
+<amp xmlns="http://marklogic.com/xdmp/security">
+  <namespace>http://marklogic.com/roxy</namespace>
+  <local-name>sample</local-name>
+  <doc-uri>/app/models/sample.xqy</doc-uri>
+  <db-name>${modules-db}</db-name>
+  <role-name>a-privileged-role</role-name>
+</amp>

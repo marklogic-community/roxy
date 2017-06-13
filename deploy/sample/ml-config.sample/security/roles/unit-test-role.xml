@@ -1,0 +1,44 @@
+<role xmlns="http://marklogic.com/xdmp/security">
+  <role-name>${app-role}-unit-test</role-name>
+  <description>A role for unit testing the ${app-name} application</description>
+  <role-names>
+    <role-name>${app-role}</role-name>
+  </role-names>
+  <privileges>
+    <!-- START: privileges needed for unit testing while running on filesystem -->
+    <privilege>
+      <privilege-name>xdmp:document-get</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:filesystem-directory</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:save</privilege-name>
+    </privilege>
+    <!-- END: privileges needed for unit testing while running on filesystem -->
+    <privilege>
+      <privilege-name>any-uri</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:eval</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:eval-in</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:http-delete</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:http-get</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:http-head</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:http-post</privilege-name>
+    </privilege>
+    <privilege>
+      <privilege-name>xdmp:http-put</privilege-name>
+    </privilege>
+  </privileges>
+</role>

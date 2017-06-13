@@ -1,0 +1,21 @@
+<!--Default Application Server-->
+<http-server xmlns="http://marklogic.com/xdmp/group">
+  <http-server-name>${app-name}</http-server-name>
+  <port>${app-port}</port>
+  <database name="${content-db}"/>
+  <modules name="${modules-db}"/>
+  <root>${modules-root}</root>
+  <authentication>${authentication-method}</authentication>
+  <default-user name="${default-user}"/>
+  <url-rewriter>${url-rewriter}</url-rewriter>
+  <error-handler>${error-handler}</error-handler>
+  @ml.rewrite-resolves-globally
+  <!-- for external security use:
+
+  <internal-security>false</internal-security>
+  <external-security name="name-of-your-external-security-config"/>
+
+  -->
+
+  <!-- <ssl-certificate-template>@ml.ssl-certificate-template</ssl-certificate-template> -->
+</http-server>
