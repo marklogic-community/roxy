@@ -28,7 +28,7 @@
             <task-start-time>13:00:00-05:00</task-start-time>
             <task-database name="${content-db}"/>
             <task-modules name="${modules-db}"/>
-            <task-user name="${app-name}-user"/>
+            <task-user name="${default-user}"/>
           </scheduled-task>
           <scheduled-task>
             <task-path>/some/hourly-task.xqy</task-path>
@@ -38,7 +38,7 @@
             <task-minute>15</task-minute>
             <task-database name="${content-db}"/>
             <task-modules name="${modules-db}"/>
-            <task-user name="${app-name}-user"/>
+            <task-user name="${default-user}"/>
           </scheduled-task>
           <scheduled-task>
             <task-path>/some/minutely-task.xqy</task-path>
@@ -47,7 +47,7 @@
             <task-period>3</task-period>
             <task-database name="${content-db}"/>
             <task-modules name="${modules-db}"/>
-            <task-user name="${app-name}-user"/>
+            <task-user name="${default-user}"/>
           </scheduled-task>
           <scheduled-task>
             <task-path>/some/monthly-task.xqy</task-path>
@@ -58,17 +58,16 @@
             <task-start-time>13:00:00-05:00</task-start-time>
             <task-database name="${content-db}"/>
             <task-modules name="${modules-db}"/>
-            <task-user name="${app-name}-user"/>
+            <task-user name="${default-user}"/>
           </scheduled-task>
           <scheduled-task>
             <task-path>/some/once-task.xqy</task-path>
             <task-root>/</task-root>
             <task-type>once</task-type>
-            <task-period>1</task-period>
             <task-start>2019-01-01T13:00:00-05:00</task-start>
             <task-database name="${content-db}"/>
             <task-modules name="${modules-db}"/>
-            <task-user name="${app-name}-user"/>
+            <task-user name="${default-user}"/>
           </scheduled-task>
           <scheduled-task>
             <task-path>/some/weekly-task.xqy</task-path>
@@ -83,7 +82,7 @@
             <task-start-time>13:00:00-05:00</task-start-time>
             <task-database name="${content-db}"/>
             <task-modules name="${modules-db}"/>
-            <task-user name="${app-name}-user"/>
+            <task-user name="${default-user}"/>
           </scheduled-task>
         </scheduled-tasks>
       </task-server>

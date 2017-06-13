@@ -2778,7 +2778,7 @@ private
 
   def triggers_db_xml
     %Q{
-      <database>
+      <database xmlns="http://marklogic.com/xdmp/database">
         <database-name>@ml.triggers-db</database-name>
         <forests>
           <forest-id name="@ml.triggers-db"/>
@@ -2789,7 +2789,7 @@ private
 
   def triggers_assignment
     %Q{
-      <assignment>
+      <assignment xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>@ml.triggers-db</forest-name>
       </assignment>
     }
@@ -2798,7 +2798,7 @@ private
   def xdbc_server
     xdbc_auth_method = conditional_prop('ml.xdbc-authentication-method', 'ml.authentication-method')
     %Q{
-      <xdbc-server>
+      <xdbc-server xmlns="http://marklogic.com/xdmp/group">
         <xdbc-server-name>@ml.app-name-xcc</xdbc-server-name>
         <port>@ml.xcc-port</port>
         <database name="@ml.content-db"/>
@@ -2811,7 +2811,7 @@ private
   def odbc_server
     odbc_auth_method = conditional_prop('ml.odbc-authentication-method', 'ml.authentication-method')
     %Q{
-      <odbc-server>
+      <odbc-server xmlns="http://marklogic.com/xdmp/group">
         <odbc-server-name>@ml.app-name-odbc</odbc-server-name>
         <port>@ml.odbc-port</port>
         <database name="@ml.content-db"/>
@@ -2823,7 +2823,7 @@ private
 
   def schemas_db_xml
     %Q{
-      <database>
+      <database xmlns="http://marklogic.com/xdmp/database">
         <database-name>@ml.schemas-db</database-name>
         <forests>
           <forest-id name="@ml.schemas-db"/>
@@ -2834,7 +2834,7 @@ private
 
   def schemas_assignment
     %Q{
-      <assignment>
+      <assignment xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>@ml.schemas-db</forest-name>
       </assignment>
     }
@@ -2842,7 +2842,7 @@ private
 
   def test_content_db_xml
     %Q{
-      <database import="@ml.content-db">
+      <database import="@ml.content-db" xmlns="http://marklogic.com/xdmp/database">
         <database-name>@ml.test-content-db</database-name>
         <forests>
           <forest-id name="@ml.test-content-db"/>
@@ -2853,7 +2853,7 @@ private
 
   def test_content_db_assignment
     %Q{
-      <assignment>
+      <assignment xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>@ml.test-content-db</forest-name>
       </assignment>
     }
@@ -2866,7 +2866,7 @@ private
     test_default_user = conditional_prop('ml.test-default-user', 'ml.default-user')
 
     %Q{
-      <http-server import="@ml.app-name">
+      <http-server import="@ml.app-name" xmlns="http://marklogic.com/xdmp/group">
         <http-server-name>@ml.app-name-test</http-server-name>
         <port>@ml.test-port</port>
         <database name="@ml.test-content-db"/>
@@ -2879,7 +2879,7 @@ private
 
   def test_modules_db_xml
     %Q{
-      <database import="@ml.modules-db">
+      <database import="@ml.modules-db" xmlns="http://marklogic.com/xdmp/database">
         <database-name>@ml.test-modules-db</database-name>
         <forests>
           <forest-id name="@ml.test-modules-db"/>
@@ -2890,7 +2890,7 @@ private
 
   def test_user_xml
     %Q{
-      <user>
+      <user xmlns="http://marklogic.com/xdmp/security">
         <user-name>${test-user}</user-name>
         <description>A user for the ${app-name} unit tests</description>
         <password>${test-user-password}</password>
@@ -2905,7 +2905,7 @@ private
 
   def test_modules_db_assignment
     %Q{
-      <assignment>
+      <assignment xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>@ml.test-modules-db</forest-name>
       </assignment>
     }
@@ -2926,7 +2926,7 @@ private
     end
 
     %Q{
-      <http-server import="@ml.app-name">
+      <http-server import="@ml.app-name" xmlns="http://marklogic.com/xdmp/group">
         <http-server-name>@ml.app-name-rest</http-server-name>
         <port>@ml.rest-port</port>
         <database name="@ml.content-db"/>
@@ -2944,7 +2944,7 @@ private
     rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
 
     %Q{
-      <database>
+      <database xmlns="http://marklogic.com/xdmp/database">
         <database-name>#{rest_modules_db}</database-name>
         <forests>
           <forest-id name="#{rest_modules_db}"/>
@@ -2957,7 +2957,7 @@ private
     rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
 
     %Q{
-      <assignment>
+      <assignment xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>#{rest_modules_db}</forest-name>
       </assignment>
     }
@@ -2965,7 +2965,7 @@ private
 
   def ssl_certificate_xml
     %Q{
-      <certificate>
+      <certificate xmlns="http://marklogic.com/xdmp/pki">
         <name>@ml.ssl-certificate-template</name>
         <countryName>@ml.ssl-certificate-countryName</countryName>
         <stateOrProvinceName>@ml.ssl-certificate-stateOrProvinceName</stateOrProvinceName>

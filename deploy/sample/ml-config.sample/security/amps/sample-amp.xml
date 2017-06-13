@@ -8,5 +8,5 @@
   <local-name>sample</local-name>
   <doc-uri>/app/models/sample.xqy</doc-uri>
   <db-name>${modules-db}</db-name>
-  <role-name>a-privileged-role</role-name>
+  <role-name>${app-role}</role-name>
 </amp>
