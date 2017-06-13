@@ -62,7 +62,6 @@ class ServerConfig < MLClient
 
     @properties = options[:properties]
     @environment = @properties["environment"]
-    @config_file = @properties["ml.config.file"]
 
     @properties["ml.server"] = @properties["ml.#{@environment}-server"] unless @properties["ml.server"]
     if (@properties["ml.server"] == nil)
@@ -783,15 +782,23 @@ but --no-prompt parameter prevents prompting for password.'
 
   def config
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
-    r = execute_query %Q{
+    query = %Q{
       #{setup}
       try {
-        setup:rewrite-config(#{get_config}, #{properties_map})
+        xdmp:quote(
+          setup:rewrite-config(#{get_config}, #{properties_map}, (), fn:true()),
+          <options xmlns="xdmp:quote">
+            <indent>yes</indent>
+            <indent-untyped>yes</indent-untyped>
+          </options>
+        )
       } catch($ex) {
         xdmp:log($ex),
         fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
       }
     }
+    logger.debug query
+    r = execute_query query
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_body(r.body)
@@ -2706,7 +2713,13 @@ private
       end
     end
 
+    #logger.debug headers
+    #logger.debug params
+
     r = go "#{@protocol}://#{@hostname}:#{@qconsole_port}/v1/eval", "post", headers, params
+
+    #logger.debug r.code
+    #logger.debug r.body
 
     raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
 
@@ -3125,7 +3138,7 @@ private
       config.gsub!("{", "{{")
       config.gsub!("}", "}}")
 
-      configs << config
+      configs << "<file>" + config + "</file>/node()"
     end
 
     %Q{(#{configs.join(", ")})}
