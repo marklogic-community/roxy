@@ -1220,6 +1220,50 @@ In order to proceed please type: #{expected_response}
     return true
   end
 
+  def export_config
+    setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
+    query = %Q{
+      #{setup}
+      try {
+        for $part in setup:split-config(
+          setup:rewrite-config(#{get_config(true)}, (), fn:true()),
+          "#{@properties["ml.app-name"]}"
+        )
+        return
+          xdmp:quote(
+            $part,
+            <options xmlns="xdmp:quote">
+              <indent>yes</indent>
+              <indent-untyped>yes</indent-untyped>
+            </options>
+          )
+      } catch($ex) {
+        xdmp:log($ex),
+        fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
+      }
+    }
+    logger.debug query
+    r = execute_query query
+    logger.debug "code: #{r.code.to_i}"
+
+    r.body = parse_body(r.body)
+    logger.info r.body
+    return true
+  end
+
+  def export
+    what = ARGV.shift
+    raise HelpException.new("export", "Missing WHAT") unless what
+
+    case what
+      when 'config'
+        export_config
+      else
+        raise HelpException.new("export", "Invalid WHAT")
+    end
+    return true
+  end
+
   def load
     dir = ARGV.shift
     db = find_arg(['--db']) || @properties['ml.content-db']
@@ -2457,7 +2501,7 @@ private
     end
   end
 
-  def get_config
+  def get_config(preserve_props = false)
     if @server_version > 7 && @properties["ml.app-type"] == 'rest' && @properties["ml.url-rewriter"] == "/MarkLogic/rest-api/rewriter.xqy"
       @logger.info "WARN: XQuery REST rewriter has been deprecated since MarkLogic 8"
       @properties["ml.url-rewriter"] = "/MarkLogic/rest-api/rewriter.xml"
@@ -2473,7 +2517,7 @@ private
       @logger.info "      See https://github.com/marklogic/roxy/issues/416 for details."
     end
 
-    @config ||= build_config(@options[:config_file])
+    @config ||= build_config(@options[:config_file], preserve_props)
   end
 
   def execute_query_4(query, properties)
@@ -2977,7 +3021,7 @@ private
     }
   end
 
-  def build_config(config_paths)
+  def build_config(config_paths, preserve_props = false)
     config_files = []
     config_paths.split(",").each do |config_path|
       if File.directory?(config_path)
@@ -3135,7 +3179,9 @@ private
         config.gsub!("@ml.ssl-certificate-xml", "")
       end
 
-      replace_properties(config, File.basename(config_file), true)
+      if ! preserve_props
+        replace_properties(config, File.basename(config_file), true)
+      end
 
       # escape unresolved braces, they have special meaning in XQuery
       config.gsub!("{", "{{")

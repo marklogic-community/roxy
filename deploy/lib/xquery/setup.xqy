@@ -660,7 +660,7 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
 
         let $default-group := ($import-configs/self::*:configuration/@default-group, "Default")[1]
         for $group in fn:distinct-values((
-          $import-configs/descendant-or-self::gr:group/gr:group-name,
+          $import-configs/descendant-or-self::gr:group/gr:group-name/fn:string(),
           $import-configs/descendant-or-self::*/(
             self::gr:http-server, self::gr:xdbc-server,
             self::gr:odbc-server, self::gr:task-server, self::db:database
@@ -683,7 +683,7 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
         let $databases := $import-configs/descendant-or-self::db:database[
           @group = $group or ( $group = $default-group and fn:empty(@group) )
         ]
-        let $group-config := $import-configs/descendant-or-self::gr:group[gr:group-name = $group]
+        let $group-config := $import-configs/descendant-or-self::gr:group[gr:group-name/fn:string() = $group]
         where fn:exists($servers | $databases | $group-config)
         return
           <group>
@@ -732,7 +732,7 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
   let $_ :=
     if ($silent) then ()
     else
-      for $group in $config/gr:groups/gr:group/gr:group-name
+      for $group in $config/gr:groups/gr:group/gr:group-name/fn:string()
       let $hosts := ($config/ho:hosts/ho:host[ho:group/@name = $group], try { xdmp:group-hosts(xdmp:group($group)) } catch ($ignore) {})
       where fn:empty($hosts)
       return
@@ -745,6 +745,43 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
   return  if ($keep-comments) then $config else setup:suppress-comments($config)
 };
 
+declare function setup:split-config($config as element(configuration), $app-name as xs:string) as node()* {
+  for $part in (
+    $config/*/*,
+    $config/gr:groups/gr:group/(
+      (gr:http-servers, gr:xdbc-servers, gr:odbc-servers)/*,
+      gr:task-server
+    )
+  )
+  let $type := fn:local-name($part)
+
+  let $name :=
+    if ($part instance of element(gr:task-server)) then
+      "TaskServer"
+    else
+      $part/*[local-name() = ("name", "forest-name", "local-name", concat($type, "-name"))][1]
+           /fn:replace(fn:replace(fn:string(), "^(.*/)?([^/]+)", "$2"), "^\$\{group\}$", "default-group")
+
+  let $path := fn:replace(fn:replace($type, "(http|xdbc|odbc|task)-", "") || "s", "ys$", "ies")
+  let $path :=
+    if (fn:contains(fn:namespace-uri($part), "security")) then
+      "security/" || $path
+    else
+      fn:replace($path, "assignments/", "forests/")
+
+  let $file := fn:replace($name, "(@ml.|[${}])", "") || ".xml"
+
+  return (
+    comment { "SAVE-PART-AS:" || $path || "/" || $file },
+    typeswitch ($part)
+    case element(gr:group)
+      return element gr:group {
+        $part/@*,
+        $part/(node() except (gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server))
+      }
+    default return $part
+  )
+};
 
 (:
   base-name : Original forest base name - this should be the name from the config.
