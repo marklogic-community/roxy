@@ -557,6 +557,7 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
 
 declare function setup:rewrite-config($import-configs as element(configuration)+, $properties as map:map, $silent as xs:boolean?) as element(configuration)
 {
+  let $import-configs := setup:process-conditionals($import-configs, $properties)
   let $config :=
     element { fn:node-name($import-configs[1]) } {
       $import-configs/@*,
@@ -614,7 +615,7 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
           fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!"))
 
   (: all good :)
-  return setup:process-conditionals(setup:suppress-comments($config), $properties)
+  return setup:suppress-comments($config)
 };
 
 
