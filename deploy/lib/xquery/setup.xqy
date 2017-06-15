@@ -590,7 +590,7 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
       )/preceding-sibling::node(),
 
       <groups xmlns="http://marklogic.com/xdmp/group">{
-        $import-configs/gr:groups/@*,
+        setup:unique-attributes($import-configs/gr:groups/@*),
 
         let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
