@@ -19,6 +19,7 @@ import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic
 import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
 import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
 import module namespace functx="http://www.functx.com" at "/MarkLogic/functx/functx-1.0-nodoc-2007-01.xqy";
+import module namespace search = "http://marklogic.com/appservices/search" at "/MarkLogic/appservices/search/search.xqy";
 
 declare namespace setup = "http://marklogic.com/roxy/setup";
 declare namespace xdmp="http://marklogic.com/xdmp";
@@ -374,6 +375,8 @@ declare function setup:get-rollback-config()
 {
   element configuration
   {
+    attribute rollback { fn:true() },
+
     map:get($roll-back, "task-server"),
 
     element gr:http-servers
@@ -420,6 +423,119 @@ declare function setup:get-rollback-config()
   }
 };
 
+declare variable $cts:element-reference := fn:function-lookup(xs:QName("cts:element-reference"), 2);
+declare variable $cts:parse             := fn:function-lookup(xs:QName("cts:parse"), 2);
+
+declare variable $if-parser := ();
+
+declare function setup:get-if-parser($properties as map:map) {
+  if ($if-parser) then
+    $if-parser
+  else
+    let $parser := function($query) {
+      (:
+      if (fn:exists($cts:parse)) then
+      if (fn:number(substring-before(xdmp:version(), ".")) ge 8) then
+      :)
+      (: [GJo] There are some issue with cts:parse, like it choking on "rest-ext.dir EQ something"
+               Bug filed. Using search:parse for now.
+      :)
+      if (fn:false()) then
+        let $bindings := map:new((
+          for $property in map:keys($properties)
+          let $name := fn:replace($property, "^ml[._\-]", "")
+          return map:entry($name, $cts:element-reference(xs:QName($property), ("type=int", "unchecked")))
+        ))
+        return ($cts:parse($query, $bindings), $bindings)
+      else
+        let $options := <options xmlns="http://marklogic.com/appservices/search">{
+          for $property in map:keys($properties)
+          let $name := fn:replace($property, "^ml[._\-]", "")
+          return <constraint name="{$name}">
+            <range type="xs:string" collation="http://marklogic.com/collation/">
+              <element ns="" name="{$property}"/>
+            </range>
+          </constraint>
+        }</options>
+        return (cts:query(search:parse(fn:replace($query, " EQ ", " : "), $options)), $options)
+    }
+    let $_ := xdmp:set($if-parser, $parser)
+    return $parser
+};
+
+declare function setup:eval-query($query as cts:query, $properties as map:map) {
+    typeswitch ($query)
+    case cts:and-query return fn:not(
+      (cts:and-query-queries($query) ! setup:eval-query(., $properties)) = fn:false()
+    )
+    case cts:or-query return (
+      (cts:or-query-queries($query) ! setup:eval-query(., $properties)) = fn:true()
+    )
+    case cts:not-query return fn:not(
+      cts:not-query-query($query) ! setup:eval-query(., $properties)
+    )
+    case cts:element-value-query return (
+      let $property := fn:string(cts:element-value-query-element-name($query))
+      let $operator := '='
+      let $values := cts:element-value-query-text($query)
+      return map:get($properties, $property) = $values
+    )
+    case cts:element-word-query return (
+      let $property := fn:string(cts:element-word-query-element-name($query))
+      let $operator := '='
+      let $values := cts:element-word-query-text($query)
+      return map:get($properties, $property) = $values
+    )
+    case cts:element-range-query return (
+      let $property := fn:string(cts:element-range-query-element-name($query))
+      let $operator := cts:element-range-query-operator($query)
+      let $values := cts:element-range-query-value($query)
+      return
+        if ($operator = ('=', '!=', '>', '>=', '<', '<=')) then
+          xdmp:value("map:get($properties, $property) " || $operator || " $values")
+        else
+          fn:error(xs:QName("UNSUPPORTED"), "Unsupported operator " || $operator)
+    )
+    case cts:word-query return (
+      fn:error(xs:QName("SYNTAX"), "Syntax error near " || cts:word-query-text($query))
+    )
+    default return (
+      fn:error(xs:QName("UNSUPPORTED"), "Cannot parse " || fn:upper-case(fn:replace(fn:string(xdmp:type($query)), "-query$", "")))
+    )
+};
+
+declare function setup:process-conditionals($nodes, $properties) {
+  for $node in $nodes
+  return
+    typeswitch ($node)
+    case element() return
+      let $if-valid :=
+        if (fn:exists($node/@if)) then
+          let $parser := setup:get-if-parser($properties)
+          let $expression := string($node/@if)
+          return try {
+            let $query := $parser($expression)[1]
+            return try {
+              setup:eval-query($query, $properties)
+            } catch ($e) {
+              fn:error(xs:QName("IF-PARSE-ERROR"),
+                "Unable to evauluate the expression '" || $expression || "': " || $e/error:format-string/data())
+            }
+          } catch ($e) {
+            fn:error(xs:QName("IF-PARSE-ERROR"),
+              "Unable to parse the expression '" || $expression || "': " || $e/error:format-string/data())
+          }
+        else
+          fn:true()
+      where $if-valid
+      return element { fn:node-name($node) } {
+        $node/@*,
+        setup:process-conditionals($node/node(), $properties)
+      }
+    case comment() return ()
+    default return $node
+};
+
 declare function setup:suppress-comments($nodes) {
   for $node in $nodes
   return
@@ -434,18 +550,20 @@ declare function setup:suppress-comments($nodes) {
 };
 
 (: for backwards-compatibility :)
-declare function setup:rewrite-config($import-configs as element(configuration)+) as element(configuration)
+declare function setup:rewrite-config($import-configs as element(configuration)+, $properties as map:map) as element(configuration)
 {
-  setup:rewrite-config($import-configs, ())
+  setup:rewrite-config($import-configs, $properties, ())
 };
 
-declare function setup:rewrite-config($import-configs as element(configuration)+, $silent as xs:boolean?) as element(configuration)
+declare function setup:rewrite-config($import-configs as element(configuration)+, $properties as map:map, $silent as xs:boolean?) as element(configuration)
 {
   let $config :=
     element { fn:node-name($import-configs[1]) } {
       $import-configs/@*,
 
-      <groups xmlns="http://marklogic.com/xdmp/group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">{
+      <groups xmlns="http://marklogic.com/xdmp/group">{
+        $import-configs/gr:groups/@*,
+
         let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
           ($import-configs/gr:groups/gr:group/gr:group-name, $import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
@@ -460,6 +578,7 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
         where fn:exists($servers | $databases | $group-config)
         return
           <group>
+            { $group-config/@* }
             <group-name>{$group}</group-name>
             {
               if ($http-servers) then
@@ -495,7 +614,7 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
           fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!"))
 
   (: all good :)
-  return setup:suppress-comments($config)
+  return setup:process-conditionals(setup:suppress-comments($config), $properties)
 };
 
 
@@ -544,7 +663,7 @@ declare private function setup:parse-options( $options as xs:string ) as map:map
   return $optionsMap
 };
 
-declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string) as item()*
+declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -552,7 +671,7 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
   return
   try
   {
-    let $import-config := setup:rewrite-config($import-config)
+    let $import-config := setup:rewrite-config($import-config, $properties)
     return (
       if (fn:not($do-internals)) then (
         (: Security related :)
@@ -606,12 +725,12 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
         configuring external authentication.&#10;&#10;' )
     else (),
     xdmp:log($ex),
-    setup:do-wipe(setup:get-rollback-config(), ""),
+    setup:do-wipe(setup:get-rollback-config(), $options, $properties),
     fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
   }
 };
 
-declare function setup:do-wipe($import-config as element(configuration)+, $options as xs:string) as item()*
+declare function setup:do-wipe($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
 {
   let $options := if(fn:empty($options) or $options eq "") then ("all") else fn:tokenize($options, ",")
 
@@ -623,7 +742,11 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
   return
   try
   {
-    let $import-config := setup:rewrite-config($import-config, fn:true())
+    let $import-config :=
+      if ($import-config/@rollback = "true") then
+        $import-config
+      else
+        setup:rewrite-config($import-config, fn:true(), $properties)
     return (
 
       (: remove scheduled tasks :)
@@ -1038,7 +1161,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
   Attempt to remove replicas that are to be decommissioned due to scaling out of the cluster.
   Replicas are only removed after their new replacements have gone to sync replication.
 :)
-declare function setup:do-clean-replicas($import-config as element(configuration)+, $options as xs:string) as item()*
+declare function setup:do-clean-replicas($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -1048,6 +1171,7 @@ declare function setup:do-clean-replicas($import-config as element(configuration
   return
     try {
       if (map:count( $delete-map ) ) then
+        let $import-config := setup:rewrite-config($import-config, $properties)
         (: Loop over the replicas we are waiting for and check state :)
         let $reps-waiting :=
           for $rep in map:keys( $replicating-map )
@@ -1095,7 +1219,7 @@ declare function setup:do-clean-replicas($import-config as element(configuration
             let $_ := xdmp:log( "Updating configuration." )
             let $_ := admin:save-configuration( map:get( $updated-config, "admin-config" ) )
 
-            let $_ := setup:do-clean-replicas-state( $import-config, $options )
+            let $_ := setup:do-clean-replicas-state( $options )
 
             let $_ := xdmp:log( fn:string-join( ( "Clean replicas complete:", $cleaned ), "&#x0a;" ) )
             return( fn:string-join( ( "Clean replicas complete:", $cleaned ), "&#x0a;" ) )
@@ -1119,7 +1243,7 @@ declare function setup:do-clean-replicas($import-config as element(configuration
 (:
   Cleanup scale-out replica state files.
 :)
-declare function setup:do-clean-replicas-state($import-config as element(configuration)+, $options as xs:string) as item()*
+declare function setup:do-clean-replicas-state($options as xs:string) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -6058,11 +6182,11 @@ declare function setup:validation-fail($message)
   fn:error(xs:QName("VALIDATION-FAIL"), $message)
 };
 
-declare function setup:validate-install($import-config as element(configuration))
+declare function setup:validate-install($import-config as element(configuration), $properties as map:map)
 {
   try
   {
-    let $import-config := setup:rewrite-config($import-config)
+    let $import-config := setup:rewrite-config($import-config, $properties)
     return (
       setup:validate-external-security($import-config),
       setup:validate-privileges($import-config),
