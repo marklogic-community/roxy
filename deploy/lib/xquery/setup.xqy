@@ -6222,7 +6222,7 @@ declare function setup:validation-fail($message)
   fn:error(xs:QName("VALIDATION-FAIL"), $message)
 };
 
-declare function setup:validate-install($import-config as element(configuration), $properties as map:map)
+declare function setup:validate-install($import-config as element(configuration)+, $properties as map:map)
 {
   try
   {
