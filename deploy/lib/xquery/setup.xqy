@@ -434,7 +434,7 @@ declare variable $cts:parse             := fn:function-lookup(xs:QName("cts:pars
 declare variable $if-parser := ();
 
 declare function setup:get-if-parser($properties as map:map) {
-  if ($if-parser) then
+  if (fn:exists($if-parser)) then
     $if-parser
   else
     let $parser := function($query) {
@@ -469,44 +469,88 @@ declare function setup:get-if-parser($properties as map:map) {
 };
 
 declare function setup:eval-query($query as cts:query, $properties as map:map) {
-    typeswitch ($query)
-    case cts:and-query return fn:not(
-      (cts:and-query-queries($query) ! setup:eval-query(., $properties)) = fn:false()
-    )
-    case cts:or-query return (
-      (cts:or-query-queries($query) ! setup:eval-query(., $properties)) = fn:true()
-    )
-    case cts:not-query return fn:not(
-      cts:not-query-query($query) ! setup:eval-query(., $properties)
-    )
-    case cts:element-value-query return (
-      let $property := fn:string(cts:element-value-query-element-name($query))
-      let $operator := '='
-      let $values := cts:element-value-query-text($query)
-      return map:get($properties, $property) = $values
-    )
-    case cts:element-word-query return (
-      let $property := fn:string(cts:element-word-query-element-name($query))
-      let $operator := '='
-      let $values := cts:element-word-query-text($query)
-      return map:get($properties, $property) = $values
-    )
-    case cts:element-range-query return (
-      let $property := fn:string(cts:element-range-query-element-name($query))
-      let $operator := cts:element-range-query-operator($query)
-      let $values := cts:element-range-query-value($query)
+  typeswitch ($query)
+  case cts:and-query return fn:not(
+    (cts:and-query-queries($query) ! setup:eval-query(., $properties)) = fn:false()
+  )
+  case cts:or-query return (
+    (cts:or-query-queries($query) ! setup:eval-query(., $properties)) = fn:true()
+  )
+  case cts:not-query return fn:not(
+    cts:not-query-query($query) ! setup:eval-query(., $properties)
+  )
+  case cts:element-value-query return (
+    let $property := fn:string(cts:element-value-query-element-name($query))
+    let $operator := '='
+    let $values := cts:element-value-query-text($query)
+    return map:get($properties, $property) = $values
+  )
+  case cts:element-word-query return (
+    let $property := fn:string(cts:element-word-query-element-name($query))
+    let $operator := '='
+    let $values := cts:element-word-query-text($query)
+    return map:get($properties, $property) = $values
+  )
+  case cts:element-range-query return (
+    let $property := fn:string(cts:element-range-query-element-name($query))
+    let $operator := cts:element-range-query-operator($query)
+    let $values := cts:element-range-query-value($query)
+    return
+      if ($operator = ('=', '!=', '>', '>=', '<', '<=')) then
+        xdmp:value("map:get($properties, $property) " || $operator || " $values")
+      else
+        fn:error(xs:QName("UNSUPPORTED"), "Unsupported operator " || $operator)
+  )
+  case cts:word-query return (
+    fn:error(xs:QName("SYNTAX"), "Syntax error near " || cts:word-query-text($query))
+  )
+  default return (
+    fn:error(xs:QName("UNSUPPORTED"), "Cannot parse " || fn:upper-case(fn:replace(fn:string(xdmp:type($query)), "-query$", "")))
+  )
+};
+
+declare function setup:eval-conditionals($attrs, $properties) {
+  (: process conditional attrs in doc order, and stop at first failure :)
+  let $attr := fn:head($attrs)
+  let $remainder := fn:tail($attrs)
+  let $res :=
+    typeswitch($attr)
+    case attribute(if) return
+      let $parser := setup:get-if-parser($properties)
+      let $expression := fn:string($attr)
+      return try {
+        let $query := $parser($expression)[1]
+        return try {
+          setup:eval-query($query, $properties)
+        } catch ($e) {
+          fn:error(xs:QName("IF-PARSE-ERROR"),
+            "Unable to evauluate the expression '" || $expression || "': " || $e/error:format-string/fn:string())
+        }
+      } catch ($e) {
+        fn:error(xs:QName("IF-PARSE-ERROR"),
+          "Unable to parse the expression '" || $expression || "': " || $e/error:format-string/fn:string())
+      }
+    case attribute(if-exists) return fn:not(
+      for $prop in fn:tokenize(fn:string($attr), "\s+AND\s+")
       return
-        if ($operator = ('=', '!=', '>', '>=', '<', '<=')) then
-          xdmp:value("map:get($properties, $property) " || $operator || " $values")
-        else
-          fn:error(xs:QName("UNSUPPORTED"), "Unsupported operator " || $operator)
+        fn:exists(map:get($properties, "ml." || $prop)[. != ''])
+      = fn:false()
     )
-    case cts:word-query return (
-      fn:error(xs:QName("SYNTAX"), "Syntax error near " || cts:word-query-text($query))
+    case attribute(if-not-exists) return fn:not(
+      for $prop in fn:tokenize(fn:string($attr), "\s+AND\s+")
+      return
+        fn:empty(map:get($properties, "ml." || $prop)[. != ''])
+      = fn:false()
     )
-    default return (
-      fn:error(xs:QName("UNSUPPORTED"), "Cannot parse " || fn:upper-case(fn:replace(fn:string(xdmp:type($query)), "-query$", "")))
-    )
+    default return
+      fn:true()
+  return
+    if (fn:empty($remainder)) then
+      $res
+    else if ($res) then
+      setup:eval-conditionals($remainder, $properties)
+    else
+      fn:false()
 };
 
 declare function setup:process-conditionals($nodes, $properties) {
@@ -515,29 +559,20 @@ declare function setup:process-conditionals($nodes, $properties) {
     typeswitch ($node)
     case element() return
       let $if-valid :=
-        if (fn:exists($node/@if)) then
-          let $parser := setup:get-if-parser($properties)
-          let $expression := string($node/@if)
-          return try {
-            let $query := $parser($expression)[1]
-            return try {
-              setup:eval-query($query, $properties)
-            } catch ($e) {
-              fn:error(xs:QName("IF-PARSE-ERROR"),
-                "Unable to evauluate the expression '" || $expression || "': " || $e/error:format-string/data())
-            }
-          } catch ($e) {
-            fn:error(xs:QName("IF-PARSE-ERROR"),
-              "Unable to parse the expression '" || $expression || "': " || $e/error:format-string/data())
-          }
+        if (fn:exists($node/(@if-exists, @if-not-exists, @if))) then
+          setup:eval-conditionals($node/(@if-exists, @if-not-exists, @if), $properties)
         else
           fn:true()
       where $if-valid
-      return element { fn:node-name($node) } {
-        $node/@*,
-        setup:process-conditionals($node/node(), $properties)
-      }
-    case comment() return ()
+      return
+        if ($node/self::*:if) then
+          (: unwrap `if` elements :)
+          setup:process-conditionals($node/node(), $properties)
+        else
+          element { fn:node-name($node) } {
+            $node/(@* except (@if, @if-exists, @if-not-exists)),
+            setup:process-conditionals($node/node(), $properties)
+          }
     default return $node
 };
 
@@ -643,9 +678,13 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
   setup:rewrite-config($import-configs, $properties, $silent, ())
 };
 
-declare function setup:rewrite-config($import-configs as node()+, $properties as map:map, $silent as xs:boolean?, $keep-comments as xs:boolean?) as element(configuration)
+declare function setup:rewrite-config($import-configs as node()+, $properties as map:map, $silent as xs:boolean?, $unresolved as xs:boolean?) as element(configuration)
 {
-  let $import-configs := setup:process-conditionals($import-configs, $properties)
+  let $import-configs :=
+    if ($unresolved) then
+      $import-configs
+    else
+      setup:process-conditionals($import-configs, $properties)
   let $config :=
     element configuration {
       setup:unique-attributes($import-configs/self::configuration/@*),
@@ -730,7 +769,7 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
 
   (: Check config on group consistency! :)
   let $_ :=
-    if ($silent) then ()
+    if ($silent or $unresolved) then ()
     else
       for $group in $config/gr:groups/gr:group/gr:group-name/fn:string()
       let $hosts := ($config/ho:hosts/ho:host[ho:group/@name = $group], try { xdmp:group-hosts(xdmp:group($group)) } catch ($ignore) {})
@@ -742,7 +781,7 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
         )
 
   (: all good :)
-  return  if ($keep-comments) then $config else setup:suppress-comments($config)
+  return  if ($unresolved) then $config else setup:suppress-comments($config)
 };
 
 declare function setup:split-config($config as element(configuration), $app-name as xs:string) as node()* {

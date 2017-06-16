@@ -786,11 +786,12 @@ but --no-prompt parameter prevents prompting for password.'
 
   def config
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
+    unresolved = find_arg(['--unresolved']).present?
     query = %Q{
       #{setup}
       try {
         xdmp:quote(
-          setup:rewrite-config(#{get_config}, #{properties_map}, (), fn:true()),
+          setup:rewrite-config(#{get_config(unresolved)}, #{properties_map}, (), fn:#{unresolved}()),
           <options xmlns="xdmp:quote">
             <indent>yes</indent>
             <indent-untyped>yes</indent-untyped>
@@ -2822,7 +2823,7 @@ private
 
   def triggers_db_xml
     %Q{
-      <database xmlns="http://marklogic.com/xdmp/database">
+      <database if-exists="triggers-db" if='triggers-db NE "${modules-db}"' xmlns="http://marklogic.com/xdmp/database">
         <database-name>@ml.triggers-db</database-name>
         <forests>
           <forest-id name="@ml.triggers-db"/>
@@ -2833,7 +2834,7 @@ private
 
   def triggers_assignment
     %Q{
-      <assignment xmlns="http://marklogic.com/xdmp/assignments">
+      <assignment if-exists="triggers-db" if='triggers-db NE "${modules-db}"' xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>@ml.triggers-db</forest-name>
       </assignment>
     }
@@ -2842,7 +2843,7 @@ private
   def xdbc_server
     xdbc_auth_method = conditional_prop('ml.xdbc-authentication-method', 'ml.authentication-method')
     %Q{
-      <xdbc-server xmlns="http://marklogic.com/xdmp/group">
+      <xdbc-server if-exists="xcc-port" if='xcc-port NE "${app-port}" AND install-xcc NE "false"' xmlns="http://marklogic.com/xdmp/group">
         <xdbc-server-name>@ml.app-name-xcc</xdbc-server-name>
         <port>@ml.xcc-port</port>
         <database name="@ml.content-db"/>
@@ -2855,7 +2856,7 @@ private
   def odbc_server
     odbc_auth_method = conditional_prop('ml.odbc-authentication-method', 'ml.authentication-method')
     %Q{
-      <odbc-server xmlns="http://marklogic.com/xdmp/group">
+      <odbc-server if-exists="odbc-port" xmlns="http://marklogic.com/xdmp/group">
         <odbc-server-name>@ml.app-name-odbc</odbc-server-name>
         <port>@ml.odbc-port</port>
         <database name="@ml.content-db"/>
@@ -2867,7 +2868,7 @@ private
 
   def schemas_db_xml
     %Q{
-      <database xmlns="http://marklogic.com/xdmp/database">
+      <database if-exists="schemas-db" if='schemas-db NE "${modules-db}"' xmlns="http://marklogic.com/xdmp/database">
         <database-name>@ml.schemas-db</database-name>
         <forests>
           <forest-id name="@ml.schemas-db"/>
@@ -2878,7 +2879,7 @@ private
 
   def schemas_assignment
     %Q{
-      <assignment xmlns="http://marklogic.com/xdmp/assignments">
+      <assignment if-exists="schemas-db" if='schemas-db NE "${modules-db}"' xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>@ml.schemas-db</forest-name>
       </assignment>
     }
@@ -2886,7 +2887,7 @@ private
 
   def test_content_db_xml
     %Q{
-      <database import="@ml.content-db" xmlns="http://marklogic.com/xdmp/database">
+      <database if-exists="test-port AND test-content-db" if='environment NE "prod" AND test-content-db NE "${content-db}"' import="@ml.content-db" xmlns="http://marklogic.com/xdmp/database">
         <database-name>@ml.test-content-db</database-name>
         <forests>
           <forest-id name="@ml.test-content-db"/>
@@ -2897,7 +2898,7 @@ private
 
   def test_content_db_assignment
     %Q{
-      <assignment xmlns="http://marklogic.com/xdmp/assignments">
+      <assignment if-exists="test-port AND test-content-db" if='environment NE "prod" AND test-content-db NE "${content-db}"' xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>@ml.test-content-db</forest-name>
       </assignment>
     }
@@ -2910,7 +2911,7 @@ private
     test_default_user = conditional_prop('ml.test-default-user', 'ml.default-user')
 
     %Q{
-      <http-server import="@ml.app-name" xmlns="http://marklogic.com/xdmp/group">
+      <http-server if-exists="test-port" if='environment NE "prod"' import="@ml.app-name" xmlns="http://marklogic.com/xdmp/group">
         <http-server-name>@ml.app-name-test</http-server-name>
         <port>@ml.test-port</port>
         <database name="@ml.test-content-db"/>
@@ -2923,7 +2924,7 @@ private
 
   def test_modules_db_xml
     %Q{
-      <database import="@ml.modules-db" xmlns="http://marklogic.com/xdmp/database">
+      <database if-exists="test-port AND test-modules-db" if='environment NE "prod" AND test-modules-db NE "${modules-db}"' import="@ml.modules-db" xmlns="http://marklogic.com/xdmp/database">
         <database-name>@ml.test-modules-db</database-name>
         <forests>
           <forest-id name="@ml.test-modules-db"/>
@@ -2932,9 +2933,17 @@ private
     }
   end
 
+  def test_modules_db_assignment
+    %Q{
+      <assignment if-exists="test-port AND test-modules-db" if='environment NE "prod" AND test-modules-db NE "${modules-db}"' xmlns="http://marklogic.com/xdmp/assignments">
+        <forest-name>@ml.test-modules-db</forest-name>
+      </assignment>
+    }
+  end
+
   def test_user_xml
     %Q{
-      <user xmlns="http://marklogic.com/xdmp/security">
+      <user if-exists="test-user" xmlns="http://marklogic.com/xdmp/security">
         <user-name>${test-user}</user-name>
         <description>A user for the ${app-name} unit tests</description>
         <password>${test-user-password}</password>
@@ -2944,14 +2953,6 @@ private
         <permissions/>
         <collections/>
       </user>
-    }
-  end
-
-  def test_modules_db_assignment
-    %Q{
-      <assignment xmlns="http://marklogic.com/xdmp/assignments">
-        <forest-name>@ml.test-modules-db</forest-name>
-      </assignment>
     }
   end
 
@@ -2970,7 +2971,7 @@ private
     end
 
     %Q{
-      <http-server import="@ml.app-name" xmlns="http://marklogic.com/xdmp/group">
+      <http-server if-exists="rest-port" import="@ml.app-name" xmlns="http://marklogic.com/xdmp/group">
         <http-server-name>@ml.app-name-rest</http-server-name>
         <port>@ml.rest-port</port>
         <database name="@ml.content-db"/>
@@ -2988,7 +2989,7 @@ private
     rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
 
     %Q{
-      <database xmlns="http://marklogic.com/xdmp/database">
+      <database if-exists="rest-port" if='rest-modules-db NE "${modules-db}"' xmlns="http://marklogic.com/xdmp/database">
         <database-name>#{rest_modules_db}</database-name>
         <forests>
           <forest-id name="#{rest_modules_db}"/>
@@ -3001,7 +3002,7 @@ private
     rest_modules_db = conditional_prop('ml.rest-modules-db', 'ml.modules-db')
 
     %Q{
-      <assignment xmlns="http://marklogic.com/xdmp/assignments">
+      <assignment if-exists="rest-port" if='rest-modules-db NE "${modules-db}"' xmlns="http://marklogic.com/xdmp/assignments">
         <forest-name>#{rest_modules_db}</forest-name>
       </assignment>
     }
@@ -3009,7 +3010,7 @@ private
 
   def ssl_certificate_xml
     %Q{
-      <certificate xmlns="http://marklogic.com/xdmp/pki">
+      <certificate if-exists="ssl-certificate-template" xmlns="http://marklogic.com/xdmp/pki">
         <name>@ml.ssl-certificate-template</name>
         <countryName>@ml.ssl-certificate-countryName</countryName>
         <stateOrProvinceName>@ml.ssl-certificate-stateOrProvinceName</stateOrProvinceName>
@@ -3022,6 +3023,12 @@ private
   end
 
   def build_config(config_paths, preserve_props = false)
+    # some extra assertions
+    raise ExitException.new("You must use different numbers for app-port and rest-port.") if @properties["ml.app-port"] == @properties["ml.rest-port"]
+    raise ExitException.new("You must use different numbers for app-port and odbc-port.") if @properties["ml.app-port"] == @properties["ml.odbc-port"]
+    raise ExitException.new("You must use different numbers for app-port and xdbc-port.") if @properties["ml.app-port"] == @properties["ml.xdbc-port"]
+    raise ExitException.new("You must use different numbers for app-port and test-port.") if @properties["ml.app-port"] == @properties["ml.test-port"]
+    
     config_files = []
     config_paths.split(",").each do |config_path|
       if File.directory?(config_path)
@@ -3040,144 +3047,145 @@ private
       config = File.read(config_file)
 
       # Build the triggers db if it is provided
-      if @properties['ml.triggers-db'].present?
+      #if @properties['ml.triggers-db'].present?
 
-        if @properties['ml.triggers-db'] != @properties['ml.modules-db']
+        #if @properties['ml.triggers-db'] != @properties['ml.modules-db']
           config.gsub!("@ml.triggers-db-xml", triggers_db_xml)
           config.gsub!("@ml.triggers-assignment", triggers_assignment)
-        else
-          config.gsub!("@ml.triggers-db-xml", "")
-          config.gsub!("@ml.triggers-assignment", "")
-        end
+        #else
+        #  config.gsub!("@ml.triggers-db-xml", "")
+        #  config.gsub!("@ml.triggers-assignment", "")
+        #end
 
         config.gsub!("@ml.triggers-mapping",
           %Q{
-          <triggers-database name="@ml.triggers-db"/>
+          <triggers-database if-exists="triggers-db" name="@ml.triggers-db"/>
           })
 
-      else
-        config.gsub!("@ml.triggers-db-xml", "")
-        config.gsub!("@ml.triggers-assignment", "")
-        config.gsub!("@ml.triggers-mapping", "")
-      end
+      #else
+      #  config.gsub!("@ml.triggers-db-xml", "")
+      #  config.gsub!("@ml.triggers-assignment", "")
+      #  config.gsub!("@ml.triggers-mapping", "")
+      #end
 
-      if @properties['ml.xcc-port'].present? and @properties['ml.install-xcc'] != 'false'
+      #if @properties['ml.xcc-port'].present? and @properties['ml.install-xcc'] != 'false'
         config.gsub!("@ml.xdbc-server", xdbc_server)
-      else
-        config.gsub!("@ml.xdbc-server", "")
-      end
+      #else
+      #  config.gsub!("@ml.xdbc-server", "")
+      #end
 
-      if @properties['ml.odbc-port'].present?
+      #if @properties['ml.odbc-port'].present?
         config.gsub!("@ml.odbc-server", odbc_server)
-      else
-        config.gsub!("@ml.odbc-server", "")
-      end
+      #else
+      #  config.gsub!("@ml.odbc-server", "")
+      #end
 
       # Build the schemas db if it is provided
-      if @properties['ml.schemas-db'].present?
+      #if @properties['ml.schemas-db'].present?
 
-        if @properties['ml.schemas-db'] != @properties['ml.modules-db']
+        #if @properties['ml.schemas-db'] != @properties['ml.modules-db']
           config.gsub!("@ml.schemas-db-xml", schemas_db_xml)
           config.gsub!("@ml.schemas-assignment", schemas_assignment)
-        else
-          config.gsub!("@ml.schemas-db-xml", "")
-          config.gsub!("@ml.schemas-assignment", "")
-        end
+        #else
+        #  config.gsub!("@ml.schemas-db-xml", "")
+        #  config.gsub!("@ml.schemas-assignment", "")
+        #end
 
         config.gsub!("@ml.schemas-mapping",
           %Q{
-          <schema-database name="@ml.schemas-db"/>
+          <schema-database if-exists="schemas-db" name="@ml.schemas-db"/>
           })
 
-      else
-        config.gsub!("@ml.schemas-db-xml", "")
-        config.gsub!("@ml.schemas-assignment", "")
-        config.gsub!("@ml.schemas-mapping", "")
-      end
+      #else
+      #  config.gsub!("@ml.schemas-db-xml", "")
+      #  config.gsub!("@ml.schemas-assignment", "")
+      #  config.gsub!("@ml.schemas-mapping", "")
+      #end
 
       # Build the test appserver and db if it is provided
-      if @properties['ml.test-content-db'].present? &&
-         @properties['ml.test-port'].present? &&
-         @environment != "prod"
+      #if @properties['ml.test-content-db'].present? &&
+      #   @properties['ml.test-port'].present? &&
+      #   @environment != "prod"
 
         config.gsub!("@ml.test-content-db-xml", test_content_db_xml)
         config.gsub!("@ml.test-content-db-assignment", test_content_db_assignment)
         config.gsub!("@ml.test-appserver", test_appserver)
 
-      else
-        config.gsub!("@ml.test-content-db-xml", "")
-        config.gsub!("@ml.test-content-db-assignment", "")
-        config.gsub!("@ml.test-appserver", "")
-      end
+      #else
+      #  config.gsub!("@ml.test-content-db-xml", "")
+      #  config.gsub!("@ml.test-content-db-assignment", "")
+      #  config.gsub!("@ml.test-appserver", "")
+      #end
 
       # Build the test modules db if it is different from the app modules db
-      if @properties['ml.test-modules-db'].present? &&
-         @properties['ml.test-modules-db'] != @properties['ml.modules-db']
+      #if @properties['ml.test-modules-db'].present? &&
+      #   @properties['ml.test-modules-db'] != @properties['ml.modules-db']
 
         config.gsub!("@ml.test-modules-db-xml", test_modules_db_xml)
         config.gsub!("@ml.test-modules-db-assignment", test_modules_db_assignment)
 
-      else
-        config.gsub!("@ml.test-modules-db-xml", "")
-        config.gsub!("@ml.test-modules-db-assignment", "")
-      end
+      #else
+      #  config.gsub!("@ml.test-modules-db-xml", "")
+      #  config.gsub!("@ml.test-modules-db-assignment", "")
+      #end
 
-      if @properties['ml.test-user'].present?
+      #if @properties['ml.test-user'].present?
 
         config.gsub!("@ml.test-user-xml", test_user_xml)
 
-      else
-        config.gsub!("@ml.test-user-xml", "")
-      end
+      #else
+      #  config.gsub!("@ml.test-user-xml", "")
+      #end
 
-      if @properties['ml.rest-port'].present?
+      #if @properties['ml.rest-port'].present?
 
         # Set up a REST API app server, distinct from the main application.
         config.gsub!("@ml.rest-appserver", rest_appserver)
 
-        if @properties['ml.rest-modules-db'].present? &&
-           @properties['ml.rest-modules-db'] != @properties['ml.modules-db']
+        #if @properties['ml.rest-modules-db'].present? &&
+        #   @properties['ml.rest-modules-db'] != @properties['ml.modules-db']
            config.gsub!("@ml.rest-modules-db-xml", rest_modules_db_xml)
            config.gsub!("@ml.rest-modules-db-assignment", rest_modules_db_assignment)
-        else
-          config.gsub!("@ml.rest-modules-db-xml", "")
-          config.gsub!("@ml.rest-modules-db-assignment", "")
-        end
+        #else
+        #  config.gsub!("@ml.rest-modules-db-xml", "")
+        #  config.gsub!("@ml.rest-modules-db-assignment", "")
+        #end
 
-      else
-        config.gsub!("@ml.rest-appserver", "")
-        config.gsub!("@ml.rest-modules-db-xml", "")
-        config.gsub!("@ml.rest-modules-db-assignment", "")
-      end
+      #else
+      #  config.gsub!("@ml.rest-appserver", "")
+      #  config.gsub!("@ml.rest-modules-db-xml", "")
+      #  config.gsub!("@ml.rest-modules-db-assignment", "")
+      #end
 
-      if @properties['ml.forest-data-dir'].present?
+      #if @properties['ml.forest-data-dir'].present?
         config.gsub!("@ml.forest-data-dir-xml",
           %Q{
-            <data-directory>@ml.forest-data-dir</data-directory>
+            <data-directory if-exists="forest-data-dir">@ml.forest-data-dir</data-directory>
           })
-      else
-        config.gsub!("@ml.forest-data-dir-xml", "")
-      end
+      #else
+      #  config.gsub!("@ml.forest-data-dir-xml", "")
+      #end
 
-      if !@properties['ml.rewrite-resolves-globally'].nil?
+      #if !@properties['ml.rewrite-resolves-globally'].nil?
         config.gsub!("@ml.rewrite-resolves-globally",
           %Q{
-            <rewrite-resolves-globally>#{@properties['ml.rewrite-resolves-globally']}</rewrite-resolves-globally>
+            <rewrite-resolves-globally if-exists="rewrite-resolves-globally">@ml.rewrite-resolves-globally</rewrite-resolves-globally>
+            <rewrite-resolves-globally if-not-exists="rewrite-resolves-globally" if='app-type EQ "rest" OR app-type EQ hybrid'>true</rewrite-resolves-globally>
           })
-      elsif ['rest', 'hybrid'].include?(@properties["ml.app-type"])
-        config.gsub!("@ml.rewrite-resolves-globally",
-          %Q{
-            <rewrite-resolves-globally>true</rewrite-resolves-globally>
-          })
-      else
-        config.gsub!("@ml.rewrite-resolves-globally", "")
-      end
+      #elsif ['rest', 'hybrid'].include?(@properties["ml.app-type"])
+      #  config.gsub!("@ml.rewrite-resolves-globally",
+      #    %Q{
+      #      <rewrite-resolves-globally>true</rewrite-resolves-globally>
+      #    })
+      #else
+      #  config.gsub!("@ml.rewrite-resolves-globally", "")
+      #end
 
-      if @properties['ml.ssl-certificate-template'].present?
+      #if @properties['ml.ssl-certificate-template'].present?
         config.gsub!("@ml.ssl-certificate-xml", ssl_certificate_xml)
-      else
-        config.gsub!("@ml.ssl-certificate-xml", "")
-      end
+      #else
+      #  config.gsub!("@ml.ssl-certificate-xml", "")
+      #end
 
       if ! preserve_props
         replace_properties(config, File.basename(config_file), true)
