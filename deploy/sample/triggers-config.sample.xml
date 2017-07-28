@@ -14,8 +14,8 @@
     </trgr:data-event>
     <trgr:module>
       <trgr:database>${modules-db}</trgr:database>
-      <trgr:root>/triggers/</trgr:root>
-      <trgr:path>log-create.xqy</trgr:path>
+      <trgr:root>/</trgr:root>
+      <trgr:path>triggers/log-create.xqy</trgr:path>
     </trgr:module>
     <trgr:enabled>true</trgr:enabled>
     <trgr:permissions>
@@ -40,8 +40,8 @@
     </trgr:database-online-event>
     <trgr:module>
       <trgr:database>${modules-db}</trgr:database>
-      <trgr:root>/triggers/</trgr:root>
-      <trgr:path>log-create.xqy</trgr:path>
+      <trgr:root>/</trgr:root>
+      <trgr:path>triggers/log-create.xqy</trgr:path>
     </trgr:module>
     <trgr:enabled>true</trgr:enabled>
     <trgr:permissions>
