@@ -1388,7 +1388,19 @@ In order to proceed please type: #{expected_response}
 
     runme = %Q{java -cp #{recordloader_file}#{path_separator}#{xcc_file}#{path_separator}#{xpp_file} #{prop_string} com.marklogic.ps.RecordLoader}
     logger.info runme
-    `#{runme}`
+    r = system(runme)
+    logger.debug $?
+
+    if r == nil
+      logger.error "Call to RecordLoader failed"
+      r = false
+    elsif !r
+      logger.error "RecordLoader non-zero exit"
+    else
+      logger.info ""
+    end
+
+    return r
   end
 
   def xqsync
@@ -1414,7 +1426,21 @@ In order to proceed please type: #{expected_response}
 
     runme = %Q{java -Xmx2048m -cp #{xqsync_file}#{path_separator}#{xcc_file}#{path_separator}#{xstream_file}#{path_separator}#{xpp_file} -Dfile.encoding=UTF-8 #{prop_string} com.marklogic.ps.xqsync.XQSync}
     logger.info runme
-    `#{runme}`
+
+    # Note: XQSync doesn't seem to exit with non-zero code at failure (yet), putting this in place nonetheless
+    r = system(runme)
+    logger.debug $?
+
+    if r == nil
+      logger.error "Call to XQSync failed"
+      r = false
+    elsif !r
+      logger.error "XQSync non-zero exit"
+    else
+      logger.info ""
+    end
+
+    return r
   end
 
   def corb
@@ -1476,9 +1502,6 @@ In order to proceed please type: #{expected_response}
       end
     end
 
-    # we have normalized the options, now clear the args
-    ARGV.clear
-
     # collect options and set as Java system properties switches
     systemProperties = options.delete_if{ |key, value| value.blank? }
                         .map{ |key, value| "-D#{key}=\"#{value}\""}
@@ -1496,11 +1519,24 @@ In order to proceed please type: #{expected_response}
       # directory, so that the xquery_modules will be visible with the
       # same path that will be used to see it in the modules database.
       Dir.chdir(@properties['ml.xquery.dir']) do
-        `#{runme}`
+        r = system(runme)
       end
     else
-      `#{runme}`
+      r = system(runme)
     end
+    logger.debug $?
+
+    if r == nil
+      logger.error "Call to Corb failed"
+      r = false
+    elsif !r
+      logger.error "Corb non-zero exit"
+    else
+      logger.info ""
+    end
+
+    ARGV.clear
+    return r
   end
 
   def mlcp
@@ -1580,12 +1616,20 @@ In order to proceed please type: #{expected_response}
       "PATH" => "#{ENV['PATH']};#{mlcp_home}\\bin",
       "HADOOP_HOME" => mlcp_home
     }
-    system(env_variables, runme)
+    r = system(env_variables, runme)
+    logger.debug $?
 
-    logger.info ""
+    if r == nil
+      logger.error "Call to MLCP failed"
+      r = false
+    elsif !r
+      logger.error "MLCP non-zero exit"
+    else
+      logger.info ""
+    end
 
     ARGV.clear
-    return true
+    return r
   end
 
   def credentials
