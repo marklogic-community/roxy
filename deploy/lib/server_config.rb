@@ -1322,12 +1322,25 @@ In order to proceed please type: #{expected_response}
         suites << line.gsub(/.*suite path="([^"]+)".*/, '\1').strip if line.match("suite path")
       end
 
+      success = true
       suites.each do |suite|
-        r = go(%Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/default.xqy?func=run&suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get")
-        logger.info r.body
+        begin
+          r = go(%Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/default.xqy?func=run&suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get")
+          logger.info r.body
+        rescue Net::HTTPServerException => e
+          if e.response.code.to_i == 409
+            # ignore 409's, but mark failure
+            success = false
+          else
+            raise # reraise last exception
+          end
+        end
       end
     end
-    return true
+    if !success
+      logger.error "Some tests failed!"
+    end
+    return success
   end
 
   def test_cleanup
