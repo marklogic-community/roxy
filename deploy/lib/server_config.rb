@@ -119,6 +119,16 @@ class ServerConfig < MLClient
     rescue
       logger.warn "WARN: unable to determine MarkLogic Host name of #{@hostname}"
     end
+
+    begin
+      r = execute_query %Q{ substring-before(xdmp:version(), ".") }
+      r.body = parse_body r.body
+      if r.body.to_i != @server_version
+        logger.warn "WARN: #{@hostname} is running MarkLogic #{r.body}, but server-version is set to #{@server_version}!"
+      end
+    rescue
+      logger.warn "WARN: unable to determine MarkLogic Version of #{@hostname}"
+    end
   end
 
   def get_properties
