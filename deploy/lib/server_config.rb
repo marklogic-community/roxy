@@ -2746,7 +2746,7 @@ private
           if i
             key = prefix + line[0..i - 1].strip
             value = line[i + 1..-1].strip
-            properties[key] = ENV[key.sub("ml.", "ml_")] || value
+            properties[key] = ENV[key.gsub(/[^0-9A-Za-z_]/, '_')] || value
           end
         end
       end
