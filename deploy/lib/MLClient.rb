@@ -28,7 +28,7 @@ class MLClient
 
   def initialize(options)
     @ml_username = options[:user_name]
-    @ml_password = options[:password].xquery_unsafe
+    @ml_password = options[:password]
     @logger = options[:logger] || logger
     @request = {}
 
