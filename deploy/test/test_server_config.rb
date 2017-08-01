@@ -7,14 +7,14 @@ describe ServerConfig do
 
   describe "load_properties" do
     before do
-      @properties = ServerConfig.load_properties(File.expand_path("../data/ml6-properties/default.properties", __FILE__), "test.")
+      @properties = ServerConfig.load_properties(File.expand_path("../data/ml9-properties/default.properties", __FILE__), "test.")
     end
 
     it "should load the properties" do
       @properties.must_be_kind_of Hash
-      @properties['test.user'].must_equal 'admin'
-      @properties['test.password'].must_equal 'admin'
       @properties['test.app-name'].must_equal 'roxy'
+      @properties['test.modules-root'].must_equal '/'
+      @properties['test.content-forests-per-host'].must_equal '1'
     end
   end
 
@@ -46,7 +46,7 @@ describe ServerConfig do
   describe "load properties" do
 
     it "should load properties from a file" do
-      properties = ServerConfig.properties(File.expand_path("../data/ml6-properties/", __FILE__))
+      properties = ServerConfig.properties(File.expand_path("../data/ml9-properties/", __FILE__))
 
       properties.must_be_kind_of Hash
       properties['ml.user'].must_equal 'admin'
@@ -58,7 +58,7 @@ describe ServerConfig do
   describe "bootstrap" do
 
     before do
-      @version = ENV['ROXY_TEST_SERVER_VERSION'] || 7
+      @version = ENV['ROXY_TEST_SERVER_VERSION'] || 9
       @logger = Logger.new(STDOUT)
       @logger.info "Testing against MarkLogic version #{@version}.."
 
@@ -118,7 +118,7 @@ describe ServerConfig do
       @logger.expect :warn, nil, ["Property ml.missing-key does not exist. It will be skipped."]
 
       ServerConfig.logger = @logger
-      @properties = ServerConfig.properties(File.expand_path("../data/ml7-properties/", __FILE__))
+      @properties = ServerConfig.properties(File.expand_path("../data/ml9-properties/", __FILE__))
     end
 
     it "should warn the user when missing keys are provided" do
@@ -172,7 +172,7 @@ describe ServerConfig do
 
     before do
       ARGV << "--ml.dummy-port=8888"
-      @properties = ServerConfig.properties(File.expand_path("../data/ml7-properties/", __FILE__))
+      @properties = ServerConfig.properties(File.expand_path("../data/ml9-properties/", __FILE__))
     end
 
     it "should load valid properites from a command" do
