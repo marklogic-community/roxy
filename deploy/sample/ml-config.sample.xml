@@ -119,7 +119,6 @@
           <!-- <ssl-certificate-template>@ml.ssl-certificate-template</ssl-certificate-template> -->
         </http-server>
         @ml.test-appserver
-        @ml.rest-appserver
       </http-servers>
       <xdbc-servers>
         @ml.xdbc-server
