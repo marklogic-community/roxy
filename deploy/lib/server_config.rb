@@ -771,12 +771,20 @@ but --no-prompt parameter prevents prompting for password.'
     logger.info r.body
   end
 
+  def properties_map
+    entries = []
+    @properties.each do |k, v|
+      entries.push %Q{map:entry("#{k}", "#{v}")}
+    end
+    "map:new((\n" + entries.join(",\n  ")+ "))"
+  end
+
   def config
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
     r = execute_query %Q{
       #{setup}
       try {
-        setup:rewrite-config(#{get_config})
+        setup:rewrite-config(#{get_config}, #{properties_map})
       } catch($ex) {
         xdmp:log($ex),
         fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
@@ -878,7 +886,7 @@ but --no-prompt parameter prevents prompting for password.'
     end
 
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-setup(#{config}, "#{apply_changes},#{dointernals}")}
+    r = execute_query %Q{#{setup} setup:do-setup(#{config}, "#{apply_changes},#{dointernals}", #{properties_map})}
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_body(r.body)
@@ -905,15 +913,13 @@ but --no-prompt parameter prevents prompting for password.'
     if internals == nil
       internals = ''
       logger.info "Cleaning application forest decommissioned replica state"
-      config = get_config
     else
       logger.info "Cleaning interal forest decommissioned replica state"
       internals = 'internals'
-      config = get_config
     end
 
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-clean-replicas-state(#{config}, "#{internals}")}
+    r = execute_query %Q{#{setup} setup:do-clean-replicas-state("#{internals}")}
 
     if r.body.match("error log")
       logger.error r.body
@@ -940,7 +946,7 @@ but --no-prompt parameter prevents prompting for password.'
     end
 
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
-    r = execute_query %Q{#{setup} setup:do-clean-replicas(#{config}, "#{internals}")}
+    r = execute_query %Q{#{setup} setup:do-clean-replicas(#{config}, "#{internals}", #{properties_map})}
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_body(r.body)
@@ -1099,7 +1105,7 @@ In order to proceed please type: #{expected_response}
 
       }
     else
-      #logger.debug %Q{#{setup} setup:do-wipe(#{config})}
+      #logger.debug %Q{#{setup} setup:do-wipe(#{config}, #{properties_map})}
 
       wipe_changes = find_arg(['--apply-changes'])
 
@@ -1107,7 +1113,7 @@ In order to proceed please type: #{expected_response}
         wipe_changes = "all"
       end
 
-      r = execute_query %Q{#{setup} setup:do-wipe(#{config}, "#{wipe_changes}")}
+      r = execute_query %Q{#{setup} setup:do-wipe(#{config}, "#{wipe_changes}", #{properties_map})}
     end
     logger.debug "code: #{r.code.to_i}"
 
@@ -1139,7 +1145,7 @@ In order to proceed please type: #{expected_response}
     logger.info "Validating your project installation into MarkLogic on #{@hostname}..."
     setup = File.read(ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy"))
     begin
-      r = execute_query %Q{#{setup} setup:validate-install(#{get_config})}
+      r = execute_query %Q{#{setup} setup:validate-install(#{get_config}, #{properties_map})}
       logger.debug "code: #{r.code.to_i}"
 
       r.body = parse_body(r.body)
