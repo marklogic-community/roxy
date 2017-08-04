@@ -747,7 +747,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
       if ($import-config/@rollback = "true") then
         $import-config
       else
-        setup:rewrite-config($import-config, fn:true(), $properties)
+        setup:rewrite-config($import-config, $properties, fn:true())
     return (
 
       (: remove scheduled tasks :)
