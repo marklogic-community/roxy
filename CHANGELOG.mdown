@@ -1,6 +1,66 @@
 # Roxy Changes
 This file describes changes made to Roxy per release
 
+## 1.7.7
+
+### New Features
+ * [#85](https://github.com/marklogic-community/roxy/issues/85) Add New Deploy Modules Flag that will deploy only New or Modifed Files
+ * [#137](https://github.com/marklogic-community/roxy/issues/137) Create a property that controls which source file gets substitutions
+ * [#166](https://github.com/marklogic-community/roxy/issues/166) Better error message when an extra app-server refers to a project database
+ * [#198](https://github.com/marklogic-community/roxy/issues/198) Auto-detect ML version..
+ * [#203](https://github.com/marklogic-community/roxy/issues/203) Deploying modules/content (relatively) slow?
+ * [#235](https://github.com/marklogic-community/roxy/issues/235) File include for ml-config.xml
+ * [#360](https://github.com/marklogic-community/roxy/issues/360) Need better error message when appserver not found in execute_query
+ * [#419](https://github.com/marklogic-community/roxy/issues/419) Some sort of ignore file for ./ml local deploy modules
+ * [#535](https://github.com/marklogic-community/roxy/issues/535) clean modules fails for environments not originally bootstrapped by roxy
+ * [#692](https://github.com/marklogic-community/roxy/issues/692) Define environment specific assets in ml-config.xml
+ * [#725](https://github.com/marklogic-community/roxy/issues/725) Use / in triggers-config.sample.xml
+ * [#762](https://github.com/marklogic-community/roxy/issues/762) Configurable CPF config file
+ * [#796](https://github.com/marklogic-community/roxy/issues/796) Add selftest configs for ml8 and ml9
+ * [#799](https://github.com/marklogic-community/roxy/issues/799) Allow non-confirmed wipe of env's other than local
+
+### Resolved Issues
+ * [#43](https://github.com/marklogic-community/roxy/issues/43) Default settings for database configuration
+ * [#66](https://github.com/marklogic-community/roxy/issues/66) RFE: support more eval options in deploy/server_config execute_query()
+ * [#70](https://github.com/marklogic-community/roxy/issues/70) Support pretty error messages
+ * [#111](https://github.com/marklogic-community/roxy/issues/111) Deploy/manage/update configuration using OOTB ML packaging
+ * [#114](https://github.com/marklogic-community/roxy/issues/114) Use an existing database and its forests
+ * [#125](https://github.com/marklogic-community/roxy/issues/125) Need to restart for collation changes to server
+ * [#131](https://github.com/marklogic-community/roxy/issues/131) Better error message for missing role
+ * [#133](https://github.com/marklogic-community/roxy/issues/133) Create a package manager for REST API extensions and transforms
+ * [#215](https://github.com/marklogic-community/roxy/issues/215) Explicit testing of min-version on settings..
+ * [#242](https://github.com/marklogic-community/roxy/issues/242) Shared role on wipe command
+ * [#244](https://github.com/marklogic-community/roxy/issues/244) Symbolic link support
+ * [#245](https://github.com/marklogic-community/roxy/issues/245) Reusing existing content db (or other db's?)
+ * [#255](https://github.com/marklogic-community/roxy/issues/255) issues with Amazon load balancer
+ * [#285](https://github.com/marklogic-community/roxy/issues/285) Add RESTful API Spec Generator
+ * [#309](https://github.com/marklogic-community/roxy/issues/309) setup.xqy evals with hardwired security database name
+ * [#325](https://github.com/marklogic-community/roxy/issues/325) Verify group/host-settings against ML6 (and ML5)
+ * [#327](https://github.com/marklogic-community/roxy/issues/327) Integrating Quandl API for Market Data (Reference Data)
+ * [#368](https://github.com/marklogic-community/roxy/issues/368) Do you have more specific instructions for using the ML.txt?
+ * [#396](https://github.com/marklogic-community/roxy/issues/396) Fix MLCP call to add database if ml-version=8
+ * [#439](https://github.com/marklogic-community/roxy/issues/439) Deploying to remote server hangs
+ * [#454](https://github.com/marklogic-community/roxy/issues/454) Add support for npm install
+ * [#477](https://github.com/marklogic-community/roxy/issues/477) Problem switching from app-type=rest to app-type=hybrid
+ * [#491](https://github.com/marklogic-community/roxy/issues/491) What privileges are required for bootstrapping and deploying?
+ * [#496](https://github.com/marklogic-community/roxy/issues/496) How to set permission on the "/" directory for WebDAV Server
+ * [#500](https://github.com/marklogic-community/roxy/issues/500) Don't add schedules to all hosts by default
+ * [#531](https://github.com/marklogic-community/roxy/issues/531) rest options are not deployed to the test modules database
+ * [#564](https://github.com/marklogic-community/roxy/issues/564) SEC-ROLEDNE: Role does not exist: sec:role-name = rest-extension-user
+ * [#603](https://github.com/marklogic-community/roxy/issues/603) Command-line overrides for props are not removed from ARGV
+ * [#622](https://github.com/marklogic-community/roxy/issues/622) Escape passwords on use, not upfront
+ * [#624](https://github.com/marklogic-community/roxy/issues/624) Minimum Permission for deployment
+ * [#650](https://github.com/marklogic-community/roxy/issues/650) Rewriter not initialized correctly when not selecting server-version upfront
+ * [#664](https://github.com/marklogic-community/roxy/issues/664) MLCP call doesn't return failed code if Java not found
+ * [#695](https://github.com/marklogic-community/roxy/issues/695) ml bash command line argument parsing (helpful for app_specific extensions)
+ * [#723](https://github.com/marklogic-community/roxy/issues/723) Scheduled Tasks created through Roxy are not triggering
+ * [#751](https://github.com/marklogic-community/roxy/issues/751) Operating System variables wiki is out of date
+ * [#757](https://github.com/marklogic-community/roxy/issues/757) Returning exit status for unit test invocation
+ * [#777](https://github.com/marklogic-community/roxy/issues/777) deploy modules --incremental=yes breaks
+ * [#794](https://github.com/marklogic-community/roxy/issues/794) ENV property overrides don't allow . and -
+ * [#800](https://github.com/marklogic-community/roxy/issues/800) Roxy no longer supports server-version < 7 since v1.7.1
+ * [#802](https://github.com/marklogic-community/roxy/issues/802) Upgrade/downgrade between 1.7.0 and 1.7.1 fails
+
 ## 1.7.6
 
 ### New Features
