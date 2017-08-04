@@ -120,6 +120,8 @@ class ServerConfig < MLClient
       logger.warn "WARN: unable to determine MarkLogic Host name of #{@hostname}"
     end
 
+    @properties["ml.password"] = @ml_password
+
     begin
       r = execute_query %Q{ substring-before(xdmp:version(), ".") }
       r.body = parse_body r.body
@@ -681,7 +683,7 @@ but --no-prompt parameter prevents prompting for password.'
           rescue
             logger.debug 'Retry attempt ' + retry_count.to_s + ' failed'
           end
-          
+
           if new_timestamp != old_timestamp
             # Indicates that restart is confirmed successful
             break
