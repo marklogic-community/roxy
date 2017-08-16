@@ -2183,6 +2183,13 @@ declare function setup:add-fields(
           fn:error(
             xs:QName("VERSION_NOT_SUPPORTED"),
             fn:concat("MarkLogic ", xdmp:version(), " does not support path-based fields. Use 7.0-1 or higher."))
+      else if (fn:exists($field/db:metadata)) then
+        if (setup:at-least-version("9.0-1")) then
+            xdmp:value("admin:database-metadata-field($field/db:field-name)")
+        else
+          fn:error(
+            xs:QName("VERSION_NOT_SUPPORTED"),
+            fn:concat("MarkLogic ", xdmp:version(), " does not support metadata fields. Use 9.0-1 or higher."))
       else
         admin:database-field($field/db:field-name, $field/db:include-root)
   )
