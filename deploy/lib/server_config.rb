@@ -776,7 +776,7 @@ but --no-prompt parameter prevents prompting for password.'
   def properties_map
     entries = []
     @properties.each do |k, v|
-      entries.push %Q{map:entry("#{k}", "#{v}")}
+      entries.push %Q{map:entry("#{k}", "#{v.xquery_safe}")}
     end
     "map:new((\n" + entries.join(",\n  ")+ "))"
   end
