@@ -60,7 +60,7 @@ describe ServerConfig do
     before do
       @version = ENV['ROXY_TEST_SERVER_VERSION'] || 9
       @logger = Logger.new(STDOUT)
-      @logger.info "Testing against MarkLogic version #{@version}.."
+      @logger.info "Testing MarkLogic version #{@version}.."
 
       # cheat the local environment into the command line
       ARGV << "local"
