@@ -797,7 +797,6 @@ but --no-prompt parameter prevents prompting for password.'
         fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
       }
     }
-    logger.debug query
     r = execute_query query
     logger.debug "code: #{r.code.to_i}"
 
@@ -2713,13 +2712,7 @@ private
       end
     end
 
-    #logger.debug headers
-    #logger.debug params
-
     r = go "#{@protocol}://#{@hostname}:#{@qconsole_port}/v1/eval", "post", headers, params
-
-    #logger.debug r.code
-    #logger.debug r.body
 
     raise ExitException.new(JSON.pretty_generate(JSON.parse(r.body))) if r.body.match(/\{"error"/)
 
