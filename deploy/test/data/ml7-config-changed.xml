@@ -545,19 +545,19 @@
 
       <system-log-level>info</system-log-level>
       <file-log-level>notice</file-log-level>
-      <rotate-log-files>hourly</rotate-log-files>
+      <rotate-log-files>monthly</rotate-log-files>
       <keep-log-files>24</keep-log-files>
 
       <failover-enable>false</failover-enable>
       <xdqp-ssl-enabled>true</xdqp-ssl-enabled>
       <xdqp-ssl-allow-sslv3>false</xdqp-ssl-allow-sslv3>
-      <xdqp-ssl-allow-tls>false</xdqp-ssl-allow-tls>
+      <xdqp-ssl-allow-tls>true</xdqp-ssl-allow-tls>
       <xdqp-ssl-ciphers>ALL:!LOW:@STRENGTH2</xdqp-ssl-ciphers>
 
       <background-io-limit>0</background-io-limit>
       <metering-enabled>false</metering-enabled>
       <performance-metering-enabled>false</performance-metering-enabled>
-      <performance-metering-period>61</performance-metering-period>
+      <performance-metering-period>120</performance-metering-period>
       <performance-metering-retain-raw>8</performance-metering-retain-raw>
       <performance-metering-retain-hourly>31</performance-metering-retain-hourly>
       <performance-metering-retain-daily>91</performance-metering-retain-daily>
@@ -571,7 +571,7 @@
 
       <!-- Auditing -->
       <audit-enabled>false</audit-enabled>
-      <rotate-audit-files>hourly</rotate-audit-files>
+      <rotate-audit-files>monthly</rotate-audit-files>
       <keep-audit-files>24</keep-audit-files>
       <audit-outcome-restriction>both</audit-outcome-restriction>
     </group>
