@@ -829,7 +829,9 @@ but --no-prompt parameter prevents prompting for password.'
         nr = 1
       end
 
-      raise ExitException.new("Increase nr-replicas, minimum is 1") if nr < 1
+      raise ExitException.new("Forest replication and failover requires at least 3 nodes to function properly.  This cluster has only #{r.body.to_i} node(s).") if r.body.to_i < 3
+
+      raise ExitException.new("Increase nr-replicas - minimum is 1, or disable forest replication.  Replicas specified #{nr}") if nr < 1
       raise ExitException.new("Adding #{nr} replicas to internals requires at least a #{nr + 1} node cluster") if r.body.to_i <= nr
 
       logger.info "Bootstrapping replicas for #{@properties['ml.system-dbs']} on #{@hostname}..."
@@ -899,6 +901,11 @@ but --no-prompt parameter prevents prompting for password.'
       raise ExitException.new("... Bootstrap FAILED")
       return false
     else
+      if r.body.match("WARNING")
+        r.body.split(/\n/).each do |li| 
+          puts li if (li[/^WARNING/])
+        end
+      end
       if r.body.match("(note: restart required)")
         logger.warn "************************************"
         logger.warn "*** RESTART OF MARKLOGIC IS REQUIRED"
