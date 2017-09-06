@@ -54,6 +54,14 @@ declare variable $system-users := ("nobody", "infostudio-admin", "healthcheck");
 declare variable $system-roles as xs:string+ :=
   setup:read-config-file("security.xml")/sec:security/sec:roles/sec:role/@name;
 
+(: Return a set of messages to the user - add to the "messages" sequence :)
+declare variable $messages :=
+  map:map() !
+    (
+      map:put( ., "messages", () ),
+      .
+    );
+
 (: Used to adjust which host gets the next internal forest replica when the number of :)
 (: replicas is less than (#hosts - 1) :)
 declare variable $internal-forests :=
@@ -712,7 +720,8 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
       ) else (),
       if ($restart-needed) then
         "note: restart required"
-      else ()
+      else (),
+      fn:string-join( map:get( $messages, "messages" ), "&#xa;" )
     )
   }
   catch($ex)
@@ -1513,9 +1522,7 @@ declare function setup:create-forests-from-config(
       $forest-name,
       $data-directory,
       $host-id,
-      if (fn:count($hosts) gt 1) then
-        setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, (), $is-internal )
-      else ()
+      setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, (), $is-internal )
     )
 };
 
@@ -1565,9 +1572,7 @@ declare function setup:create-forests-from-count(
       $new-forest-name,
       $data-directory,
       $host,
-      if (fn:count($hosts) gt 1) then
-        setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr, $is-internal )
-      else ()
+      setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr, $is-internal )
     )
 };
 
@@ -1619,65 +1624,95 @@ declare function setup:reassign-replicas(
   $is-internal as xs:boolean
 ) as element(as:assignment)*
 {
-  (: Ensure a forest number exists - if not specified, assume "1" :)
-  let $final-forestnr := ( $forestnr, 1 ) [1]
+  (: Only process if there are any replicas to consider :)
+  if( fn:count( $replicas ) > 0 ) then
 
-  (: Set of hosts valid for replicas - no replicas on the same host as the primary forest, so remove that host from the set. :)
-  let $rep-hosts :=  fn:remove( $hosts, $hostnr )
-
-  for $replica at $pos in $replicas
-
-  (: If a limit on the number of replicas was specified, then use it. :)
-  let $nr-replicas := ( $replica/as:forest-name/@nr-replicas, "1" )[1]
-
-  (: If number of replicas specified as "MAX", then use all hosts :)
-  let $num-forced-replicas as xs:int :=
-    if ($nr-replicas = "MAX" or $nr-replicas = "max" ) then
-      fn:count( $rep-hosts )
-    else xs:int( $nr-replicas )
-
-  (: Adjust the replicas for internal forests so they don't get all jammed onto a single server :)
-  let $adjuster as xs:int :=
-    if ($is-internal ) then
-      let $return := map:get( $internal-forests, "internal-forest-adjust" )
+    (: Sanity check for replica count requests :)
+    if( fn:count( $hosts ) < 3 ) then
+      let $notif := fn:concat( "Forest replication and failover requires at least 3 nodes to function properly.",
+                               "  This cluster only has ", fn:count( $hosts ), " node(s).",
+                               "  Defaulting to using no replicas." )
       return
       (
-        map:put( $internal-forests, "internal-forest-adjust", $return + $num-forced-replicas ),
-        $return
+        setup:return-message( $notif, "warning" ),
+        xdmp:log( $notif, "warning" )
       )
-    else 0
-
-  (: Loop over the forced number of replicas :)
-  for $replicanr in (1 to $num-forced-replicas)
-
-  (: get the replica name - get from the config if specified, or build it :)
-  let $base-replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
-
-  (: Determine which host to apply the replica to.  This is the actual host NAME based on the count of the hosts that :)
-  (: are available to replicate this forest, which does not include the same host that is hosting the primary. :)
-  let $replica-host-index := ($hostnr + (($final-forestnr - 1) * $num-forced-replicas + 1) + $replicanr + $pos + $adjuster - 4) mod count($rep-hosts) + 1
-  let $replica-host-name := ($replica/as:host-name[fn:string-length(fn:string(.)) > 0], xdmp:host-name($rep-hosts[$replica-host-index]))[1]
-
-  (: The *index* of the host must match the index of the host across ALL hosts, not just replica hosts. :)
-  let $replica-real-index := if( $replica-host-index >= $hostnr ) then $replica-host-index + 1 else $replica-host-index
-
-  (: Generate the new replica name based on name, forest counter, primary host, and replica host :)
-  let $replica-name := setup:gen-forest-name( $base-replica-name, $hostnr, $forestnr, $replica-real-index )
-
-  let $_ :=
-    if( map:contains( $delete-map, $replica-name ) ) then
-      (: If it exists already, remove this replica from the list of those to delete :)
-      map:delete( $delete-map, $replica-name )
     else
-      (: This is a new replica - will need to wait on replication before attempting delete :)
-      map:put( $replicating-map, $replica-name, fn:true() )
+      (: Ensure a forest number exists - if not specified, assume "1" :)
+      let $final-forestnr := ( $forestnr, 1 ) [1]
 
-  return element { fn:node-name($replica) } {
-    $replica/@*,
-    <as:forest-name>{$replica-name}</as:forest-name>,
-    <as:host-name>{$replica-host-name}</as:host-name>,
-    $replica/node() except ($replica/as:forest-name, $replica/as:host-name)
-  }
+      (: Set of hosts valid for replicas - no replicas on the same host as the primary forest, so remove that host from the set. :)
+      let $rep-hosts :=  fn:remove( $hosts, $hostnr )
+    
+      for $replica at $pos in $replicas
+
+      (: If a limit on the number of replicas was specified, then use it. :)
+      let $nr-replicas := ( $replica/as:forest-name/@nr-replicas, "1" )[1]
+
+      (: If number of replicas specified as "MAX", then use all hosts :)
+      let $max-allowed-replicas := fn:count( $rep-hosts )
+      let $num-forced-replicas as xs:int :=
+        if ($nr-replicas = "MAX" or $nr-replicas = "max" ) then
+          $max-allowed-replicas
+        else xs:int( $nr-replicas )
+
+      (: Verify that the host count can support the replica count request :)
+      let $_ :=
+        if ($num-forced-replicas < 1) then
+          fn:error(
+            xs:QName("INVALID_NR_REPLICAS"),
+            fn:concat("Increase nr-replicas - minimum is 1, or disable forest replication.  Replicas specified ", $nr-replicas ) )
+        else if ($num-forced-replicas > $max-allowed-replicas) then
+          fn:error(
+            xs:QName("EXCESS_NR_REPLICAS"),
+            fn:concat("Adding ", $num-forced-replicas, " replicas to ", $forest-name, " requires at least a ", (fn:count($hosts) + 1), " node cluster.") )
+        else ()
+  
+      (: Adjust the replicas for internal forests so they don't get all jammed onto a single server :)
+      let $adjuster as xs:int :=
+        if ($is-internal ) then
+          let $return := map:get( $internal-forests, "internal-forest-adjust" )
+          return
+          (
+            map:put( $internal-forests, "internal-forest-adjust", $return + $num-forced-replicas ),
+            $return
+          )
+        else 0
+  
+      (: Loop over the forced number of replicas :)
+      for $replicanr in (1 to $num-forced-replicas)
+
+      (: get the replica name - get from the config if specified, or build it :)
+      let $base-replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
+  
+      (: Determine which host to apply the replica to.  This is the actual host NAME based on the count of the hosts that :)
+      (: are available to replicate this forest, which does not include the same host that is hosting the primary. :)
+      let $replica-host-index := ($hostnr + (($final-forestnr - 1) * $num-forced-replicas + 1) + $replicanr + $pos + $adjuster - 4) mod count($rep-hosts) + 1
+      let $replica-host-name := ($replica/as:host-name[fn:string-length(fn:string(.)) > 0], xdmp:host-name($rep-hosts[$replica-host-index]))[1]
+  
+      (: The *index* of the host must match the index of the host across ALL hosts, not just replica hosts. :)
+      let $replica-real-index := if( $replica-host-index >= $hostnr ) then $replica-host-index + 1 else $replica-host-index
+  
+      (: Generate the new replica name based on name, forest counter, primary host, and replica host :)
+      let $replica-name := setup:gen-forest-name( $base-replica-name, $hostnr, $forestnr, $replica-real-index )
+
+      let $_ :=
+        if( map:contains( $delete-map, $replica-name ) ) then
+          (: If it exists already, remove this replica from the list of those to delete :)
+          map:delete( $delete-map, $replica-name )
+        else
+          (: This is a new replica - will need to wait on replication before attempting delete :)
+          map:put( $replicating-map, $replica-name, fn:true() )
+
+      return element { fn:node-name($replica) } {
+        $replica/@*,
+        <as:forest-name>{$replica-name}</as:forest-name>,
+        <as:host-name>{$replica-host-name}</as:host-name>,
+        $replica/node() except ($replica/as:forest-name, $replica/as:host-name)
+      }
+  else
+    (: No replicas to process :)
+    ()
 };
 
 declare function setup:validate-forests-from-count(
@@ -6359,6 +6394,21 @@ declare function setup:list-settings($type as xs:string) as item()*
 declare function setup:get-server($server-name as xs:string, $group-id as xs:unsignedLong) as xs:unsignedLong?
 {
   xdmp:group-servers($group-id)[xdmp:server-name(.) = $server-name]
+};
+
+declare function setup:return-message( $message as xs:string ) as empty-sequence()
+{
+  setup:return-message( $message, () )
+};
+declare function setup:return-message( $message as xs:string, $level as xs:string? ) as empty-sequence()
+{
+  let $prefix :=  
+    if( fn:exists( $level ) ) then
+      fn:concat( fn:upper-case( $level ), ": " )
+    else ()
+
+  return
+    map:put( $messages, "messages", ( map:get( $messages, "messages" ), fn:concat( $prefix, $message ) ) )
 };
 
 (:
