@@ -2088,11 +2088,9 @@ declare function setup:configure-indexes($import-config as element(configuration
   let $database := xdmp:database($database-name)
   let $admin-config := admin:get-configuration()
 
-  let $admin-config := setup:remove-existing-range-path-indexes($admin-config, $database)
-  let $admin-config := setup:remove-existing-path-namespaces($admin-config, $database)
+  let $admin-config := setup:apply-path-namespaces-settings($admin-config, $database, $db-config)
   let $admin-config := setup:add-range-element-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-range-element-attribute-indexes($admin-config, $database, $db-config)
-  let $admin-config := setup:add-path-namespaces($admin-config, $database, $db-config)
   let $admin-config := setup:add-range-path-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-geospatial-element-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-geospatial-element-attribute-pair-indexes($admin-config, $database, $db-config)
@@ -2481,46 +2479,7 @@ declare function setup:validate-range-element-attribute-indexes(
       setup:validation-fail(fn:concat("Missing range element attribute index: ", $expected/db:localname/fn:string(.)))
 };
 
-declare function setup:remove-existing-path-namespaces(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong) as element(configuration)
-{
-  (: wrap in xdmp:value because this function is new to 6.0 and will fail in older version of ML :)
-  if (setup:at-least-version("6.0-2")) then
-    xdmp:value(
-      "admin:database-delete-path-namespace($admin-config, $database,
-        admin:database-get-path-namespaces($admin-config, $database))"
-    )
-  else
-    (: We don't need to complain if ML is too old to run this function; in
-     : that case, the path-namespaces won't have been built. :)
-    $admin-config
-};
 
-declare function setup:add-path-namespaces(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong,
-  $db-config as element(db:database)) as element(configuration)
-{
-  if ($db-config/db:path-namespaces/db:path-namespace) then
-    if (setup:at-least-version("6.0-2")) then
-      xdmp:value(
-        "admin:database-add-path-namespace(
-           $admin-config,
-           $database,
-           for $path-ns in $db-config/db:path-namespaces/db:path-namespace
-           return
-             admin:database-path-namespace($path-ns/db:prefix, $path-ns/db:namespace-uri)
-         )"
-      )
-    else
-      fn:error(
-        xs:QName("VERSION_NOT_SUPPORTED"),
-        "Roxy does not support path namespaces for this version of MarkLogic. Use 6.0-2 or later."
-      )
-  else
-    $admin-config
-};
 
 declare function setup:validate-path-namespaces(
   $admin-config as element(configuration),
@@ -2536,6 +2495,127 @@ declare function setup:validate-path-namespaces(
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
       setup:validation-fail(fn:concat("Missing path namespace: ", $expected/db:prefix, " => ", $expected/db:namespace-uri))
+};
+
+declare private function setup:remove-existing-path-fields-and-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $prefix as xs:string
+) as element(configuration)
+{
+    let $pref := $prefix||":"
+    (:for each field name check the path definition(s) for the usage of the given ns pref
+      it can occur many times in any path definition in a given field but we only need to find it once:)
+    let $field-names := for $i in admin:database-get-fields($admin-config, $database)
+                        where some $p in $i/db:field-path/db:path satisfies fn:contains($p, $pref )
+                        return $i/db:field-name/fn:string()
+    let $admin-config := admin:database-delete-all-range-field-indexes($admin-config, $database, $field-names)
+    return admin:database-delete-field($admin-config, $database, $field-names)
+};
+
+declare private function setup:remove-existing-path-range-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $prefix as xs:string
+) as element(configuration)
+{
+    let $pref := $prefix||":"
+    (:find and delete those path range indexes which use the input prefix:)
+    let $path-indexes := admin:database-get-range-path-indexes($admin-config, $database)[fn:contains(./db:path-expression,$pref)]
+    return admin:database-delete-range-path-index($admin-config, $database, $path-indexes)
+};
+
+declare private function setup:remove-existing-geospatial-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $prefix as xs:string
+) as element(configuration)
+{
+    let $pref := $prefix||":"
+    (:find and delete those geospatial path range indexes which use the input prefix:)
+    let $path-indexes := admin:database-get-geospatial-path-indexes($admin-config, $database)[fn:contains(./db:path-expression,$pref)]
+    return admin:database-delete-geospatial-path-index($admin-config, $database, $path-indexes)
+
+};
+
+(:~
+ :
+ : Apply Path Namespace Settings
+ :
+ : Many other artifacts in MarkLogic can be dependent on a path namespace
+ :  field definitions with paths
+ :  path range indexes
+ :  geospatial path range indexes.
+ : Therefore if a path changes or is removed we need to consider these.
+ : Up to ML 8.0-6 we unconditionally removed all path namespaces and path range indexes and added them all back in again in every bootstrap
+ : This would cause re-indexing. From 8.0-7 it was necessary to additionally remove fields depending on paths and their indexes. This would
+ : have meant considerable reindexing.
+ : This function seeks to apply the path namespace settings removing dependent artifacts only where necessary, specifically
+ : where a namespace has been changed (same prefix, different namespace uri) or removed.
+ : Paths do not exist in MarkLogic version < 6.02 and if an old version is detected the function does nothing and just
+ : returns the input configuration
+ :
+ : @param admin-config - the existing application configuration
+ : @param database - the id of the database in which the changes are to be applied
+ : @param db-config - the input configuration to be applied to this database
+ : @return the modified configuration
+ :
+:)
+declare function setup:apply-path-namespaces-settings(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database)
+) as element(configuration)
+{
+  (:paths were not supported before this version of ML:)
+  if (setup:at-least-version("6.0-2")) then
+
+    (:create a map of all input path namespaces key=prefix, value=namespace uri:)
+    let $cfg-new := map:new($db-config/db:path-namespaces/db:path-namespace ! map:entry(./db:prefix/fn:string(), ./db:namespace-uri/fn:string() ) )
+    (:function for adding a path namespace :)
+    let $add-path-ns := function($pns) {xdmp:set($admin-config, admin:database-add-path-namespace($admin-config, $database, $pns))}
+    (:function for deleting a path namespace and all associated artifacts:)
+    let $delete-path-ns := function($pns) {
+                              xdmp:set($admin-config, setup:remove-existing-path-fields-and-indexes($admin-config, $database, $pns/db:prefix)),
+                              xdmp:set($admin-config, setup:remove-existing-path-range-indexes($admin-config, $database, $pns/db:prefix)),
+                              xdmp:set($admin-config, setup:remove-existing-geospatial-path-indexes($admin-config, $database, $pns/db:prefix)),
+                              xdmp:set($admin-config, admin:database-delete-path-namespace($admin-config, $database, $pns))
+                            }
+    (:create a map of all existing path namespaces key=prefix, value=namespace uri:)
+    let $cfg-existing := map:new( admin:database-get-path-namespaces($admin-config, $database) ! map:entry(./db:prefix/fn:string(), ./db:namespace-uri/fn:string() ) )
+    (:using map arithmetic to figure out new and to-be-deleted namepsaces.
+     map A - map B = new map with entries in A but not B
+    :)
+    (:get all new namespaces and create them:)
+    let $inserts :=
+          fn:map(
+                function($x){ $add-path-ns(admin:database-path-namespace($x, map:get($cfg-new,$x))) },
+                (:all namespaces present in input config which are not in existing:)
+                fn:filter(function($x){ fn:not(map:contains($cfg-existing,$x)) },map:keys($cfg-new - $cfg-existing) )
+            )
+    (:get all changed namespaces - prefix same, namespace uri has changed. delete old and insert new:)
+    let $updates :=
+          fn:map(
+                function($x){
+                  $delete-path-ns(admin:database-path-namespace($x, map:get($cfg-existing,$x))),
+                  $add-path-ns(admin:database-path-namespace($x, map:get($cfg-new,$x)))
+                },
+                (:all namespaces present in input config which are also in existing config:)
+                fn:filter(function($x){ map:contains($cfg-existing,$x) },map:keys($cfg-new - $cfg-existing) )
+            )
+    (:get all namespaces to be deleted i.e. those in the existing config which are no longer in the input config:)
+    let $deletes :=
+          fn:map(
+                function($x){ $delete-path-ns(admin:database-path-namespace($x, map:get($cfg-existing,$x))) },
+                (:all namespaces present in existing config which are not in new config and which are are not updates:)
+                fn:filter(function($x){ fn:not(map:contains($cfg-new,$x)) }, map:keys($cfg-existing - $cfg-new)  )
+            )
+    return $admin-config
+
+  else
+    $admin-config
+
+
 };
 
 declare function setup:remove-existing-range-path-indexes(
@@ -2569,11 +2649,17 @@ declare function setup:add-range-path-indexes(
 {
   if ($db-config/db:range-path-indexes/db:range-path-index) then
     if (setup:at-least-version("6.0-1")) then
+      (:only add path range indexes which do not already exist:)
       xdmp:value(
         "admin:database-add-range-path-index(
            $admin-config,
            $database,
+           let $make-map := function($x) {map:new($x/* ! map:entry(fn:local-name(.),if (./text()) then ./text() else 'EMPTY' ))}
+           let $rpis := admin:database-get-range-path-indexes($admin-config,$database)
+           let $rpis-maps := $rpis ! $make-map(.)
            for $index in $db-config/db:range-path-indexes/db:range-path-index
+           let $index-map := $make-map($index)
+           where fn:not(some $r in $rpis-maps satisfies (map:count($index-map - $r) = 0) )
            return
              admin:database-range-path-index(
                $database,
