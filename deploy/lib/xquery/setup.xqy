@@ -549,21 +549,48 @@ declare function setup:suppress-comments($nodes) {
     default return $node
 };
 
+declare function setup:unique-attributes($attrs) {
+  let $result := map:map()
+  let $_ :=
+    for $attr in $attrs
+    let $attr-name := fn:name($attr)
+    let $existing-attr := map:get($result, $attr-name)
+    return
+      if (fn:exists($existing-attr) and fn:string($existing-attr) != fn:string($attr)) then
+        fn:error(
+          xs:QName("ATTR-CONFLICT"),
+          fn:concat("The config-files contain multiple attributes ", $attr-name, " with different values: " || fn:string($existing-attr) || " vs " || fn:string($attr))
+        )
+      else
+        map:put($result, name($attr), $attr)
+  return map:keys($result) ! map:get($result, .)
+};
+
 (: for backwards-compatibility :)
-declare function setup:rewrite-config($import-configs as element(configuration)+, $properties as map:map) as element(configuration)
+declare function setup:rewrite-config($import-configs as node()+, $properties as map:map) as element(configuration)
 {
   setup:rewrite-config($import-configs, $properties, ())
 };
 
-declare function setup:rewrite-config($import-configs as element(configuration)+, $properties as map:map, $silent as xs:boolean?) as element(configuration)
+declare function setup:rewrite-config($import-configs as node()+, $properties as map:map, $silent as xs:boolean?) as element(configuration)
+{
+  setup:rewrite-config($import-configs, $properties, $silent, ())
+};
+
+declare function setup:rewrite-config($import-configs as node()+, $properties as map:map, $silent as xs:boolean?, $keep-comments as xs:boolean?) as element(configuration)
 {
   let $import-configs := setup:process-conditionals($import-configs, $properties)
   let $config :=
     element { fn:node-name($import-configs[1]) } {
-      $import-configs/@*,
+      setup:unique-attributes($import-configs/@*),
+
+      (: capture comments before gr:groups, and its older counterparts :)
+      $import-configs/(
+        gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
+      )/preceding-sibling::node(),
 
       <groups xmlns="http://marklogic.com/xdmp/group">{
-        $import-configs/gr:groups/@*,
+        setup:unique-attributes($import-configs/gr:groups/@*),
 
         let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
@@ -579,9 +606,10 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
         where fn:exists($servers | $databases | $group-config)
         return
           <group>
-            { $group-config/@* }
+            { setup:unique-attributes($group-config/@*) }
             <group-name>{$group}</group-name>
             {
+              $group-config/(node() except (gr:group-name, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server)),
               if ($http-servers) then
                 <http-servers>{$http-servers}</http-servers>
               else (),
@@ -593,13 +621,20 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
               else (),
               if ($task-server) then
                 $task-server
-              else (),
-              $group-config/(node() except gr:group-name)
+              else ()
             }
           </group>
       }</groups>,
 
-      $import-configs/(node() except (gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server))
+      (: capture anything following gr:groups, and its older counterparts :)
+      $import-configs/(
+        gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
+      )/following-sibling::node(),
+
+      (: other fragments with configuration as root :)
+      $import-configs[fn:empty((
+        gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
+      ))]/node()
     }
 
   (: Check config on group consistency! :)
@@ -612,10 +647,11 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
       return
         fn:error(
           xs:QName("NO_HOSTS_IN_GROUP"),
-          fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!"))
+          fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!")
+        )
 
   (: all good :)
-  return setup:suppress-comments($config)
+  return  if ($keep-comments) then $config else setup:suppress-comments($config)
 };
 
 
@@ -664,7 +700,7 @@ declare private function setup:parse-options( $options as xs:string ) as map:map
   return $optionsMap
 };
 
-declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
+declare function setup:do-setup($import-config as node()+, $options as xs:string, $properties as map:map) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -731,7 +767,7 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
   }
 };
 
-declare function setup:do-wipe($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
+declare function setup:do-wipe($import-config as node()+, $options as xs:string, $properties as map:map) as item()*
 {
   let $options := if(fn:empty($options) or $options eq "") then ("all") else fn:tokenize($options, ",")
 
@@ -1162,7 +1198,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
   Attempt to remove replicas that are to be decommissioned due to scaling out of the cluster.
   Replicas are only removed after their new replacements have gone to sync replication.
 :)
-declare function setup:do-clean-replicas($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
+declare function setup:do-clean-replicas($import-config as node()+, $options as xs:string, $properties as map:map) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -6186,7 +6222,7 @@ declare function setup:validation-fail($message)
   fn:error(xs:QName("VALIDATION-FAIL"), $message)
 };
 
-declare function setup:validate-install($import-config as element(configuration), $properties as map:map)
+declare function setup:validate-install($import-config as element(configuration)+, $properties as map:map)
 {
   try
   {
