@@ -184,29 +184,29 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
     }
 };
 
-declare function t:run($suite as xs:string, $name as xs:string, $module, $run-teardown as xs:boolean) {
-  helper:log(text { "    TEST:", $name }),
-  let $start-time := xdmp:elapsed-time()
-  let $setup :=
+declare private function t:run-setup-or-teardown($setup as xs:boolean, $suite as xs:string)
+{
+  let $stage := if ($setup) then "setup" else "teardown"
+  let $xquery-script := $stage || ".xqy"
+  let $sjs-script := $stage || ".sjs"
+  return
     try {
-      helper:log("   ...invoking setup"),
-      let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/setup.xqy"))
-      return ()
+      helper:log("    ...invoking " || $stage),
+      xdmp:invoke("suites/" || $suite || "/" || $xquery-script)
     }
     catch($ex) {
       if (($ex/error:code = "XDMP-MODNOTFOUND" and
-           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.xqy$")) or
+           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/" || $xquery-script || "$")) or
           ($ex/error:code = "SVC-FILOPN" and
-           fn:matches($ex/error:expr, "setup.xqy"))) then
+           fn:matches($ex/error:expr, $xquery-script))) then
         try {
-          let $_ := xdmp:invoke(fn:concat("suites/", $suite, "/setup.sjs"))
-          return ()
+          xdmp:invoke("suites/" || $suite || "/" || $sjs-script)
         }
         catch($ex) {
           if (($ex/error:code = "XDMP-MODNOTFOUND" and
-               fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/setup.sjs$")) or
+               fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/" || $sjs-script || "$")) or
               ($ex/error:code = "SVC-FILOPN" and
-           fn:matches($ex/error:expr, "setup.sjs"))) then
+               fn:matches($ex/error:expr, $sjs-script))) then
             ()
           else
             element t:result {
@@ -220,6 +220,12 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
           $ex
         }
     }
+};
+
+declare function t:run($suite as xs:string, $name as xs:string, $module, $run-teardown as xs:boolean) {
+  helper:log(text { "    TEST:", $name }),
+  let $start-time := xdmp:elapsed-time()
+  let $setup := t:run-setup-or-teardown(fn:true(), $suite)
   let $result :=
     try {
       if (fn:not($setup/@type = "fail")) then
@@ -240,37 +246,9 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
       $result
   let $teardown :=
     if ($run-teardown eq fn:true() and fn:not($setup/@type = "fail")) then
-      try {
-        helper:log("    ...invoking teardown"),
-        xdmp:invoke(fn:concat("suites/", $suite, "/teardown.xqy"))
-      }
-      catch($ex) {
-        if (($ex/error:code = "XDMP-MODNOTFOUND" and
-             fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.xqy$")) or
-            ($ex/error:code = "SVC-FILOPN" and
-             fn:matches($ex/error:expr, "teardown.xqy"))) then
-          try {
-            xdmp:invoke(fn:concat("suites/", $suite, "/teardown.sjs"))
-          }
-          catch($ex) {
-            if (($ex/error:code = "XDMP-MODNOTFOUND" and
-                 fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/teardown.sjs$")) or
-                ($ex/error:code = "SVC-FILOPN" and
-                 fn:matches($ex/error:expr, "teardown.sjs"))) then
-              ()
-            else
-              element t:result {
-                attribute type {"fail"},
-                $ex
-              }
-          }
-        else
-          element t:result {
-            attribute type {"fail"},
-            $ex
-          }
-      }
-    else helper:log("    ...not running teardown")
+      t:run-setup-or-teardown(fn:false(), $suite)
+    else
+      helper:log("    ...not running teardown")
   let $end-time := xdmp:elapsed-time()
   return
     element t:test {
