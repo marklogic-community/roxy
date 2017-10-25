@@ -1348,16 +1348,11 @@ In order to proceed please type: #{expected_response}
 
       success = true
       suites.each do |suite|
-        begin
-          r = go(%Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/default.xqy?func=run&suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get")
-          logger.info r.body
-        rescue Net::HTTPServerException => e
-          if e.response.code.to_i == 409
-            # ignore 409's, but mark failure
-            success = false
-          else
-            raise # reraise last exception
-          end
+        r = go(%Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/default.xqy?func=run&suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get")
+        logger.info r.body
+        # Check for an XML failure element, part of the JUnit response.
+        if (r.body.match("<failure"))
+          success = false
         end
       end
     end

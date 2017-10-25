@@ -85,64 +85,77 @@ declare function t:list() {
     }
 };
 
+declare private function t:run-setup-teardown(
+  $is-setup as xs:boolean,
+  $suite as xs:string
+)
+{
+  let $start-time := xdmp:elapsed-time()
+  let $stage := if ($is-setup) then "setup" else "teardown"
+  let $xquery-script := "suite-" || $stage || ".xqy"
+  let $sjs-script := "suite" || xdmp:initcap($stage) || ".sjs"
+  return
+    try {
+      helper:log(" - invoking suite " || $stage),
+      xdmp:invoke("suites/" || $suite || "/" || $xquery-script),
+      element t:test {
+        attribute name { $xquery-script },
+        attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+        element t:result {
+          attribute type {"success"}
+        }
+      }
+    }
+    catch($ex) {
+      if (($ex/error:code = "XDMP-MODNOTFOUND" and
+           fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/" || $xquery-script || "$")) or
+          ($ex/error:code = "SVC-FILOPN" and
+           fn:matches($ex/error:expr, $xquery-script))) then
+        try {
+          xdmp:invoke("suites/" || $suite || "/" || $sjs-script),
+          element t:test {
+            attribute name { $sjs-script },
+            attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+            element t:result {
+              attribute type {"success"}
+            }
+          }
+        }
+        catch ($ex) {
+          if (($ex/error:code = "XDMP-MODNOTFOUND" and
+               fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/" || $sjs-script || "$")) or
+              ($ex/error:code = "SVC-FILOPN" and
+               fn:matches($ex/error:expr, $sjs-script))) then
+            ()
+          else
+            element t:test {
+              attribute name { $sjs-script },
+              attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+              element t:result {
+                attribute type {"fail"},
+                $ex
+              }
+            }
+        }
+      else
+        element t:test {
+          attribute name { $xquery-script },
+          attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
+          element t:result {
+            attribute type {"fail"},
+            $ex
+          }
+        }
+    }
+};
+
 declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-suite-teardown as xs:boolean, $run-teardown as xs:boolean) {
   let $start-time := xdmp:elapsed-time()
   let $results :=
     element t:run {
       helper:log(" "),
       helper:log(text {"SUITE:", $suite}),
-      try {
-        helper:log(" - invoking suite setup"),
-        xdmp:invoke(fn:concat("suites/", $suite, "/suite-setup.xqy")),
-        element t:test {
-          attribute name { "suite-setup.xqy" },
-          attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-          element t:result {
-            attribute type {"success"}
-          }
-        }
-      }
-      catch($ex) {
-        if (($ex/error:code = "XDMP-MODNOTFOUND" and
-             fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-setup.xqy$")) or
-            ($ex/error:code = "SVC-FILOPN" and
-             fn:matches($ex/error:expr, "suite-setup.xqy"))) then
-          try {
-            xdmp:invoke(fn:concat("suites/", $suite, "/suiteSetup.sjs")),
-            element t:test {
-              attribute name { "suiteSetup.sjs" },
-              attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-              element t:result {
-                attribute type {"success"}
-              }
-            }
-          }
-          catch ($ex) {
-            if (($ex/error:code = "XDMP-MODNOTFOUND" and
-                 fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suiteSetup.sjs$")) or
-                ($ex/error:code = "SVC-FILOPN" and
-                 fn:matches($ex/error:expr, "suiteSetup.sjs"))) then
-              ()
-            else
-              element t:test {
-                attribute name { "suiteSetup.sjs" },
-                attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-                element t:result {
-                  attribute type {"fail"},
-                  $ex
-                }
-              }
-          }
-        else
-          element t:test {
-            attribute name { "suite-setup.xqy" },
-            attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-            element t:result {
-              attribute type {"fail"},
-              $ex
-            }
-          }
-      },
+      t:run-setup-teardown(fn:true(), $suite),
 
       helper:log(" - invoking tests"),
 
@@ -155,59 +168,7 @@ declare function t:run-suite($suite as xs:string, $tests as xs:string*, $run-sui
         t:run($suite, $test, fn:concat("suites/", $suite, "/", $test), $run-teardown),
 
       if ($run-suite-teardown eq fn:true()) then
-        let $teardown-start-time := xdmp:elapsed-time()
-        return try {
-          helper:log(" - invoking suite teardown"),
-          xdmp:invoke(fn:concat("suites/", $suite, "/suite-teardown.xqy")),
-          element t:test {
-            attribute name { "suite-teardown.xqy" },
-            attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-            element t:result {
-              attribute type {"success"}
-            }
-          }
-        }
-        catch($ex) {
-          if (($ex/error:code = "XDMP-MODNOTFOUND" and
-               fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suite-teardown.xqy$")) or
-              ($ex/error:code = "SVC-FILOPN" and
-               fn:matches($ex/error:expr, "suite-teardown.xqy"))) then
-            try {
-              xdmp:invoke(fn:concat("suites/", $suite, "/suiteTeardown.sjs")),
-              element t:test {
-                attribute name { "suiteTeardown.sjs" },
-                attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-                element t:result {
-                  attribute type {"success"}
-                }
-              }
-            }
-            catch($ex) {
-              if (($ex/error:code = "XDMP-MODNOTFOUND" and
-                   fn:matches($ex/error:stack/error:frame[1]/error:uri/fn:string(), "/suiteTeardown.sjs$")) or
-                  ($ex/error:code = "SVC-FILOPN" and
-                   fn:matches($ex/error:expr, "suiteTeardown.sjs"))) then
-                ()
-              else
-                element t:test {
-                  attribute name { "suiteTeardown.sjs" },
-                  attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $teardown-start-time) },
-                  element t:result {
-                    attribute type {"fail"},
-                    $ex
-                  }
-                }
-            }
-          else
-            element t:test {
-              attribute name { "suite-teardown.xqy" },
-              attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $teardown-start-time) },
-              element t:result {
-                attribute type {"fail"},
-                $ex
-              }
-            }
-        }
+        t:run-setup-teardown(fn:false(), $suite)
       else helper:log(" - not running suite teardown"),
       helper:log(" ")
     }
@@ -363,10 +324,6 @@ declare function local:run() {
   return
     if ($suite) then
       let $result := t:run-suite($suite, $tests, $run-suite-teardown, $run-teardown)
-      let $_ :=
-        if (fn:number($result/@failed) > 0) then
-          xdmp:set-response-code(409, "There are failed tests")
-        else ()
       return
         if ($format eq "junit") then
           local:format-junit($result)
