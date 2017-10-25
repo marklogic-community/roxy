@@ -184,7 +184,8 @@ declare function helper:fail($message as item()*) {
     typeswitch($message)
       case element(error:error) return $message
       default return
-        fn:error(xs:QName("USER-FAIL"), $message)
+        (: Get the stack trace :)
+        try { fn:error(xs:QName("USER-FAIL"), $message) } catch ($e) { $e }
   }
 };
 
@@ -192,28 +193,28 @@ declare function helper:assert-all-exist($count as xs:unsignedInt, $item as item
   if ($count eq fn:count($item)) then
     helper:success()
   else
-    fn:error(xs:QName("ASSERT-ALL-EXIST-FAILED"), "Assert All Exist failed", $item)
+    helper:stack-trace("ASSERT-ALL-EXIST-FAILED", "Assert All Exist failed", $item)
 };
 
 declare function helper:assert-exists($item as item()*) {
   if (fn:exists($item)) then
     helper:success()
   else
-    fn:error(xs:QName("ASSERT-EXISTS-FAILED"), "Assert Exists failed", $item)
+    helper:stack-trace("ASSERT-EXISTS-FAILED", "Assert Exists failed", $item)
 };
 
 declare function helper:assert-not-exists($item as item()*) {
   if (fn:not(fn:exists($item))) then
     helper:success()
   else
-    fn:error(xs:QName("ASSERT-NOT-EXISTS-FAILED"), "Assert Not Exists failed", $item)
+    helper:stack-trace("ASSERT-NOT-EXISTS-FAILED", "Assert Not Exists failed", $item)
 };
 
 declare function helper:assert-at-least-one-equal($expected as item()*, $actual as item()*) {
   if ($expected = $actual) then
     helper:success()
   else
-    fn:error(xs:QName("ASSERT-AT-LEAST-ONE-EQUAL-FAILED"), "Assert At Least one Equal failed", ())
+    helper:stack-trace("ASSERT-AT-LEAST-ONE-EQUAL-FAILED", "Assert At Least one Equal failed", ())
 };
 
 declare private function helper:are-these-equal($expected as item()*, $actual as item()*) {
@@ -244,24 +245,21 @@ declare function helper:assert-equal($expected as item()*, $actual as item()*) {
   if (helper:are-these-equal($expected, $actual)) then
     helper:success()
   else
-    fn:error(xs:QName("ASSERT-EQUAL-FAILED"), "Assert Equal failed", ($expected, $actual))
+    helper:stack-trace("ASSERT-EQUAL-FAILED", "Assert Equal failed", ($expected, $actual))
 };
 
 declare function helper:assert-equal($expected as item()*, $actual as item()*, $error-object as item()*) {
   if (helper:are-these-equal($expected, $actual)) then
     helper:success()
   else
-    fn:error(xs:QName("ASSERT-EQUAL-FAILED"), "Assert Equal failed", ($expected, $actual, " : ", $error-object))
+    helper:stack-trace("ASSERT-EQUAL-FAILED", "Assert Equal failed", ($expected, $actual, " : ", $error-object))
 };
 
 declare function helper:assert-not-equal($expected as item()*, $actual as item()*) {
   if (fn:not(helper:are-these-equal($expected, $actual))) then
     helper:success()
   else
-    fn:error(
-      xs:QName("ASSERT-NOT-EQUAL-FAILED"),
-      fn:concat("test name", ": Assert Not Equal failed"),
-      ($expected, $actual))
+    helper:stack-trace("ASSERT-NOT-EQUAL-FAILED", "test name: Assert Not Equal failed", ($expected, $actual))
 };
 
 declare function helper:assert-equal-xml($expected, $actual) {
@@ -346,7 +344,7 @@ declare function helper:assert-equal-json($expected, $actual) {
         default return
           helper:assert-true(fn:false(), ("type mismatch ($expected=", xdmp:path($expected), ", $actual=", xdmp:path($actual), ")"))
     default return
-      fn:error(xs:QName("INVALID-ARG"), "Unsupported JSON type.")
+      helper:stack-trace("INVALID-ARG", "Unsupported JSON type.", ())
 };
 
 declare function helper:assert-true($supposed-truths as xs:boolean*) {
@@ -355,14 +353,14 @@ declare function helper:assert-true($supposed-truths as xs:boolean*) {
 
 declare function helper:assert-true($supposed-truths as xs:boolean*, $msg as item()*) {
   if (fn:false() = $supposed-truths) then
-    fn:error(xs:QName("ASSERT-TRUE-FAILED"), "Assert True failed", $msg)
+    helper:stack-trace("ASSERT-TRUE-FAILED", "Assert True failed", $msg)
   else
     helper:success()
 };
 
 declare function helper:assert-false($supposed-falsehoods as xs:boolean*) {
   if (fn:true() = $supposed-falsehoods) then
-    fn:error(xs:QName("ASSERT-FALSE-FAILED"), "Assert False failed", $supposed-falsehoods)
+    helper:stack-trace("ASSERT-FALSE-FAILED", "Assert False failed", $supposed-falsehoods)
   else
     helper:success()
 };
@@ -372,20 +370,14 @@ declare function helper:assert-meets-minimum-threshold($expected as xs:decimal, 
   if (every $i in 1 to fn:count($actual) satisfies $actual[$i] ge $expected) then
     helper:success()
   else
-    fn:error(
-      xs:QName("ASSERT-MEETS-MINIMUM-THRESHOLD-FAILED"),
-      fn:concat("test name", ": Assert Meets Minimum Threshold failed"),
-      ($expected, $actual))
+    helper:stack-trace("ASSERT-MEETS-MINIMUM-THRESHOLD-FAILED", "test name: Assert Meets Minimum Threshold failed", ($expected, $actual))
 };
 
 declare function helper:assert-meets-maximum-threshold($expected as xs:decimal, $actual as xs:decimal+) {
   if (every $i in 1 to fn:count($actual) satisfies $actual[$i] le $expected) then
     helper:success()
   else
-    fn:error(
-      xs:QName("ASSERT-MEETS-MAXIMUM-THRESHOLD-FAILED"),
-      fn:concat("test name", ": Assert Meets Maximum Threshold failed"),
-      ($expected, $actual))
+    helper:stack-trace("ASSERT-MEETS-MAXIMUM-THRESHOLD-FAILED", "test name: Assert Meets Maximum Threshold failed", ($expected, $actual))
 };
 
 declare function helper:assert-throws-error($function as xdmp:function)
@@ -549,8 +541,7 @@ declare function helper:sleep($msec as xs:unsignedInt) as empty-sequence() {
 
 declare function helper:log($items as item()*)
 {
-  let $_ := fn:trace($items, "UNIT-TEST")
-  return ()
+  fn:trace($items, "UNIT-TEST")
 };
 
 declare function helper:list-from-database(
@@ -605,4 +596,17 @@ declare function helper:remove-modules-directories($dirs as xs:string*)
         <database>{xdmp:modules-database()}</database>
       </options>)
   else ()
+};
+
+(:
+ : Throw an exception, capture the stack trace.
+ :)
+declare private function helper:stack-trace($error as xs:string, $description as xs:string, $data as item()*)
+{
+  try {
+    fn:error(xs:QName($error), $description, $data)
+  }
+  catch ($e) {
+    helper:fail($e)
+  }
 };

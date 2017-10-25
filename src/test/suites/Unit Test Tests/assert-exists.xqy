@@ -1,4 +1,5 @@
 import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
+import module namespace tlib = "http://marklogic.com/roxy/unit-test-tests" at "lib/testing-lib.xqy";
 
 declare function local:case1()
 {
@@ -8,4 +9,4 @@ declare function local:case1()
 test:assert-exists("1"),
 test:assert-exists(("1", "2")),
 test:assert-exists(<a/>),
-test:assert-throws-error(xdmp:function(xs:QName("local:case1")), "ASSERT-EXISTS-FAILED")
+tlib:test-for-failure(local:case1(), "ASSERT-EXISTS-FAILED")
