@@ -191,8 +191,10 @@ declare private function t:run-setup-or-teardown($setup as xs:boolean, $suite as
   let $sjs-script := $stage || ".sjs"
   return
     try {
-      helper:log("    ...invoking " || $stage),
-      xdmp:invoke("suites/" || $suite || "/" || $xquery-script)
+      (: We don't want the return value, so return () :)
+      let $_ := helper:log("    ...invoking " || $stage)
+      let $_ := xdmp:invoke("suites/" || $suite || "/" || $xquery-script)
+      return ()
     }
     catch($ex) {
       if (($ex/error:code = "XDMP-MODNOTFOUND" and
@@ -229,7 +231,9 @@ declare function t:run($suite as xs:string, $name as xs:string, $module, $run-te
   let $result :=
     try {
       if (fn:not($setup/@type = "fail")) then
-        (helper:log("    ...running"), xdmp:invoke($module))
+        (: Avoid returning result of helper:log :)
+        let $_ := helper:log("    ...running")
+        return xdmp:invoke($module)
       else
         ()
     }
