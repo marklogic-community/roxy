@@ -39,7 +39,10 @@ declare option xdmp:mapping "false";
  :)
 declare function t:list() {
   let $suite-ignore-list := (".svn", "CVS", ".DS_Store", "Thumbs.db", "thumbs.db", "test-data")
-  let $test-ignore-list := ("setup.xqy", "teardown.xqy", "setup.sjs", "teardown.sjs")
+  let $test-ignore-list := (
+    "setup.xqy", "teardown.xqy", "setup.sjs", "teardown.sjs",
+    "suite-setup.xqy", "suite-teardown.xqy", "suiteSetup.sjs", "suiteTeardown.sjs"
+  )
   return
     element t:tests {
       let $db-id as xs:unsignedLong := xdmp:modules-database()
@@ -97,14 +100,7 @@ declare private function t:run-setup-teardown(
   return
     try {
       helper:log(" - invoking suite " || $stage),
-      xdmp:invoke("suites/" || $suite || "/" || $xquery-script),
-      element t:test {
-        attribute name { $xquery-script },
-        attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-        element t:result {
-          attribute type {"success"}
-        }
-      }
+      xdmp:invoke("suites/" || $suite || "/" || $xquery-script)
     }
     catch($ex) {
       if (($ex/error:code = "XDMP-MODNOTFOUND" and
@@ -112,14 +108,7 @@ declare private function t:run-setup-teardown(
           ($ex/error:code = "SVC-FILOPN" and
            fn:matches($ex/error:expr, $xquery-script))) then
         try {
-          xdmp:invoke("suites/" || $suite || "/" || $sjs-script),
-          element t:test {
-            attribute name { $sjs-script },
-            attribute time { functx:total-seconds-from-duration(xdmp:elapsed-time() - $start-time) },
-            element t:result {
-              attribute type {"success"}
-            }
-          }
+          xdmp:invoke("suites/" || $suite || "/" || $sjs-script)
         }
         catch ($ex) {
           if (($ex/error:code = "XDMP-MODNOTFOUND" and
