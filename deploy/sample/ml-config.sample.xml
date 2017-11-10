@@ -304,7 +304,29 @@
         </range-path-index>
 -->
       </range-path-indexes>
-
+      
+      <geospatial-path-indexes>
+<!--
+        <geospatial-path-index>
+          <path-expression>/foo/bar/geometry</path-expression>
+          <coordinate-system>wgs84</coordinate-system>
+          <point-format>point</point-format>
+          <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
+        </geospatial-path-index>
+-->
+      </geospatial-path-indexes>
+    
+      <geospatial-region-path-indexes>
+<!--
+        <geospatial-region-path-index>
+          <path-expression>/foo/bar/geometry</path-expression>
+          <coordinate-system>wgs84</coordinate-system>
+          <geohash-precision>6</geohash-precision>
+          <invalid-values>reject</invalid-values>
+        </geospatial-region-path-index>
+-->
+      </geospatial-region-path-indexes>
       <geospatial-element-indexes>
 <!--
         <geospatial-element-index>
