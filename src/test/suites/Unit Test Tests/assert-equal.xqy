@@ -1,4 +1,5 @@
 import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
+import module namespace tlib = "http://marklogic.com/roxy/unit-test-tests" at "lib/testing-lib.xqy";
 
 declare function local:case1()
 {
@@ -25,15 +26,22 @@ declare function local:case5()
   test:assert-equal((<a><aa/></a>, <b/>, <c/>), (element a { element aaa { } }, element b {}, element c {}))
 };
 
-test:assert-throws-error(xdmp:function(xs:QName("local:case1")), "ASSERT-EQUAL-FAILED"),
+declare function local:case6()
+{
+  fn:error(xs:QName("TEST-ERROR"), "deliberate attempt to throw an error")
+};
+
+test:assert-throws-error(xdmp:function(xs:QName("local:case6")), "TEST-ERROR"),
 
 test:assert-equal(<a class="1"/>, element a { attribute class { "1" } }),
 
-test:assert-throws-error(xdmp:function(xs:QName("local:case2")), "ASSERT-EQUAL-FAILED"),
+tlib:test-for-failure(local:case1(), "ASSERT-EQUAL-FAILED"),
 
-test:assert-throws-error(xdmp:function(xs:QName("local:case3")), "ASSERT-EQUAL-FAILED"),
+tlib:test-for-failure(local:case2(), "ASSERT-EQUAL-FAILED"),
 
-test:assert-throws-error(xdmp:function(xs:QName("local:case4")), "ASSERT-EQUAL-FAILED"),
+tlib:test-for-failure(local:case3(), "ASSERT-EQUAL-FAILED"),
+
+tlib:test-for-failure(local:case4(), "ASSERT-EQUAL-FAILED"),
 
 test:assert-equal((<a/>, <b/>, <c/>), (<a/>, <b/>, <c/>)),
 
@@ -47,4 +55,4 @@ test:assert-equal("a", "a"),
 
 test:assert-equal((), ()),
 
-test:assert-throws-error(xdmp:function(xs:QName("local:case5")), "ASSERT-EQUAL-FAILED")
+tlib:test-for-failure(local:case5(), "ASSERT-EQUAL-FAILED")

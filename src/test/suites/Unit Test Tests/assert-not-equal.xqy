@@ -1,4 +1,5 @@
 import module namespace test="http://marklogic.com/roxy/test-helper" at "/test/test-helper.xqy";
+import module namespace tlib = "http://marklogic.com/roxy/unit-test-tests" at "lib/testing-lib.xqy";
 
 declare function local:case1()
 {
@@ -15,5 +16,5 @@ test:assert-not-equal((0, 1, 2), (0, 2, 1)),
 test:assert-not-equal((0, 1, 2), ()),
 test:assert-not-equal(<a/>, <g/>),
 test:assert-not-equal(<a><aa/></a>, <g/>),
-test:assert-throws-error(xdmp:function(xs:QName("local:case1")), "ASSERT-NOT-EQUAL-FAILED"),
-test:assert-throws-error(xdmp:function(xs:QName("local:case2")), "ASSERT-NOT-EQUAL-FAILED")
+tlib:test-for-failure(local:case1(), "ASSERT-NOT-EQUAL-FAILED"),
+tlib:test-for-failure(local:case2(), "ASSERT-NOT-EQUAL-FAILED")
