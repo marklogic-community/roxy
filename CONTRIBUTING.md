@@ -44,13 +44,13 @@ chances of your issue being dealt with quickly:
 
 #### Fork Roxy
 
-Fork the project [on GitHub](https://github.com/marklogic/roxy/fork) and clone
+Fork the project [on GitHub](https://github.com/marklogic-community/roxy/fork) and clone
 your copy.
 
 ```sh
 $ git clone git@github.com:username/roxy.git
 $ cd roxy
-$ git remote add upstream git://github.com/marklogic/roxy.git
+$ git remote add upstream git://github.com/marklogic-community/roxy.git
 ```
 
 All bug fixes and new features go into the dev branch.
@@ -182,6 +182,6 @@ from the main (upstream) repository:
     git pull --ff upstream dev
     ```
 
-[issue tracker]: https://github.com/marklogic/roxy/issues
+[issue tracker]: https://github.com/marklogic-community/roxy/issues
 [mailing list]: http://developer.marklogic.com/mailman/listinfo/roxy
 [.editorconfig]: http://editorconfig.org/

@@ -147,6 +147,11 @@ declare variable $group-settings :=
     <!--TODO: setting>audit-role-restriction</setting>
     <setting>audit-uri-restriction</setting>
     <setting>audit-user-restriction</setting-->
+    <setting min-version="7.0-0" function="add" keys="namespace-uri location">module-location</setting>
+    <setting min-version="7.0-0" function="add" keys="prefix namespace-uri">namespace</setting>
+    <setting min-version="7.0-0" function="add" keys="namespace-uri schema-location">schema</setting>
+    <setting min-version="7.0-0" function="add" keys="event-id">trace-event</setting>
+    <setting min-version="7.0-0" function="add" keys="namespace-uri">using-namespace</setting>
   </settings>;
 
 declare variable $host-settings :=
@@ -441,19 +446,47 @@ declare function setup:suppress-comments($nodes) {
     default return $node
 };
 
+declare function setup:unique-attributes($attrs) {
+  let $result := map:map()
+  let $_ :=
+    for $attr in $attrs
+    let $attr-name := fn:name($attr)
+    let $existing-attr := map:get($result, $attr-name)
+    return
+      if (fn:exists($existing-attr) and fn:string($existing-attr) != fn:string($attr)) then
+        fn:error(
+          xs:QName("ATTR-CONFLICT"),
+          fn:concat("The config-files contain multiple attributes ", $attr-name, " with different values: " || fn:string($existing-attr) || " vs " || fn:string($attr))
+        )
+      else
+        map:put($result, name($attr), $attr)
+  return map:keys($result) ! map:get($result, .)
+};
+
 (: for backwards-compatibility :)
-declare function setup:rewrite-config($import-configs as element(configuration)+) as element(configuration)
+declare function setup:rewrite-config($import-configs as node()+, $properties as map:map) as element(configuration)
 {
   setup:rewrite-config($import-configs, ())
 };
 
-declare function setup:rewrite-config($import-configs as element(configuration)+, $silent as xs:boolean?) as element(configuration)
+declare function setup:rewrite-config($import-configs as node()+, $properties as map:map, $silent as xs:boolean?) as element(configuration)
+{
+  setup:rewrite-config($import-configs, $properties, $silent, ())
+};
+
+declare function setup:rewrite-config($import-configs as node()+, $properties as map:map, $silent as xs:boolean?, $keep-comments as xs:boolean?) as element(configuration)
 {
   let $config :=
     element { fn:node-name($import-configs[1]) } {
-      $import-configs/@*,
+      setup:unique-attributes($import-configs/@*),
+
+      (: capture comments before gr:groups, and its older counterparts :)
+      $import-configs/(
+        gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
+      )/preceding-sibling::node(),
 
       <groups xmlns="http://marklogic.com/xdmp/group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">{
+        setup:unique-attributes($import-configs/gr:groups/@*),
         let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
           ($import-configs/gr:groups/gr:group/gr:group-name, $import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
@@ -468,8 +501,10 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
         where fn:exists($servers | $databases | $group-config)
         return
           <group>
+            { setup:unique-attributes($group-config/@*) }
             <group-name>{$group}</group-name>
             {
+              $group-config/(node() except (gr:group-name, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server)),
               if ($http-servers) then
                 <http-servers>{$http-servers}</http-servers>
               else (),
@@ -481,13 +516,20 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
               else (),
               if ($task-server) then
                 $task-server
-              else (),
-              $group-config/(node() except gr:group-name)
+              else ()
             }
           </group>
       }</groups>,
 
-      $import-configs/(node() except (gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server))
+      (: capture anything following gr:groups, and its older counterparts :)
+      $import-configs/(
+        gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
+      )/following-sibling::node(),
+
+      (: other fragments with configuration as root :)
+      $import-configs[fn:empty((
+        gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
+      ))]/node()
     }
 
   (: Check config on group consistency! :)
@@ -500,10 +542,11 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
       return
         fn:error(
           xs:QName("NO_HOSTS_IN_GROUP"),
-          fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!"))
+          fn:concat("No hosts assigned to group ", $group, ", needed for app servers and forests!")
+        )
 
   (: all good :)
-  return setup:suppress-comments($config)
+  return  if ($keep-comments) then $config else setup:suppress-comments($config)
 };
 
 
@@ -627,7 +670,7 @@ declare private function setup:parse-options( $options as xs:string ) as map:map
   return $optionsMap
 };
 
-declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string) as item()*
+declare function setup:do-setup($import-config as node()+, $options as xs:string, $properties as map:map) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -695,7 +738,7 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
   }
 };
 
-declare function setup:do-wipe($import-config as element(configuration)+, $options as xs:string) as item()*
+declare function setup:do-wipe($import-config as node()+, $options as xs:string, $properties as map:map) as item()*
 {
   let $options := if(fn:empty($options) or $options eq "") then ("all") else fn:tokenize($options, ",")
 
@@ -1127,7 +1170,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
   Attempt to remove replicas that are to be decommissioned due to scaling out of the cluster.
   Replicas are only removed after their new replacements have gone to sync replication.
 :)
-declare function setup:do-clean-replicas($import-config as element(configuration)+, $options as xs:string) as item()*
+declare function setup:do-clean-replicas($import-config as node()+, $options as xs:string, $properties as map:map) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -1471,18 +1514,18 @@ declare function setup:create-forests-from-config(
     let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
     let $host-name as xs:string? := $forest-config/as:host-name[fn:string-length(fn:string(.)) > 0]
     let $host-id := if ($host-name) then xdmp:host($host-name) else ($hosts, $default-host)[1]
-    let $hostnr := fn:index-of($hosts, $host-id)
-    let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
-    let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
-
-    let $_ := setup:mark-old-replicas-for-delete( $forest-name )
     return
       setup:create-forest(
         $all-existing,
         $forest-name,
         $data-directory,
         $host-id,
-        setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, (), $is-internal )
+        let $hostnr := fn:index-of($hosts, $host-id)
+        let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+        let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+
+        let $_ := setup:mark-old-replicas-for-delete( $forest-name )
+        return setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, (), $is-internal )
       )
 
   (: Display messages for set of existing forests that need to be dealt with :)
@@ -3754,6 +3797,59 @@ declare function setup:validate-group(
       setup:validation-fail(fn:concat("Missing Group: ", $group))
 };
 
+declare function setup:validate-group-settings(
+  $group-config as element(gr:group),
+  $setting as element()
+) {
+  let $group := $group-config/gr:group-name/fn:string(.)
+  let $setting-name := $setting/fn:string(.)
+  let $function-name := fn:concat("group-get-", $setting-name, "s")
+  let $keys := fn:tokenize($setting/@keys, " ")
+  let $existing :=
+    try
+    {
+      xdmp:eval(
+        fn:concat(
+          'import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic/admin.xqy";
+          declare variable $group external;
+          let $config := admin:get-configuration()
+          let $groupid := admin:group-get-id($config, $group)
+          return admin:', $function-name, '($config, $groupid)'
+        ),
+        (
+          xs:QName("group"), $group
+        )
+      )
+    }
+    catch($ex)
+    {
+      if ($ex/error:code = "XDMP-UNDFUN") then ()
+      else
+        xdmp:rethrow()
+    }
+  for $expected in xdmp:value(fn:concat("$group-config/gr:", $setting-name))
+  return (
+    if ($existing[setup:setting-equal($setting, ., $expected)]) then ()
+    else (
+      $keys ! setup:validation-fail(fn:string-join(("group setting mismatch", $setting-name, (., xdmp:value(fn:concat("$expected/gr:", .)), "=>", xdmp:value(fn:concat("$existing/gr:", .)))), " "))
+      (:$keys ! fn:string-join(("group setting mismatch", $setting-name, (., xdmp:value(fn:concat("$expected/gr:", .)), "=>", xdmp:value(fn:concat("$existing/gr:", .)))), " "):)
+    )
+  )
+};
+
+declare function setup:setting-equal(
+  $setting as element(),
+  $expected as element(),
+  $existing as element()
+) as xs:boolean {
+  let $keys := fn:tokenize($setting/@keys, " ")
+  return
+    if (fn:exists($keys)) then
+      (every $key in $keys satisfies xdmp:value(fn:concat("$expected/gr:", $key, "/fn:data(.)")) eq xdmp:value(fn:concat("$existing/gr:", $key, "/fn:data(.)")))
+    else
+      fn:deep-equal($expected, $existing)
+};
+
 declare function setup:configure-groups($import-config as element(configuration)) as item()*
 {
   let $admin-config := admin:get-configuration()
@@ -3771,13 +3867,16 @@ declare function setup:configure-groups($import-config as element(configuration)
       if ($setting/@value) then
         xdmp:value($setting/@value)
       else
-        fn:data(xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test)))
+        xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test))
     let $min-version as xs:string? := $setting/@min-version
     where (fn:exists($value))
     return
       if (fn:empty($min-version) or setup:at-least-version($min-version)) then
         xdmp:set($admin-config,
-          xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $group-id, $value)")))
+          if ($setting/@function eq "add") then
+            setup:apply-groups-setting-add($admin-config, $group-id, $setting, $value)
+          else
+            xdmp:value(fn:concat("admin:group-set-", $setting, "($admin-config, $group-id, fn:data($value))")))
       else
         fn:error(
           xs:QName("VERSION_NOT_SUPPORTED"),
@@ -3790,6 +3889,71 @@ declare function setup:configure-groups($import-config as element(configuration)
 
     fn:concat("Group ", $group-name, " settings applied succesfully.")
   )
+};
+
+declare function setup:apply-groups-setting-add(
+  $admin-config as element(configuration),
+  $group-id as xs:unsignedLong,
+  $setting as element(setting),
+  $values as element()*
+) as element(configuration) {
+  if (fn:exists($values)) then
+    let $old-values := xdmp:value(fn:concat("admin:group-get-", $setting, "s", "($admin-config, $group-id)"))
+    let $admin-config :=
+      (: First delete any values that matches the @keys first item, value must be unique :)
+      xdmp:value(
+        fn:concat(
+          "admin:group-delete-", $setting, "($admin-config, $group-id,",
+          setup:get-groups-element-setting(
+            $admin-config,
+            $group-id,
+            $setting,
+            for $value in $values
+            return $old-values[./node()[1] eq $value/node()[fn:local-name() eq fn:tokenize($setting/@keys, " ")[1]]]
+          ),
+          ")"
+        )
+      )
+    return
+      xdmp:value(
+        fn:concat(
+          "admin:group-add-", $setting, "($admin-config, $group-id,",
+          setup:get-groups-element-setting($admin-config, $group-id, $setting, $values),
+          ")"
+        )
+      )
+  else
+    $admin-config
+};
+
+declare function setup:get-groups-element-setting(
+  $admin-config as element(configuration),
+  $group-id as xs:unsignedLong,
+  $setting as element(setting),
+  $values as element()*
+) as xs:string {
+    fn:concat(
+      "(",
+      fn:string-join(
+        (
+          for $value in $values
+          return
+            fn:concat(
+              "admin:group-",
+              $setting,
+              "(",
+              fn:string-join(
+                for $key in fn:tokenize($setting/@keys, " ")
+                return fn:concat('"', xdmp:value(fn:concat("$value/gr:", $key)), '"'),
+                ","
+              ),
+              ")"
+            )
+        ),
+        ","
+      ),
+      ")"
+    )
 };
 
 declare function setup:validate-groups-settings($import-config as element(configuration)) as item()*
@@ -3810,11 +3974,14 @@ declare function setup:validate-groups-settings($import-config as element(config
     if ($setting/@value) then
       xdmp:value($setting/@value)
     else
-      fn:data(xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test)))
+      xdmp:value(fn:concat("$group-config/gr:", $setting, $setting-test))
   let $min-version as xs:string? := $setting/@min-version
   where (fn:exists($expected))
   return
-    if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+    if (fn:exists($setting/@function)) then
+      setup:validate-group-settings($group-config, $setting)
+    else if (fn:empty($min-version) or setup:at-least-version($min-version)) then
+      let $expected := fn:data($expected)
       let $actual := xdmp:value(fn:concat("admin:group-get-", $setting, "($admin-config, $group-id)"))
       return
         if ($expected = $actual) then ()
@@ -6321,7 +6488,7 @@ declare function setup:validation-fail($message)
   fn:error(xs:QName("VALIDATION-FAIL"), $message)
 };
 
-declare function setup:validate-install($import-config as element(configuration))
+declare function setup:validate-install($import-config as element(configuration)+, $properties as map:map)
 {
   try
   {

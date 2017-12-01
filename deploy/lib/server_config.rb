@@ -62,7 +62,6 @@ class ServerConfig < MLClient
 
     @properties = options[:properties]
     @environment = @properties["environment"]
-    @config_file = @properties["ml.config.file"]
 
     @properties["ml.server"] = @properties["ml.#{@environment}-server"] unless @properties["ml.server"]
     if (@properties["ml.server"] == nil)
@@ -776,22 +775,29 @@ but --no-prompt parameter prevents prompting for password.'
   def properties_map
     entries = []
     @properties.each do |k, v|
-      entries.push %Q{map:entry("#{k}", "#{v}")}
+      entries.push %Q{map:entry("#{k}", "#{v.xquery_safe}")}
     end
     "map:new((\n" + entries.join(",\n  ")+ "))"
   end
 
   def config
     setup = File.read ServerConfig.expand_path("#{@@path}/lib/xquery/setup.xqy")
-    r = execute_query %Q{
+    query = %Q{
       #{setup}
       try {
-        setup:rewrite-config(#{get_config}, #{properties_map})
+        xdmp:quote(
+          setup:rewrite-config(#{get_config}, #{properties_map}, (), fn:true()),
+          <options xmlns="xdmp:quote">
+            <indent>yes</indent>
+            <indent-untyped>yes</indent-untyped>
+          </options>
+        )
       } catch($ex) {
         xdmp:log($ex),
         fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
       }
     }
+    r = execute_query query
     logger.debug "code: #{r.code.to_i}"
 
     r.body = parse_body(r.body)
@@ -1342,16 +1348,11 @@ In order to proceed please type: #{expected_response}
 
       success = true
       suites.each do |suite|
-        begin
-          r = go(%Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/default.xqy?func=run&suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get")
-          logger.info r.body
-        rescue Net::HTTPServerException => e
-          if e.response.code.to_i == 409
-            # ignore 409's, but mark failure
-            success = false
-          else
-            raise # reraise last exception
-          end
+        r = go(%Q{http://#{@hostname}:#{@properties["ml.test-port"]}/test/default.xqy?func=run&suite=#{url_encode(suite)}&format=junit#{suiteTearDown}#{testTearDown}}, "get")
+        logger.info r.body
+        # Check for an XML failure element, part of the JUnit response.
+        if (r.body.match("<failure"))
+          success = false
         end
       end
     end
@@ -3125,7 +3126,7 @@ private
       config.gsub!("{", "{{")
       config.gsub!("}", "}}")
 
-      configs << config
+      configs << "<file>" + config + "</file>/node()"
     end
 
     %Q{(#{configs.join(", ")})}
