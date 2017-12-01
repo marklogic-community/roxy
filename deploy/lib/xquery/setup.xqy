@@ -19,7 +19,6 @@ import module namespace admin = "http://marklogic.com/xdmp/admin" at "/MarkLogic
 import module namespace sec="http://marklogic.com/xdmp/security" at "/MarkLogic/security.xqy";
 import module namespace pki = "http://marklogic.com/xdmp/pki" at "/MarkLogic/pki.xqy";
 import module namespace functx="http://www.functx.com" at "/MarkLogic/functx/functx-1.0-nodoc-2007-01.xqy";
-import module namespace search = "http://marklogic.com/appservices/search" at "/MarkLogic/appservices/search/search.xqy";
 
 declare namespace setup = "http://marklogic.com/roxy/setup";
 declare namespace xdmp="http://marklogic.com/xdmp";
@@ -54,14 +53,22 @@ declare variable $system-users := ("nobody", "infostudio-admin", "healthcheck");
 declare variable $system-roles as xs:string+ :=
   setup:read-config-file("security.xml")/sec:security/sec:roles/sec:role/@name;
 
+(: Return a set of messages to the user - add to the "messages" sequence :)
+declare variable $messages :=
+  map:map() !
+    (
+      map:put( ., "messages", () ),
+      .
+    );
+
 (: Used to adjust which host gets the next internal forest replica when the number of :)
 (: replicas is less than (#hosts - 1) :)
 declare variable $internal-forests :=
   map:map() !
-    (
-      map:put( ., "internal-forest-adjust", 0 ),
-      .
-    );
+  (
+    map:put( ., "internal-forest-adjust", 0 ),
+    .
+  );
 
 (: These files are used to hold cleanup state after scale out when forest replicas are reshuffled across hosts :)
 (: replicating replicas are those which are new and performing their initial replication :)
@@ -375,8 +382,6 @@ declare function setup:get-rollback-config()
 {
   element configuration
   {
-    attribute rollback { fn:true() },
-
     map:get($roll-back, "task-server"),
 
     element gr:http-servers
@@ -423,119 +428,6 @@ declare function setup:get-rollback-config()
   }
 };
 
-declare variable $cts:element-reference := fn:function-lookup(xs:QName("cts:element-reference"), 2);
-declare variable $cts:parse             := fn:function-lookup(xs:QName("cts:parse"), 2);
-
-declare variable $if-parser := ();
-
-declare function setup:get-if-parser($properties as map:map) {
-  if ($if-parser) then
-    $if-parser
-  else
-    let $parser := function($query) {
-      (:
-      if (fn:exists($cts:parse)) then
-      if (fn:number(substring-before(xdmp:version(), ".")) ge 8) then
-      :)
-      (: [GJo] There are some issue with cts:parse, like it choking on "rest-ext.dir EQ something"
-               Bug filed. Using search:parse for now.
-      :)
-      if (fn:false()) then
-        let $bindings := map:new((
-          for $property in map:keys($properties)
-          let $name := fn:replace($property, "^ml[._\-]", "")
-          return map:entry($name, $cts:element-reference(xs:QName($property), ("type=int", "unchecked")))
-        ))
-        return ($cts:parse($query, $bindings), $bindings)
-      else
-        let $options := <options xmlns="http://marklogic.com/appservices/search">{
-          for $property in map:keys($properties)
-          let $name := fn:replace($property, "^ml[._\-]", "")
-          return <constraint name="{$name}">
-            <range type="xs:string" collation="http://marklogic.com/collation/">
-              <element ns="" name="{$property}"/>
-            </range>
-          </constraint>
-        }</options>
-        return (cts:query(search:parse(fn:replace($query, " EQ ", " : "), $options)), $options)
-    }
-    let $_ := xdmp:set($if-parser, $parser)
-    return $parser
-};
-
-declare function setup:eval-query($query as cts:query, $properties as map:map) {
-    typeswitch ($query)
-    case cts:and-query return fn:not(
-      (cts:and-query-queries($query) ! setup:eval-query(., $properties)) = fn:false()
-    )
-    case cts:or-query return (
-      (cts:or-query-queries($query) ! setup:eval-query(., $properties)) = fn:true()
-    )
-    case cts:not-query return fn:not(
-      cts:not-query-query($query) ! setup:eval-query(., $properties)
-    )
-    case cts:element-value-query return (
-      let $property := fn:string(cts:element-value-query-element-name($query))
-      let $operator := '='
-      let $values := cts:element-value-query-text($query)
-      return map:get($properties, $property) = $values
-    )
-    case cts:element-word-query return (
-      let $property := fn:string(cts:element-word-query-element-name($query))
-      let $operator := '='
-      let $values := cts:element-word-query-text($query)
-      return map:get($properties, $property) = $values
-    )
-    case cts:element-range-query return (
-      let $property := fn:string(cts:element-range-query-element-name($query))
-      let $operator := cts:element-range-query-operator($query)
-      let $values := cts:element-range-query-value($query)
-      return
-        if ($operator = ('=', '!=', '>', '>=', '<', '<=')) then
-          xdmp:value("map:get($properties, $property) " || $operator || " $values")
-        else
-          fn:error(xs:QName("UNSUPPORTED"), "Unsupported operator " || $operator)
-    )
-    case cts:word-query return (
-      fn:error(xs:QName("SYNTAX"), "Syntax error near " || cts:word-query-text($query))
-    )
-    default return (
-      fn:error(xs:QName("UNSUPPORTED"), "Cannot parse " || fn:upper-case(fn:replace(fn:string(xdmp:type($query)), "-query$", "")))
-    )
-};
-
-declare function setup:process-conditionals($nodes, $properties) {
-  for $node in $nodes
-  return
-    typeswitch ($node)
-    case element() return
-      let $if-valid :=
-        if (fn:exists($node/@if)) then
-          let $parser := setup:get-if-parser($properties)
-          let $expression := string($node/@if)
-          return try {
-            let $query := $parser($expression)[1]
-            return try {
-              setup:eval-query($query, $properties)
-            } catch ($e) {
-              fn:error(xs:QName("IF-PARSE-ERROR"),
-                "Unable to evauluate the expression '" || $expression || "': " || $e/error:format-string/data())
-            }
-          } catch ($e) {
-            fn:error(xs:QName("IF-PARSE-ERROR"),
-              "Unable to parse the expression '" || $expression || "': " || $e/error:format-string/data())
-          }
-        else
-          fn:true()
-      where $if-valid
-      return element { fn:node-name($node) } {
-        $node/@*,
-        setup:process-conditionals($node/node(), $properties)
-      }
-    case comment() return ()
-    default return $node
-};
-
 declare function setup:suppress-comments($nodes) {
   for $node in $nodes
   return
@@ -550,21 +442,18 @@ declare function setup:suppress-comments($nodes) {
 };
 
 (: for backwards-compatibility :)
-declare function setup:rewrite-config($import-configs as element(configuration)+, $properties as map:map) as element(configuration)
+declare function setup:rewrite-config($import-configs as element(configuration)+) as element(configuration)
 {
-  setup:rewrite-config($import-configs, $properties, ())
+  setup:rewrite-config($import-configs, ())
 };
 
-declare function setup:rewrite-config($import-configs as element(configuration)+, $properties as map:map, $silent as xs:boolean?) as element(configuration)
+declare function setup:rewrite-config($import-configs as element(configuration)+, $silent as xs:boolean?) as element(configuration)
 {
-  let $import-configs := setup:process-conditionals($import-configs, $properties)
   let $config :=
     element { fn:node-name($import-configs[1]) } {
       $import-configs/@*,
 
-      <groups xmlns="http://marklogic.com/xdmp/group">{
-        $import-configs/gr:groups/@*,
-
+      <groups xmlns="http://marklogic.com/xdmp/group" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">{
         let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
           ($import-configs/gr:groups/gr:group/gr:group-name, $import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
@@ -579,7 +468,6 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
         where fn:exists($servers | $databases | $group-config)
         return
           <group>
-            { $group-config/@* }
             <group-name>{$group}</group-name>
             {
               if ($http-servers) then
@@ -620,8 +508,48 @@ declare function setup:rewrite-config($import-configs as element(configuration)+
 
 
 (:
+  Returns a map of the existing forests so it is easy to look up the names.
+:)
+declare function setup:get-all-forests-map(
+  $database-name as xs:string
+)
+as map:map
+{
+  let $admin-config := admin:get-configuration()
+  let $all-existing := map:map()
+
+  let $_ :=
+    if( admin:database-exists( $admin-config, $database-name ) ) then
+      let $db-id := admin:database-get-id( $admin-config, $database-name )
+      let $existing-fids := admin:database-get-attached-forests( $admin-config, $db-id )
+      return
+        for $fid in $existing-fids
+          return
+          (
+            map:put( $all-existing, xdmp:forest-name( $fid ), $fid ),
+            for $rid in admin:forest-get-replicas( $admin-config, $fid )
+              return map:put( $all-existing, xdmp:forest-name( $rid ), $rid )
+          )
+    else ()
+
+  return $all-existing
+};
+
+
+(:
+  Generate forest/replica name.
+  Forest name: <base-name>-000-1
+      base-name = forest name as specified in the ml-config
+      000 = host number within cluster that houses this forest
+      1 = forest number (1 to number of forests/host)
+  Replica name: <base-name-rep1>-000-1-on-111
+      base-name = replica name as specified in the ml-config, or <forest-name>-replica if not specified
+      000 = host number within cluster that houses the primary forest
+      1 = forest number (1 to number of forests/host)
+      111 = host number within cluster that houses this replica
+
   base-name : Original forest base name - this should be the name from the config.
-  base-host-num : Host that holds the original forest
+  base-host-num : Host that holds the primary forest
   forest-num : which of same named forests we are processing now
   replica-host-num : replicas are spread on other hosts - this is the host for the replica
 :)
@@ -651,6 +579,41 @@ declare function setup:gen-forest-name(
   )
 };
 
+(:
+  How roxy prior to 1.7.5 generated forest/replica names.
+  Forest name: <base-name>-000-1
+      base-name = forest name as specified in the ml-config
+      000 = host number within cluster that houses this forest
+      1 = forest number (1 to number of forests/host)
+  Replica name: <base-name-rep1>-000-1
+      base-name = replica name as specified in the ml-config, or <forest-name>-replica if not specified
+      000 = host number within cluster that houses the primary forest
+      1 = forest number (1 to number of forests/host)
+:)
+declare function setup:gen-original-forest-name(
+  $base-name as xs:string,
+  $replica-name as xs:string,
+  $base-host-num as xs:int,
+  $forest-num as xs:int?,
+  $replica-host-num as xs:int?
+) as xs:string
+{
+    fn:string-join(
+      (
+        ( $replica-name, fn:concat( $base-name, '-replica' ) )[1]
+        ,
+        if( fn:exists( $forest-num ) ) then
+        (
+          fn:format-number(xs:int($base-host-num), "000"),
+          xs:string($forest-num)
+        )
+        else ()
+      ),
+      "-"
+    )
+};
+
+
 declare private function setup:parse-options( $options as xs:string ) as map:map
 {
   let $options := if(fn:empty($options) or $options eq "") then ("all") else fn:tokenize($options, ",")
@@ -664,7 +627,7 @@ declare private function setup:parse-options( $options as xs:string ) as map:map
   return $optionsMap
 };
 
-declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
+declare function setup:do-setup($import-config as element(configuration)+, $options as xs:string) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -672,7 +635,7 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
   return
   try
   {
-    let $import-config := setup:rewrite-config($import-config, $properties)
+    let $import-config := setup:rewrite-config($import-config)
     return (
       if (fn:not($do-internals)) then (
         (: Security related :)
@@ -712,7 +675,8 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
       ) else (),
       if ($restart-needed) then
         "note: restart required"
-      else ()
+      else (),
+      fn:string-join( map:get( $messages, "messages" ), "&#xa;" )
     )
   }
   catch($ex)
@@ -726,12 +690,12 @@ declare function setup:do-setup($import-config as element(configuration)+, $opti
         configuring external authentication.&#10;&#10;' )
     else (),
     xdmp:log($ex),
-    setup:do-wipe(setup:get-rollback-config(), $options, $properties),
+    setup:do-wipe(setup:get-rollback-config(), ""),
     fn:concat($ex/err:format-string/text(), '&#10;See MarkLogic Server error log for more details.')
   }
 };
 
-declare function setup:do-wipe($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
+declare function setup:do-wipe($import-config as element(configuration)+, $options as xs:string) as item()*
 {
   let $options := if(fn:empty($options) or $options eq "") then ("all") else fn:tokenize($options, ",")
 
@@ -743,11 +707,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
   return
   try
   {
-    let $import-config :=
-      if ($import-config/@rollback = "true") then
-        $import-config
-      else
-        setup:rewrite-config($import-config, $properties, fn:true())
+    let $import-config := setup:rewrite-config($import-config, fn:true())
     return (
 
       (: remove scheduled tasks :)
@@ -861,6 +821,11 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
           setup:delete-databases($db-config)
       else (),
 
+(:
+  Get set of forests that belong to the DB - if any of them would not be included in the cleanup,
+  then report the issue back.  Tho it is kinda dumb to recalc the forest/replica names vs just getting
+  them from the config.
+:)
       (: remove forests :)
       if(map:contains($optionsMap, "all") or map:contains($optionsMap, "forests")) then
         let $admin-config := admin:get-configuration()
@@ -1162,7 +1127,7 @@ declare function setup:do-wipe($import-config as element(configuration)+, $optio
   Attempt to remove replicas that are to be decommissioned due to scaling out of the cluster.
   Replicas are only removed after their new replacements have gone to sync replication.
 :)
-declare function setup:do-clean-replicas($import-config as element(configuration)+, $options as xs:string, $properties as map:map) as item()*
+declare function setup:do-clean-replicas($import-config as element(configuration)+, $options as xs:string) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -1172,7 +1137,6 @@ declare function setup:do-clean-replicas($import-config as element(configuration
   return
     try {
       if (map:count( $delete-map ) ) then
-        let $import-config := setup:rewrite-config($import-config, $properties)
         (: Loop over the replicas we are waiting for and check state :)
         let $reps-waiting :=
           for $rep in map:keys( $replicating-map )
@@ -1220,7 +1184,7 @@ declare function setup:do-clean-replicas($import-config as element(configuration
             let $_ := xdmp:log( "Updating configuration." )
             let $_ := admin:save-configuration( map:get( $updated-config, "admin-config" ) )
 
-            let $_ := setup:do-clean-replicas-state( $options )
+            let $_ := setup:do-clean-replicas-state( $import-config, $options )
 
             let $_ := xdmp:log( fn:string-join( ( "Clean replicas complete:", $cleaned ), "&#x0a;" ) )
             return( fn:string-join( ( "Clean replicas complete:", $cleaned ), "&#x0a;" ) )
@@ -1244,7 +1208,7 @@ declare function setup:do-clean-replicas($import-config as element(configuration
 (:
   Cleanup scale-out replica state files.
 :)
-declare function setup:do-clean-replicas-state($options as xs:string) as item()*
+declare function setup:do-clean-replicas-state($import-config as element(configuration)+, $options as xs:string) as item()*
 {
   let $optionsMap := setup:parse-options( $options )
   let $do-internals := map:contains( $optionsMap, "internals" )
@@ -1314,9 +1278,9 @@ declare function setup:do-restart($group-name as xs:string?) as item()*
         "Restarting hosts to make configuration changes take effect"),
 
       if ($group-id) then
-        fn:concat("Invoked group ", $group-name, " restart")
+        fn:concat("Invoked group ", $group-name, " restarted")
       else
-        fn:concat("Invoked cluster restart")
+        fn:concat("Invoked cluster restarted")
     )
   }
   catch ($ex)
@@ -1444,7 +1408,7 @@ declare function setup:save-cleanup-state( $import-config as element(configurati
       $replicating-map-file
 
   let $perms :=
-    xdmp:default-permissions()
+      xdmp:default-permissions()
 
   (: Write the delete maps and the replicating maps for use when delete old replicas is done :)
   return (
@@ -1491,38 +1455,46 @@ declare function setup:create-forests-from-config(
   $import-config as element(configuration),
   $db-config as element(db:database),
   $database-name as xs:string,
-  $is-internal as xs:boolean
-) as item()*
+  $is-internal as xs:boolean )
 {
   let $group-id := setup:get-group($db-config)
   let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group-id)
 
-  (: Get the assignment entries for each primary forest ID associated with this database :)
-  for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
-  let $forest-name as xs:string := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
-  let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
-  let $host-name as xs:string? := $forest-config/as:host-name[fn:string-length(fn:string(.)) > 0]
-  let $host-id := if ($host-name) then xdmp:host($host-name) else ($hosts, $default-host)[1]
-  let $hostnr := fn:index-of($hosts, $host-id)
-  let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
-  let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+  (: Get the existsing forests (if any) for this database :)
+  (: Used to report forests that may become orphans after wipe :)
+  let $all-existing := setup:get-all-forests-map( $database-name )
 
-  let $_ := setup:mark-old-replicas-for-delete( $forest-name )
-  return
-    setup:create-forest(
-      $forest-name,
-      $data-directory,
-      $host-id,
-      if (fn:count($hosts) gt 1) then
+  (: Get the assignment entries for each primary forest ID associated with this database :)
+  let $result :=
+    for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
+    let $forest-name as xs:string := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
+    let $data-directory as xs:string? := $forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0]
+    let $host-name as xs:string? := $forest-config/as:host-name[fn:string-length(fn:string(.)) > 0]
+    let $host-id := if ($host-name) then xdmp:host($host-name) else ($hosts, $default-host)[1]
+    let $hostnr := fn:index-of($hosts, $host-id)
+    let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+    let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+
+    let $_ := setup:mark-old-replicas-for-delete( $forest-name )
+    return
+      setup:create-forest(
+        $all-existing,
+        $forest-name,
+        $data-directory,
+        $host-id,
         setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, (), $is-internal )
-      else ()
-    )
+      )
+
+  (: Display messages for set of existing forests that need to be dealt with :)
+  return setup:generate-response-messages( $result, $all-existing )
 };
+
 
 declare function setup:validate-forests-from-config(
   $import-config as element(configuration),
   $db-config as element(db:database),
-  $database-name as xs:string)
+  $database-name as xs:string
+)
 {
   for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
   let $forest-name as xs:string? := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
@@ -1548,27 +1520,35 @@ declare function setup:create-forests-from-count(
   let $group-id := setup:get-group($db-config)
   let $hosts := admin:group-get-host-ids(admin:get-configuration(), $group-id)
 
-  (: Get the assignment entries for each primary forest ID associated with this database :)
-  for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
-  let $forest-name as xs:string := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
-  let $data-directory as xs:string? := ($forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0],
-                                       $db-config/db:forests/db:data-directory)[1]
-  for $host at $hostnr in $hosts
-  for $forestnr in (1 to $forests-per-host)
-  let $new-forest-name := setup:gen-forest-name( $forest-name, $hostnr, $forestnr, () )
+  (: Get the existsing forests (if any) for this database :)
+  (: Used to report forests that may become orphans after wipe :)
+  let $all-existing := setup:get-all-forests-map( $database-name )
 
-  let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
-  let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
-  let $_ := setup:mark-old-replicas-for-delete( $new-forest-name )
-  return
-    setup:create-forest(
-      $new-forest-name,
-      $data-directory,
-      $host,
-      if (fn:count($hosts) gt 1) then
+  (: Get the assignment entries for each primary forest ID associated with this database :)
+  let $result :=
+    for $forest-config in setup:get-database-forest-configs($import-config, $database-name)
+    let $forest-name as xs:string := $forest-config/as:forest-name[fn:string-length(fn:string(.)) > 0]
+    let $data-directory as xs:string? := ($forest-config/as:data-directory[fn:string-length(fn:string(.)) > 0], 
+                                          $db-config/db:forests/db:data-directory)[1]
+    for $host at $hostnr in $hosts
+    for $forestnr in (1 to $forests-per-host)
+    let $new-forest-name := setup:gen-forest-name( $forest-name, $hostnr, $forestnr, () )
+
+    let $replica-names as xs:string* := $forest-config/as:replica-names/as:replica-name[fn:string-length(fn:string(.)) > 0]
+    let $replicas := $import-config/as:assignments/as:assignment[as:forest-name = $replica-names]
+    let $_ := setup:mark-old-replicas-for-delete( $new-forest-name )
+    return 
+      setup:create-forest(
+        $all-existing,
+        $new-forest-name,
+        $data-directory,
+        $host,
         setup:reassign-replicas($replicas, $hosts, $hostnr, $forest-name, $forestnr, $is-internal )
-      else ()
-    )
+      )
+
+  (: Display messages for set of existing forests that need to be dealt with :)
+  
+  return setup:generate-response-messages( $result, $all-existing )
 };
 
 (:
@@ -1584,7 +1564,7 @@ declare function setup:mark-old-replicas-for-delete(
 {
   let $admin-config := admin:get-configuration()
   let $existing-replicas :=
-    if (admin:forest-exists( $admin-config, $forest-name ) ) then
+    if( admin:forest-exists( $admin-config, $forest-name ) ) then
       admin:forest-get-replicas(
         $admin-config,
         admin:forest-get-id($admin-config, $forest-name)
@@ -1596,6 +1576,25 @@ declare function setup:mark-old-replicas-for-delete(
   let $rep-name := admin:forest-get-name( $admin-config, $rep-id )
   return
     map:put( $delete-map, $rep-name, $forest-name )
+};
+
+(:
+  Display messages about existing forests post bootstrap
+:)
+declare function setup:generate-response-messages(
+  $prev-response as xs:string*,
+  $existing as map:map
+)
+{
+  for $i in map:keys( $existing )
+    return
+    (
+      "************************************************************",
+      "*** WARNING: Forest/replica " || $i || 
+      " does not match latest Roxy naming conventions." ||
+      " It will need to be manually removed.",
+      "************************************************************"
+    )
 };
 
 declare function setup:get-assigned-replicas(
@@ -1619,65 +1618,95 @@ declare function setup:reassign-replicas(
   $is-internal as xs:boolean
 ) as element(as:assignment)*
 {
-  (: Ensure a forest number exists - if not specified, assume "1" :)
-  let $final-forestnr := ( $forestnr, 1 ) [1]
+ (: Only process if there are any replicas to consider :)
+  if( fn:count( $replicas ) > 0 ) then
 
-  (: Set of hosts valid for replicas - no replicas on the same host as the primary forest, so remove that host from the set. :)
-  let $rep-hosts :=  fn:remove( $hosts, $hostnr )
-
-  for $replica at $pos in $replicas
-
-  (: If a limit on the number of replicas was specified, then use it. :)
-  let $nr-replicas := ( $replica/as:forest-name/@nr-replicas, "1" )[1]
-
-  (: If number of replicas specified as "MAX", then use all hosts :)
-  let $num-forced-replicas as xs:int :=
-    if ($nr-replicas = "MAX" or $nr-replicas = "max" ) then
-      fn:count( $rep-hosts )
-    else xs:int( $nr-replicas )
-
-  (: Adjust the replicas for internal forests so they don't get all jammed onto a single server :)
-  let $adjuster as xs:int :=
-    if ($is-internal ) then
-      let $return := map:get( $internal-forests, "internal-forest-adjust" )
+    (: Sanity check for replica count requests :)
+    if( fn:count( $hosts ) < 3 ) then
+      let $notif := fn:concat( "Forest replication and failover requires at least 3 nodes to function properly.",
+                               "  This cluster only has ", fn:count( $hosts ), " node(s).",
+                               "  Defaulting to using no replicas." )
       return
       (
-        map:put( $internal-forests, "internal-forest-adjust", $return + $num-forced-replicas ),
-        $return
+        setup:return-message( $notif, "warning" ),
+        xdmp:log( $notif, "warning" )
       )
-    else 0
-
-  (: Loop over the forced number of replicas :)
-  for $replicanr in (1 to $num-forced-replicas)
-
-  (: get the replica name - get from the config if specified, or build it :)
-  let $base-replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
-
-  (: Determine which host to apply the replica to.  This is the actual host NAME based on the count of the hosts that :)
-  (: are available to replicate this forest, which does not include the same host that is hosting the primary. :)
-  let $replica-host-index := ($hostnr + (($final-forestnr - 1) * $num-forced-replicas + 1) + $replicanr + $pos + $adjuster - 4) mod count($rep-hosts) + 1
-  let $replica-host-name := ($replica/as:host-name[fn:string-length(fn:string(.)) > 0], xdmp:host-name($rep-hosts[$replica-host-index]))[1]
-
-  (: The *index* of the host must match the index of the host across ALL hosts, not just replica hosts. :)
-  let $replica-real-index := if( $replica-host-index >= $hostnr ) then $replica-host-index + 1 else $replica-host-index
-
-  (: Generate the new replica name based on name, forest counter, primary host, and replica host :)
-  let $replica-name := setup:gen-forest-name( $base-replica-name, $hostnr, $forestnr, $replica-real-index )
-
-  let $_ :=
-    if( map:contains( $delete-map, $replica-name ) ) then
-      (: If it exists already, remove this replica from the list of those to delete :)
-      map:delete( $delete-map, $replica-name )
     else
-      (: This is a new replica - will need to wait on replication before attempting delete :)
-      map:put( $replicating-map, $replica-name, fn:true() )
+      (: Ensure a forest number exists - if not specified, assume "1" :)
+      let $final-forestnr := ( $forestnr, 1 ) [1]
 
-  return element { fn:node-name($replica) } {
-    $replica/@*,
-    <as:forest-name>{$replica-name}</as:forest-name>,
-    <as:host-name>{$replica-host-name}</as:host-name>,
-    $replica/node() except ($replica/as:forest-name, $replica/as:host-name)
-  }
+      (: Set of hosts valid for replicas - no replicas on the same host as the primary forest, so remove that host from the set. :)
+      let $rep-hosts :=  fn:remove( $hosts, $hostnr )
+
+      for $replica at $pos in $replicas
+
+      (: If a limit on the number of replicas was specified, then use it. :)
+      let $nr-replicas := ( $replica/as:forest-name/@nr-replicas, "1" )[1]
+
+      (: If number of replicas specified as "MAX", then use all hosts :)
+      let $max-allowed-replicas := fn:count( $rep-hosts )
+      let $num-forced-replicas as xs:int :=
+        if ($nr-replicas = "MAX" or $nr-replicas = "max" ) then
+          $max-allowed-replicas
+        else xs:int( $nr-replicas )
+
+      (: Verify that the host count can support the replica count request :)
+      let $_ :=
+        if ($num-forced-replicas < 1) then
+          fn:error(
+            xs:QName("INVALID_NR_REPLICAS"),
+            fn:concat("Increase nr-replicas - minimum is 1, or disable forest replication.  Replicas specified ", $nr-replicas ) )
+        else if ($num-forced-replicas > $max-allowed-replicas) then
+          fn:error(
+            xs:QName("EXCESS_NR_REPLICAS"),
+            fn:concat("Adding ", $num-forced-replicas, " replicas to ", $forest-name, " requires at least a ", (fn:count($hosts) + 1), " node cluster.") )
+        else ()
+
+      (: Adjust the replicas for internal forests so they don't get all jammed onto a single server :)
+      let $adjuster as xs:int :=
+        if ($is-internal ) then
+          let $return := map:get( $internal-forests, "internal-forest-adjust" )
+          return
+          (
+            map:put( $internal-forests, "internal-forest-adjust", $return + $num-forced-replicas ),
+            $return
+          )
+        else 0
+
+      (: Loop over the forced number of replicas :)
+      for $replicanr in (1 to $num-forced-replicas)
+
+      (: get the replica name - get from the config if specified, or build it :)
+      let $base-replica-name as xs:string := ($replica/as:forest-name[fn:string-length(fn:string(.)) > 0], fn:concat($forest-name, '-replica'))[1]
+
+      (: Determine which host to apply the replica to.  This is the actual host NAME based on the count of the hosts that :)
+      (: are available to replicate this forest, which does not include the same host that is hosting the primary. :)
+      let $replica-host-index := ($hostnr + (($final-forestnr - 1) * $num-forced-replicas + 1) + $replicanr + $pos + $adjuster - 4) mod count($rep-hosts) + 1
+      let $replica-host-name := ($replica/as:host-name[fn:string-length(fn:string(.)) > 0], xdmp:host-name($rep-hosts[$replica-host-index]))[1]
+
+      (: The *index* of the host must match the index of the host across ALL hosts, not just replica hosts. :)
+      let $replica-real-index := if( $replica-host-index >= $hostnr ) then $replica-host-index + 1 else $replica-host-index
+
+      (: Generate the new replica name based on name, forest counter, primary host, and replica host :)
+      let $replica-name := setup:gen-forest-name( $base-replica-name, $hostnr, $forestnr, $replica-real-index )
+
+      let $_ :=
+        if( map:contains( $delete-map, $replica-name ) ) then
+          (: If it exists already, remove this replica from the list of those to delete :)
+          map:delete( $delete-map, $replica-name )
+        else
+          (: This is a new replica - will need to wait on replication before attempting delete :)
+          map:put( $replicating-map, $replica-name, fn:true() )
+
+      return element { fn:node-name($replica) } {
+        $replica/@*,
+        <as:forest-name>{$replica-name}</as:forest-name>,
+        <as:host-name>{$replica-host-name}</as:host-name>,
+        $replica/node() except ($replica/as:forest-name, $replica/as:host-name)
+      }
+  else
+    (: No replicas to process :)
+    ()
 };
 
 declare function setup:validate-forests-from-count(
@@ -1716,17 +1745,21 @@ declare function setup:get-database-forest-configs(
 };
 
 declare function setup:create-forest(
+  $existing-map as map:map,
   $forest-name as xs:string,
   $data-directory as xs:string?,
   $host-id as xs:unsignedLong?,
   $replicas as element(as:assignment)*) as item()*
 {
-  let $exists := xdmp:forests()[$forest-name = xdmp:forest-name(.)]
+  let $exists := map:contains( $existing-map, $forest-name )
   let $host := ($host-id, $default-host)[1]
   let $admin-config := admin:get-configuration()
   let $admin-config :=
     if ($exists) then
+    (
+      map:delete( $existing-map, $forest-name ),
       $admin-config
+    )
     else
       admin:forest-create($admin-config, $forest-name, $host, $data-directory)
   let $forest-id := admin:forest-get-id($admin-config, $forest-name)
@@ -1735,14 +1768,17 @@ declare function setup:create-forest(
     for $replica in $replicas
     let $replica-name := $replica/as:forest-name
     let $replica-dir := $replica/as:data-directory[fn:string-length(fn:string(.)) > 0]
-    let $rep-exists := admin:forest-exists($admin-config, $replica-name)
+    let $rep-exists := map:contains( $existing-map, $replica-name )
     let $replica-host-name := $replica/as:host-name[fn:string-length(fn:string(.)) > 0]
     let $replica-host-id :=
       if ($replica-host-name) then xdmp:host($replica-host-name) else ()
     let $replica-host := ($replica-host-id, $default-host)[1]
     let $cfg :=
       if ($rep-exists) then
+      (
+        map:delete( $existing-map, $replica-name ),
         $admin-config
+      )
       else
         admin:forest-create(
           $admin-config,
@@ -2089,6 +2125,9 @@ declare function setup:configure-indexes($import-config as element(configuration
   let $admin-config := admin:get-configuration()
 
   let $admin-config := setup:remove-existing-range-path-indexes($admin-config, $database)
+  let $admin-config := setup:remove-existing-geospatial-path-indexes($admin-config, $database)
+  let $admin-config := setup:remove-existing-geospatial-region-path-indexes($admin-config, $database)
+  let $admin-config := setup:remove-existing-fields($admin-config, $database)
   let $admin-config := setup:remove-existing-path-namespaces($admin-config, $database)
   let $admin-config := setup:add-range-element-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-range-element-attribute-indexes($admin-config, $database, $db-config)
@@ -2098,6 +2137,8 @@ declare function setup:configure-indexes($import-config as element(configuration
   let $admin-config := setup:add-geospatial-element-attribute-pair-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-geospatial-element-pair-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-geospatial-element-child-indexes($admin-config, $database, $db-config)
+  let $admin-config := setup:add-geospatial-path-indexes($admin-config, $database, $db-config)
+  let $admin-config := setup:add-geospatial-region-path-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-fields($admin-config, $database, $db-config)
   let $admin-config := setup:apply-field-settings($admin-config, $database, $db-config)
   let $admin-config := setup:add-field-includes($admin-config, $database, $db-config)
@@ -2135,6 +2176,8 @@ declare function setup:validate-databases-indexes($import-config as element(conf
     setup:validate-range-element-attribute-indexes($admin-config, $database, $db-config),
     setup:validate-path-namespaces($admin-config, $database, $db-config),
     setup:validate-range-path-indexes($admin-config, $database, $db-config),
+    setup:validate-geospatial-path-indexes($admin-config, $database, $db-config),
+    setup:validate-geospatial-region-path-indexes($admin-config, $database, $db-config),
     setup:validate-geospatial-element-indexes($admin-config, $database, $db-config),
     setup:validate-geospatial-element-attribute-pair-indexes($admin-config, $database, $db-config),
     setup:validate-geospatial-element-pair-indexes($admin-config, $database, $db-config),
@@ -2164,7 +2207,7 @@ declare function setup:add-fields(
   $db-config as element(db:database)) as element(configuration)
 {
   admin:database-add-field(
-    setup:remove-existing-fields($admin-config, $database),
+    $admin-config,
     $database,
     for $field in $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")]
     return
@@ -2183,6 +2226,13 @@ declare function setup:add-fields(
           fn:error(
             xs:QName("VERSION_NOT_SUPPORTED"),
             fn:concat("MarkLogic ", xdmp:version(), " does not support path-based fields. Use 7.0-1 or higher."))
+      else if (fn:exists($field/db:metadata)) then
+        if (setup:at-least-version("9.0-1")) then
+            xdmp:value("admin:database-metadata-field($field/db:field-name)")
+        else
+          fn:error(
+            xs:QName("VERSION_NOT_SUPPORTED"),
+            fn:concat("MarkLogic ", xdmp:version(), " does not support metadata fields. Use 9.0-1 or higher."))
       else
         admin:database-field($field/db:field-name, $field/db:include-root)
   )
@@ -2855,6 +2905,51 @@ declare function setup:validate-range-field-indexes($admin-config, $database, $d
       setup:validation-fail(fn:concat("Database mismatched range field index: ", $expected/db:field-name))
 };
 
+declare function setup:add-geospatial-region-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database)) as element(configuration)
+{
+  admin:database-add-geospatial-region-path-index(
+    $admin-config,
+    $database,
+    for $index in $db-config/db:geospatial-region-path-indexes/db:geospatial-region-path-index
+    return
+      if (setup:at-least-version("9.0-0")) then
+        admin:database-geospatial-region-path-index(
+          $index/db:path-expression,
+          $index/db:coordinate-system,
+          $index/db:geohash-precision,
+          ($index/db:invalid-values, $default-invalid-values)[1]
+        )
+      else
+        ()
+  )
+};
+
+declare function setup:add-geospatial-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database)) as element(configuration)
+{
+  admin:database-add-geospatial-path-index(
+    $admin-config,
+    $database,
+    for $index in $db-config/db:geospatial-path-indexes/db:geospatial-path-index
+    return
+      if (setup:at-least-version("8.0-0")) then
+        admin:database-geospatial-path-index(
+          $index/db:path-expression,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          $index/db:point-format,
+          ($index/db:invalid-values, $default-invalid-values)[1]
+        )
+      else
+        ()
+  )
+};
+
 declare function setup:add-geospatial-element-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
@@ -2885,6 +2980,33 @@ declare function setup:add-geospatial-element-indexes(
   )
 };
 
+declare function setup:validate-geospatial-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database))
+{
+  let $existing := admin:database-get-geospatial-path-indexes($admin-config, $database)
+  for $expected in $db-config/db:geospatial-path-indexes/db:geospatial-path-index
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
+    else
+      setup:validation-fail(fn:concat("Missing geospatial path index: ", $expected/db:localname/fn:string(.)))
+};
+
+declare function setup:validate-geospatial-region-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database))
+{
+  let $existing := admin:database-get-geospatial-region-path-indexes($admin-config, $database)
+  for $expected in $db-config/db:geospatial-region-path-indexes/db:geospatial-region-path-index
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
+    else
+      setup:validation-fail(fn:concat("Missing geospatial region path index: ", $expected/db:localname/fn:string(.)))
+};
+
+
 declare function setup:validate-geospatial-element-indexes(
   $admin-config as element(configuration),
   $database as xs:unsignedLong,
@@ -2896,6 +3018,22 @@ declare function setup:validate-geospatial-element-indexes(
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
       setup:validation-fail(fn:concat("Missing geospatial element index: ", $expected/db:localname/fn:string(.)))
+};
+
+declare function setup:remove-existing-geospatial-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  admin:database-delete-geospatial-path-index($admin-config, $database,
+    admin:database-get-geospatial-path-indexes($admin-config, $database))
+};
+
+declare function setup:remove-existing-geospatial-region-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  admin:database-delete-geospatial-region-path-index($admin-config, $database,
+    admin:database-get-geospatial-region-path-indexes($admin-config, $database))
 };
 
 declare function setup:remove-existing-geospatial-element-attribute-pair-indexes(
@@ -4601,18 +4739,15 @@ declare function setup:get-scheduled-task(
       $admin-config,
       $group-id)
   let $modules-db :=
-    if (admin:database-exists($admin-config, $task/gr:task-modules/@name)) then
-      admin:database-get-id($admin-config, $task/gr:task-modules/@name)
-    else
+    if ($task/gr:task-modules/@name eq "filesystem") then
       0
+    else
+      admin:database-get-id($admin-config, $task/gr:task-modules/@name)
   return
     $tasks[gr:task-path = $task/gr:task-path and
            gr:task-root = $task/gr:task-root and
            gr:task-type = $task/gr:task-type and
-           (
-             fn:not(admin:database-exists($admin-config, $task/gr:task-database/@name))
-             or gr:task-database = admin:database-get-id($admin-config, $task/gr:task-database/@name)
-           ) and
+           gr:task-database = admin:database-get-id($admin-config, $task/gr:task-database/@name) and
            gr:task-modules = $modules-db and
            gr:task-user = xdmp:user($task/gr:task-user/@name)]
           [if ($task/gr:task-period) then gr:task-period = $task/gr:task-period else fn:true()]
@@ -6186,11 +6321,11 @@ declare function setup:validation-fail($message)
   fn:error(xs:QName("VALIDATION-FAIL"), $message)
 };
 
-declare function setup:validate-install($import-config as element(configuration), $properties as map:map)
+declare function setup:validate-install($import-config as element(configuration))
 {
   try
   {
-    let $import-config := setup:rewrite-config($import-config, $properties)
+    let $import-config := setup:rewrite-config($import-config)
     return (
       setup:validate-external-security($import-config),
       setup:validate-privileges($import-config),
@@ -6359,6 +6494,21 @@ declare function setup:list-settings($type as xs:string) as item()*
 declare function setup:get-server($server-name as xs:string, $group-id as xs:unsignedLong) as xs:unsignedLong?
 {
   xdmp:group-servers($group-id)[xdmp:server-name(.) = $server-name]
+};
+
+declare function setup:return-message( $message as xs:string ) as empty-sequence()
+{
+  setup:return-message( $message, () )
+};
+declare function setup:return-message( $message as xs:string, $level as xs:string? ) as empty-sequence()
+{
+  let $prefix :=
+    if( fn:exists( $level ) ) then
+      fn:concat( fn:upper-case( $level ), ": " )
+    else ()
+
+  return
+    map:put( $messages, "messages", ( map:get( $messages, "messages" ), fn:concat( $prefix, $message ) ) )
 };
 
 (:
