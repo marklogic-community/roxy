@@ -198,6 +198,16 @@
       <fields>
         <field>
           <field-name></field-name>
+          <metadata/>
+          <field-value-searches>false</field-value-searches>
+          <field-value-positions>false</field-value-positions>
+          <word-lexicons/>
+          <included-elements/>
+          <excluded-elements/>
+          <tokenizer-overrides/>
+        </field>
+        <field>
+          <field-name></field-name>
           <field-path>
             <path>some/xpath</path>
             <weight>1.0</weight>
