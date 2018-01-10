@@ -1305,10 +1305,10 @@ In order to proceed please type: #{expected_response}
   #
   def install
     bootstrap
-    deploy_modules
     if File.exist?(@properties["ml.schemas.dir"])
       deploy_schemas
     end
+    deploy_modules
     if @properties["ml.triggers-db"]
       deploy_triggers
     end
