@@ -293,8 +293,12 @@ class ServerConfig < MLClient
       # Update properties file to set server-version to value specified on command-line
       properties_file.gsub!(/server-version=6/, "server-version=#{server_version}")
 
-      if ["rest", "bare"].include? app_type
-        properties_file.gsub!(/application-conf-file=src\/app\/config\/config.xqy/, 'application-conf-file=src/config/config.xqy')
+      if ["mvc"].include? app_type
+        properties_file.gsub!(/application-conf-file=[^\n]*/, 'application-conf-file=src/app/config/config.xqy')
+      elsif ["rest"].include? app_type
+        properties_file.gsub!(/application-conf-file=[^\n]*/, 'application-conf-file=src/config/config.xqy')
+      elsif ["bare"].include? app_type
+        properties_file.gsub!(/application-conf-file=[^\n]*/, 'application-conf-file=')
       end
 
       # save the replacements
