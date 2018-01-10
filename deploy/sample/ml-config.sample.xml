@@ -197,7 +197,11 @@
 <!--
       <fields>
         <field>
-          <field-name></field-name>
+          <field-name>metadatafield</field-name>
+          <metadata/>
+        </field>
+        <field>
+          <field-name>pathfield</field-name>
           <field-path>
             <path>some/xpath</path>
             <weight>1.0</weight>
@@ -373,6 +377,38 @@
         </geospatial-element-child-index>
 -->
       </geospatial-element-child-indexes>
+      <geospatial-path-indexes>
+<!--
+        Sample for:
+          <geo xmlns="http://marklogic.com/ns/sample">
+            37.237162,-115.8099747
+          </geo>
+
+        <geospatial-path-index>
+          <path-expression>//sample:geo</path-expression>
+          <coordinate-system>wgs84</coordinate-system>
+          <point-format>point</point-format>
+          <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
+        </geospatial-path-index>
+-->
+      </geospatial-path-indexes>
+      <geospatial-region-path-indexes>
+<!--
+        Sample for:
+          <geo xmlns="http://marklogic.com/ns/sample">
+            -122.2637558,37.5206187 -122.2428131,37.5020318
+          </geo>
+
+        <geospatial-region-path-index>
+          <path-expression>//geo</path-expression>
+          <coordinate-system>wgs84</coordinate-system>
+          <geohash-precision>2</geohash-precision>
+          <invalid-values>reject</invalid-values>
+          <units>miles</units>
+        </geospatial-region-path-index>
+-->
+      </geospatial-region-path-indexes>
       <element-word-lexicons>
 <!--
         <element-word-lexicon>

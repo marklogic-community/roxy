@@ -2130,6 +2130,9 @@ declare function setup:configure-indexes($import-config as element(configuration
   let $admin-config := admin:get-configuration()
 
   let $admin-config := setup:remove-existing-range-path-indexes($admin-config, $database)
+  let $admin-config := setup:remove-existing-geospatial-path-indexes($admin-config, $database)
+  let $admin-config := setup:remove-existing-geospatial-region-path-indexes($admin-config, $database)
+  let $admin-config := setup:remove-existing-fields($admin-config, $database)
   let $admin-config := setup:remove-existing-path-namespaces($admin-config, $database)
   let $admin-config := setup:add-range-element-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-range-element-attribute-indexes($admin-config, $database, $db-config)
@@ -2139,6 +2142,8 @@ declare function setup:configure-indexes($import-config as element(configuration
   let $admin-config := setup:add-geospatial-element-attribute-pair-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-geospatial-element-pair-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-geospatial-element-child-indexes($admin-config, $database, $db-config)
+  let $admin-config := setup:add-geospatial-path-indexes($admin-config, $database, $db-config)
+  let $admin-config := setup:add-geospatial-region-path-indexes($admin-config, $database, $db-config)
   let $admin-config := setup:add-fields($admin-config, $database, $db-config)
   let $admin-config := setup:apply-field-settings($admin-config, $database, $db-config)
   let $admin-config := setup:add-field-includes($admin-config, $database, $db-config)
@@ -2176,6 +2181,8 @@ declare function setup:validate-databases-indexes($import-config as element(conf
     setup:validate-range-element-attribute-indexes($admin-config, $database, $db-config),
     setup:validate-path-namespaces($admin-config, $database, $db-config),
     setup:validate-range-path-indexes($admin-config, $database, $db-config),
+    setup:validate-geospatial-path-indexes($admin-config, $database, $db-config),
+    setup:validate-geospatial-region-path-indexes($admin-config, $database, $db-config),
     setup:validate-geospatial-element-indexes($admin-config, $database, $db-config),
     setup:validate-geospatial-element-attribute-pair-indexes($admin-config, $database, $db-config),
     setup:validate-geospatial-element-pair-indexes($admin-config, $database, $db-config),
@@ -2205,7 +2212,7 @@ declare function setup:add-fields(
   $db-config as element(db:database)) as element(configuration)
 {
   admin:database-add-field(
-    setup:remove-existing-fields($admin-config, $database),
+    $admin-config,
     $database,
     for $field in $db-config/db:fields/db:field[db:field-name and fn:not(db:field-name = "")]
     return
@@ -2224,6 +2231,13 @@ declare function setup:add-fields(
           fn:error(
             xs:QName("VERSION_NOT_SUPPORTED"),
             fn:concat("MarkLogic ", xdmp:version(), " does not support path-based fields. Use 7.0-1 or higher."))
+      else if (fn:exists($field/db:metadata)) then
+        if (setup:at-least-version("9.0-1")) then
+            xdmp:value("admin:database-metadata-field($field/db:field-name)")
+        else
+          fn:error(
+            xs:QName("VERSION_NOT_SUPPORTED"),
+            fn:concat("MarkLogic ", xdmp:version(), " does not support metadata fields. Use 9.0-1 or higher."))
       else
         admin:database-field($field/db:field-name, $field/db:include-root)
   )
@@ -2411,9 +2425,13 @@ declare function setup:add-range-element-indexes(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-range-element-index(setup:remove-existing-range-element-indexes($admin-config, $database),
+  admin:database-add-range-element-index(
+    setup:remove-existing-range-element-indexes($admin-config, $database),
     $database,
-    setup:validated-range-element-indexes($db-config/db:range-element-indexes/db:range-element-index))
+    setup:validated-range-element-indexes(
+      $db-config/db:range-element-indexes/db:range-element-index
+    )
+  )
 };
 
 declare function setup:validated-range-element-indexes(
@@ -2878,14 +2896,6 @@ declare function setup:add-range-field-indexes-helper(
     $admin-config
 };
 
-declare function setup:remove-existing-geospatial-element-indexes(
-  $admin-config as element(configuration),
-  $database as xs:unsignedLong) as element(configuration)
-{
-  admin:database-delete-geospatial-element-index($admin-config, $database,
-    admin:database-get-geospatial-element-indexes($admin-config, $database))
-};
-
 declare function setup:validate-range-field-indexes($admin-config, $database, $db-config)
 {
   let $existing := admin:database-get-range-field-indexes($admin-config, $database)
@@ -2894,6 +2904,14 @@ declare function setup:validate-range-field-indexes($admin-config, $database, $d
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
       setup:validation-fail(fn:concat("Database mismatched range field index: ", $expected/db:field-name))
+};
+
+declare function setup:remove-existing-geospatial-element-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  admin:database-delete-geospatial-element-index($admin-config, $database,
+    admin:database-get-geospatial-element-indexes($admin-config, $database))
 };
 
 declare function setup:add-geospatial-element-indexes(
@@ -3106,6 +3124,94 @@ declare function setup:validate-geospatial-element-child-indexes(
     if ($existing[fn:deep-equal(., $expected)]) then ()
     else
       setup:validation-fail(fn:concat("Missing geospatial element child index: ", $expected/db:localname/fn:string(.)))
+};
+
+declare function setup:remove-existing-geospatial-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  admin:database-delete-geospatial-path-index($admin-config, $database,
+    admin:database-get-geospatial-path-indexes($admin-config, $database))
+};
+
+declare function setup:add-geospatial-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database)) as element(configuration)
+{
+  admin:database-add-geospatial-path-index(
+    $admin-config,
+    $database,
+    for $index in $db-config/db:geospatial-path-indexes/db:geospatial-path-index
+    return
+      if (setup:at-least-version("8.0-0")) then
+        admin:database-geospatial-path-index(
+          $index/db:path-expression,
+          $index/db:coordinate-system,
+          $index/db:range-value-positions,
+          ($index/db:point-format, "point")[1],
+          ($index/db:invalid-values, $default-invalid-values)[1]
+        )
+      else
+        ()
+  )
+};
+
+declare function setup:validate-geospatial-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database))
+{
+  let $existing := admin:database-get-geospatial-path-indexes($admin-config, $database)
+  for $expected in $db-config/db:geospatial-path-indexes/db:geospatial-path-index
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
+    else
+      setup:validation-fail(fn:concat("Missing geospatial path index: ", $expected/db:path-expression/fn:string(.)))
+};
+
+declare function setup:remove-existing-geospatial-region-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong) as element(configuration)
+{
+  admin:database-delete-geospatial-region-path-index($admin-config, $database,
+    admin:database-get-geospatial-region-path-indexes($admin-config, $database))
+};
+
+declare function setup:add-geospatial-region-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database)) as element(configuration)
+{
+  admin:database-add-geospatial-region-path-index(
+    $admin-config,
+    $database,
+    for $index in $db-config/db:geospatial-region-path-indexes/db:geospatial-region-path-index
+    return
+      if (setup:at-least-version("9.0-0")) then
+        admin:database-geospatial-region-path-index(
+          $index/db:path-expression,
+          $index/db:coordinate-system,
+          $index/db:geohash-precision,
+          ($index/db:invalid-values, $default-invalid-values)[1],
+          ($index/db:units, "miles")[1]
+        )
+      else
+        ()
+  )
+};
+
+declare function setup:validate-geospatial-region-path-indexes(
+  $admin-config as element(configuration),
+  $database as xs:unsignedLong,
+  $db-config as element(db:database))
+{
+  let $existing := admin:database-get-geospatial-region-path-indexes($admin-config, $database)
+  for $expected in $db-config/db:geospatial-region-path-indexes/db:geospatial-region-path-index
+  return
+    if ($existing[fn:deep-equal(., $expected)]) then ()
+    else
+      setup:validation-fail(fn:concat("Missing geospatial region path index: ", $expected/db:path-expression/fn:string(.)))
 };
 
 declare function setup:remove-existing-word-lexicons(
