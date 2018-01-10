@@ -2652,9 +2652,9 @@ private
     # If app_name is specified, wrap the eval in an xdmp:eval to create an eval context
     # that matches that of the selected app-server
     if properties[:app_name] != nil
+      eval_type = "javascript-" if properties[:javascript] != nil
       params[:xquery] = %Q{
         xquery version "1.0-ml";
-
         (: derived from qconsole-amped.xqy :)
         declare function local:eval-options(
           $server-id as xs:unsignedLong
@@ -2673,29 +2673,22 @@ private
             <options xmlns="xdmp:eval">{
               if ($database-id eq xdmp:database()) then ()
               else element database { $database-id },
-
               if ($modules-id eq xdmp:modules-database()) then ()
               else element modules { $modules-id },
-
               if ($collation eq default-collation()) then ()
               else element default-collation { $collation },
-
               if (empty($default-coordinate-system)) then ()
               else element default-coordinate-system { $default-coordinate-system },
-
               if ($xquery-version eq xdmp:xquery-version()) then ()
               else element default-xquery-version { $xquery-version },
-
               (: we should always have a root path, but better safe than sorry :)
               if (empty($modules-root) or $modules-root eq xdmp:modules-root()) then ()
               else element root { $modules-root },
-
               element isolation { "different-transaction" }
             }</options>
         };
-
         let $query := <query><![CDATA[#{query}]]></query>
-        return xdmp:eval(
+        return xdmp:#{eval_type}eval(
           string($query),
           (),
           local:eval-options(xdmp:server("#{properties[:app_name]}"))
@@ -2703,7 +2696,11 @@ private
       }
     else
       # No app_name, just run the straight query
-      params[:xquery] = query
+      if properties[:javascript] != nil
+        params[:javascript] = query
+      else
+        params[:xquery] = query
+      end
 
       # Pass through selected database if specified, otherwise run against App-Services
       if properties[:db_name] != nil
