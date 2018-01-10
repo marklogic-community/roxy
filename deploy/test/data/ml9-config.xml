@@ -814,7 +814,7 @@
         <field>
           <field-name>test3</field-name>
           <field-path>
-            <path>some/xpath</path>
+            <path>sample:some/sample2:xpath</path>
             <weight>1</weight>
           </field-path>
           <stemmed-searches>basic</stemmed-searches>
@@ -825,6 +825,15 @@
           <included-elements/>
           <excluded-elements/>
           <tokenizer-overrides/>
+        </field>
+        <!-- note: the lexicons and elements are ignored in metadata fields, but needed for
+                    deep-equal validation -->
+        <field>
+          <field-name>test4</field-name>
+          <metadata/>
+          <word-lexicons/>
+          <included-elements/>
+          <excluded-elements/>
         </field>
       </fields>
       <range-element-indexes>
@@ -997,6 +1006,24 @@
           <invalid-values>reject</invalid-values>
         </geospatial-element-child-index>
       </geospatial-element-child-indexes>
+      <geospatial-path-indexes>
+        <geospatial-path-index>
+          <path-expression>//sample:some/sample2:geo</path-expression>
+          <coordinate-system>wgs84</coordinate-system>
+          <point-format>point</point-format>
+          <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
+        </geospatial-path-index>
+      </geospatial-path-indexes>
+      <geospatial-region-path-indexes>
+        <geospatial-region-path-index>
+          <path-expression>//sample:some/sample2:geo</path-expression>
+          <coordinate-system>wgs84</coordinate-system>
+          <units>miles</units>
+          <geohash-precision>2</geohash-precision>
+          <invalid-values>reject</invalid-values>
+        </geospatial-region-path-index>
+      </geospatial-region-path-indexes>
       <element-word-lexicons>
         <element-word-lexicon>
           <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
