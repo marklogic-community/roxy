@@ -1639,6 +1639,9 @@ In order to proceed please type: #{expected_response}
 
       args = ARGV.join(" ")
 
+      # substitute properties in command-line arguments as well
+      replace_properties(args, "command-line arguments")
+
       runme = %Q{java -cp "#{classpath}" #{vmargs} com.marklogic.contentpump.ContentPump #{args} #{connection_string}}
     else
       runme = %Q{java -cp "#{classpath}" #{vmargs} com.marklogic.contentpump.ContentPump}
