@@ -142,16 +142,16 @@
       <schemas>
         <schema>
           <namespace-uri>http://www.ns.com/ns0</namespace-uri>
-          <schema-location>/other/test.xsd</schema-location>
+          <schema-location>/test.xsd</schema-location>
         </schema>
       </schemas>
       <namespaces>
         <namespace>
-          <prefix>ns3</prefix>
+          <prefix>ns1</prefix>
           <namespace-uri>http://www.ns.com/ns1</namespace-uri>
         </namespace>
         <namespace>
-          <prefix>ns4</prefix>
+          <prefix>ns2</prefix>
           <namespace-uri>http://www.ns.com/ns2</namespace-uri>
         </namespace>
         <using-namespace>
@@ -161,11 +161,11 @@
       <module-locations>
         <module-location>
           <namespace-uri>http://www.ns.com/ns4</namespace-uri>
-          <location>/other/test-lib.xqy</location>
+          <location>/test-lib.xqy</location>
         </module-location>
         <module-location>
           <namespace-uri>http://www.ns.com/ns5</namespace-uri>
-          <location>/other/test-lib2.xqy</location>
+          <location>/test-lib2.xqy</location>
         </module-location>
       </module-locations>
       <request-blackouts>
@@ -501,78 +501,78 @@
       <group-name>roxy-self-test</group-name>
       <!-- Begin - issue-585 -->
       <module-location>
-        <namespace-uri>http://roxy/modules/dummy2</namespace-uri>
-        <location>/roxy/dummy2.xqy</location>
+        <namespace-uri>http://roxy/modules/dummy</namespace-uri>
+        <location>/roxy/dummy.xqy</location>
       </module-location>
       <namespace>
-        <prefix>prefix2</prefix>
-        <namespace-uri>http://roxy/namespaces/prefix2</namespace-uri>
+        <prefix>prefix1</prefix>
+        <namespace-uri>http://roxy/namespaces/prefix1</namespace-uri>
       </namespace>
       <schema>
-        <namespace-uri>http://roxy/schemas/dummy2</namespace-uri>
-        <schema-location>/roxy/dummy2.xsd</schema-location>
+        <namespace-uri>http://roxy/schemas/dummy</namespace-uri>
+        <schema-location>/roxy/dummy.xsd</schema-location>
       </schema>
       <trace-event>
-        <event-id>roxy-dummy-event2</event-id>
+        <event-id>roxy-dummy-event</event-id>
       </trace-event>
       <using-namespace>
-        <namespace-uri>http://roxy/namespaces/prefix3</namespace-uri>
+        <namespace-uri>http://roxy/namespaces/prefix2</namespace-uri>
       </using-namespace>
       <!-- End - issue-585 -->
-      <list-cache-size>2049</list-cache-size>
-      <list-cache-partitions>2</list-cache-partitions>
-      <compressed-tree-cache-size>1025</compressed-tree-cache-size>
-      <compressed-tree-cache-partitions>3</compressed-tree-cache-partitions>
-      <compressed-tree-read-size>33</compressed-tree-read-size>
-      <expanded-tree-cache-size>2049</expanded-tree-cache-size>
-      <expanded-tree-cache-partitions>3</expanded-tree-cache-partitions>
-      <triple-cache-size>2049</triple-cache-size>
-      <triple-cache-partitions>2</triple-cache-partitions>
-      <triple-cache-timeout>301</triple-cache-timeout>
-      <triple-value-cache-size>1025</triple-value-cache-size>
-      <triple-value-cache-partitions>3</triple-value-cache-partitions>
-      <triple-value-cache-timeout>301</triple-value-cache-timeout>
+      <list-cache-size>2048</list-cache-size>
+      <list-cache-partitions>1</list-cache-partitions>
+      <compressed-tree-cache-size>1024</compressed-tree-cache-size>
+      <compressed-tree-cache-partitions>2</compressed-tree-cache-partitions>
+      <compressed-tree-read-size>32</compressed-tree-read-size>
+      <expanded-tree-cache-size>2048</expanded-tree-cache-size>
+      <expanded-tree-cache-partitions>2</expanded-tree-cache-partitions>
+      <triple-cache-size>2048</triple-cache-size>
+      <triple-cache-partitions>1</triple-cache-partitions>
+      <triple-cache-timeout>300</triple-cache-timeout>
+      <triple-value-cache-size>1024</triple-value-cache-size>
+      <triple-value-cache-partitions>2</triple-value-cache-partitions>
+      <triple-value-cache-timeout>300</triple-value-cache-timeout>
 
-      <smtp-relay>localhost2</smtp-relay>
-      <smtp-timeout>61</smtp-timeout>
-      <http-user-agent>MarkLogic Server2</http-user-agent>
-      <http-timeout>61</http-timeout>
-      <xdqp-timeout>11</xdqp-timeout>
-      <host-timeout>31</host-timeout>
-      <host-initial-timeout>241</host-initial-timeout>
-      <retry-timeout>181</retry-timeout>
-      <module-cache-timeout>301</module-cache-timeout>
+      <smtp-relay>localhost</smtp-relay>
+      <smtp-timeout>60</smtp-timeout>
+      <http-user-agent>MarkLogic Server</http-user-agent>
+      <http-timeout>60</http-timeout>
+      <xdqp-timeout>10</xdqp-timeout>
+      <host-timeout>30</host-timeout>
+      <host-initial-timeout>240</host-initial-timeout>
+      <retry-timeout>180</retry-timeout>
+      <module-cache-timeout>300</module-cache-timeout>
 
-      <system-log-level>info</system-log-level>
-      <file-log-level>notice</file-log-level>
-      <rotate-log-files>monthly</rotate-log-files>
-      <keep-log-files>24</keep-log-files>
+      <system-log-level>notice</system-log-level>
+      <file-log-level>info</file-log-level>
+      <rotate-log-files>daily</rotate-log-files>
+      <keep-log-files>7</keep-log-files>
 
-      <failover-enable>false</failover-enable>
-      <xdqp-ssl-enabled>true</xdqp-ssl-enabled>
-      <xdqp-ssl-allow-sslv3>false</xdqp-ssl-allow-sslv3>
+      <failover-enable>true</failover-enable>
+      <xdqp-ssl-enabled>false</xdqp-ssl-enabled>
+      <xdqp-ssl-allow-sslv3>true</xdqp-ssl-allow-sslv3>
       <xdqp-ssl-allow-tls>true</xdqp-ssl-allow-tls>
-      <xdqp-ssl-ciphers>ALL:!LOW:@STRENGTH2</xdqp-ssl-ciphers>
+      <xdqp-ssl-ciphers>ALL:!LOW:@STRENGTH</xdqp-ssl-ciphers>
 
       <background-io-limit>0</background-io-limit>
-      <metering-enabled>false</metering-enabled>
-      <performance-metering-enabled>false</performance-metering-enabled>
-      <performance-metering-period>120</performance-metering-period>
-      <performance-metering-retain-raw>8</performance-metering-retain-raw>
-      <performance-metering-retain-hourly>31</performance-metering-retain-hourly>
-      <performance-metering-retain-daily>91</performance-metering-retain-daily>
+      <metering-enabled>true</metering-enabled>
+      <performance-metering-enabled>true</performance-metering-enabled>
+      <performance-metering-period>60</performance-metering-period>
+      <performance-metering-retain-raw>7</performance-metering-retain-raw>
+      <performance-metering-retain-hourly>30</performance-metering-retain-hourly>
+      <performance-metering-retain-daily>90</performance-metering-retain-daily>
 
-      <s3-domain>s3.amazonaws.com2</s3-domain>
+      <s3-domain>s3.amazonaws.com</s3-domain>
       <s3-protocol>http</s3-protocol>
       <s3-server-side-encryption>none</s3-server-side-encryption>
 
       <!-- Diagnostics -->
-      <trace-events-activated>false</trace-events-activated>
+      <trace-events-activated>true</trace-events-activated>
 
       <!-- Auditing -->
-      <audit-enabled>false</audit-enabled>
-      <rotate-audit-files>monthly</rotate-audit-files>
-      <keep-audit-files>24</keep-audit-files>
+      <audit-enabled>true</audit-enabled>
+      <rotate-audit-files>daily</rotate-audit-files>
+      <keep-audit-files>7</keep-audit-files>
       <audit-outcome-restriction>both</audit-outcome-restriction>
     </group>
   </groups>
@@ -615,453 +615,6 @@
       <enabled>true</enabled>
       <security-database>@ml.content-db-security</security-database>
       <language>en</language>
-      <fragment-roots>
-        <fragment-root>
-          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-          <localname>frag-root</localname>
-        </fragment-root>
-        <fragment-root>
-          <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-          <localname>frag-root2</localname>
-        </fragment-root>
-      </fragment-roots>
-      <fragment-parents>
-        <fragment-parent>
-          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-          <localname>frag-parents</localname>
-        </fragment-parent>
-        <fragment-parent>
-          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-          <localname>frag-parents2</localname>
-        </fragment-parent>
-      </fragment-parents>
-      <element-word-query-throughs>
-        <element-word-query-through>
-          <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
-          <localname>p</localname>
-        </element-word-query-through>
-        <element-word-query-through>
-          <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
-          <localname>p</localname>
-        </element-word-query-through>
-      </element-word-query-throughs>
-      <phrase-throughs>
-        <phrase-through>
-          <namespace-uri>http://www.w3.org/1999/xhtml</namespace-uri>
-          <localname>a abbr acronym b big br center cite code dfn em font i kbd q samp small span strong sub sup tt var</localname>
-        </phrase-through>
-        <phrase-through>
-          <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
-          <localname>br cr fldChar fldData fldSimple hlink noBreakHyphen permEnd permStart pgNum proofErr r softHyphen sym t tab</localname>
-        </phrase-through>
-        <phrase-through>
-          <namespace-uri>http://schemas.microsoft.com/office/word/2003/auxHint</namespace-uri>
-          <localname>t</localname>
-        </phrase-through>
-        <phrase-through>
-          <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
-          <localname>r t endnoteReference footnoteReference customXml hyperlink sdt sdtContent commentRangeEnd commentRangeStart bookmarkStart bookmarkEnd fldSimple instrText smartTag ins proofErr</localname>
-        </phrase-through>
-        <phrase-through>
-          <namespace-uri>http://marklogic.com/entity</namespace-uri>
-          <localname>person organization location gpe facility religion nationality credit-card-number email coordinate money percent id phone-number url utm date time</localname>
-        </phrase-through>
-      </phrase-throughs>
-      <phrase-arounds>
-        <phrase-around>
-          <namespace-uri>http://schemas.microsoft.com/office/word/2003/wordml</namespace-uri>
-          <localname>delInstrText delText endnote footnote instrText pict rPr</localname>
-        </phrase-around>
-        <phrase-around>
-          <namespace-uri>http://schemas.openxmlformats.org/wordprocessingml/2006/main</namespace-uri>
-          <localname>pPr rPr customXmlPr sdtPr commentReference del</localname>
-        </phrase-around>
-      </phrase-arounds>
-      <fields>
-        <field>
-          <field-name/>
-          <include-root>false</include-root>
-          <stemmed-searches>decompounding</stemmed-searches>
-          <word-searches>true</word-searches>
-          <field-value-searches>true</field-value-searches>
-          <field-value-positions>true</field-value-positions>
-          <fast-phrase-searches>true</fast-phrase-searches>
-          <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
-          <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
-          <trailing-wildcard-searches>true</trailing-wildcard-searches>
-          <trailing-wildcard-word-positions>true</trailing-wildcard-word-positions>
-          <three-character-searches>true</three-character-searches>
-          <three-character-word-positions>true</three-character-word-positions>
-          <two-character-searches>true</two-character-searches>
-          <one-character-searches>true</one-character-searches>
-          <included-elements>
-            <included-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-              <localname>word-query-include</localname>
-              <weight>1.0</weight>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </included-element>
-            <included-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>word-query-include2 word-query-include3</localname>
-              <weight>1.0</weight>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </included-element>
-          </included-elements>
-          <excluded-elements>
-            <excluded-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-              <localname>word-query-exclude</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </excluded-element>
-            <excluded-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>word-query-exclude2 word-query-exclude3</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </excluded-element>
-          </excluded-elements>
-          <tokenizer-overrides/>
-        </field>
-        <field>
-          <field-name>test</field-name>
-          <include-root>true</include-root>
-          <value-searches>true</value-searches>
-          <value-positions>true</value-positions>
-          <word-lexicons>
-            <word-lexicon>http://marklogic.com/collation/</word-lexicon>
-            <word-lexicon>http://marklogic.com/collation/codepoint</word-lexicon>
-          </word-lexicons>
-          <included-elements>
-            <included-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-              <localname>sample-included-element</localname>
-              <weight>1</weight>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </included-element>
-            <included-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>sample-included-element2 sample-included-element3</localname>
-              <weight>1</weight>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </included-element>
-          </included-elements>
-          <excluded-elements>
-            <excluded-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-              <localname>sample-excluded-element</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </excluded-element>
-            <excluded-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>sample-excluded-element2 sample-excluded-element3</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </excluded-element>
-          </excluded-elements>
-          <tokenizer-overrides>
-            <tokenizer-override>
-              <character>_</character>
-              <tokenizer-class>word</tokenizer-class>
-            </tokenizer-override>
-          </tokenizer-overrides>
-        </field>
-        <field>
-          <field-name>test2</field-name>
-          <include-root>true</include-root>
-          <word-lexicons/>
-          <included-elements>
-            <included-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-              <localname>sample2-included-element</localname>
-              <weight>1</weight>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </included-element>
-            <included-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>sample2-included-element2 sample2-included-element3</localname>
-              <weight>1</weight>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </included-element>
-          </included-elements>
-          <excluded-elements>
-            <excluded-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-              <localname>sample2-excluded-element</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </excluded-element>
-            <excluded-element>
-              <namespace-uri>http://www.marklogic.com/ns/sample2</namespace-uri>
-              <localname>sample2-excluded-element2 sample2-excluded-element3</localname>
-              <attribute-namespace-uri/>
-              <attribute-localname/>
-              <attribute-value/>
-            </excluded-element>
-          </excluded-elements>
-          <tokenizer-overrides>
-            <tokenizer-override>
-              <character>_</character>
-              <tokenizer-class>word</tokenizer-class>
-            </tokenizer-override>
-          </tokenizer-overrides>
-        </field>
-        <field>
-          <field-name>test3</field-name>
-          <field-path>
-            <path>some/xpath</path>
-            <weight>1</weight>
-          </field-path>
-          <stemmed-searches>basic</stemmed-searches>
-          <fast-phrase-searches>true</fast-phrase-searches>
-          <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
-          <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
-          <word-lexicons/>
-          <included-elements/>
-          <excluded-elements/>
-          <tokenizer-overrides>
-            <tokenizer-override>
-              <character>_</character>
-              <tokenizer-class>word</tokenizer-class>
-            </tokenizer-override>
-          </tokenizer-overrides>
-        </field>
-      </fields>
-      <range-element-indexes>
-        <range-element-index>
-          <scalar-type>string</scalar-type>
-          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
-          <localname>name</localname>
-          <collation>http://marklogic.com/collation/codepoint</collation>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </range-element-index>
-        <range-element-index>
-          <scalar-type>string</scalar-type>
-          <namespace-uri>http://marklogic.com/ns/sample2</namespace-uri>
-          <localname>name2</localname>
-          <collation>http://marklogic.com/collation/codepoint</collation>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </range-element-index>
-      </range-element-indexes>
-      <range-element-attribute-indexes>
-        <range-element-attribute-index>
-          <scalar-type>string</scalar-type>
-          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
-          <parent-localname>person</parent-localname>
-          <namespace-uri/>
-          <localname>name</localname>
-          <collation>http://marklogic.com/collation/codepoint</collation>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </range-element-attribute-index>
-        <range-element-attribute-index>
-          <scalar-type>string</scalar-type>
-          <parent-namespace-uri>http://marklogic.com/ns/sample2</parent-namespace-uri>
-          <parent-localname>person2</parent-localname>
-          <namespace-uri/>
-          <localname>name2</localname>
-          <collation>http://marklogic.com/collation/codepoint</collation>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </range-element-attribute-index>
-      </range-element-attribute-indexes>
-      <range-field-indexes>
-        <range-field-index>
-          <scalar-type>date</scalar-type>
-          <field-name>sample</field-name>
-          <collation/>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </range-field-index>
-        <range-field-index>
-          <scalar-type>date</scalar-type>
-          <field-name>sample2</field-name>
-          <collation/>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </range-field-index>
-      </range-field-indexes>
-      <path-namespaces>
-        <path-namespace>
-          <prefix>sample</prefix>
-          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
-        </path-namespace>
-        <path-namespace>
-          <prefix>sample2</prefix>
-          <namespace-uri>http://marklogic.com/ns/sample2</namespace-uri>
-        </path-namespace>
-      </path-namespaces>
-      <range-path-indexes>
-        <range-path-index>
-          <scalar-type>string</scalar-type>
-          <collation>http://marklogic.com/collation/codepoint</collation>
-          <path-expression>/sample:root/sample:child</path-expression>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </range-path-index>
-        <range-path-index>
-          <scalar-type>string</scalar-type>
-          <collation>http://marklogic.com/collation/codepoint</collation>
-          <path-expression>/sample:root/sample:child2</path-expression>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </range-path-index>
-      </range-path-indexes>
-      <geospatial-element-indexes>
-        <geospatial-element-index>
-          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-          <localname>geo-element</localname>
-          <coordinate-system>wgs84</coordinate-system>
-          <point-format>point</point-format>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-element-index>
-        <geospatial-element-index>
-          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-          <localname>geo-element2</localname>
-          <coordinate-system>wgs84</coordinate-system>
-          <point-format>point</point-format>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-element-index>
-      </geospatial-element-indexes>
-      <geospatial-element-attribute-pair-indexes>
-        <geospatial-element-attribute-pair-index>
-          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
-          <parent-localname>geo</parent-localname>
-          <latitude-namespace-uri/>
-          <latitude-localname>lat</latitude-localname>
-          <longitude-namespace-uri/>
-          <longitude-localname>lon</longitude-localname>
-          <coordinate-system>wgs84</coordinate-system>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-element-attribute-pair-index>
-        <geospatial-element-attribute-pair-index>
-          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
-          <parent-localname>geo2</parent-localname>
-          <latitude-namespace-uri/>
-          <latitude-localname>lat2</latitude-localname>
-          <longitude-namespace-uri/>
-          <longitude-localname>lon2</longitude-localname>
-          <coordinate-system>wgs84</coordinate-system>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-element-attribute-pair-index>
-      </geospatial-element-attribute-pair-indexes>
-      <geospatial-element-pair-indexes>
-        <geospatial-element-pair-index>
-          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
-          <parent-localname>geo</parent-localname>
-          <latitude-namespace-uri>http://marklogic.com/ns/sample</latitude-namespace-uri>
-          <latitude-localname>lat</latitude-localname>
-          <longitude-namespace-uri>http://marklogic.com/ns/sample</longitude-namespace-uri>
-          <longitude-localname>lon</longitude-localname>
-          <coordinate-system>wgs84</coordinate-system>
-          <range-value-positions>true</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-element-pair-index>
-        <geospatial-element-pair-index>
-          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
-          <parent-localname>geo2</parent-localname>
-          <latitude-namespace-uri>http://marklogic.com/ns/sample</latitude-namespace-uri>
-          <latitude-localname>lat2</latitude-localname>
-          <longitude-namespace-uri>http://marklogic.com/ns/sample</longitude-namespace-uri>
-          <longitude-localname>lon2</longitude-localname>
-          <coordinate-system>wgs84</coordinate-system>
-          <range-value-positions>true</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-element-pair-index>
-      </geospatial-element-pair-indexes>
-      <geospatial-element-child-indexes>
-        <geospatial-element-child-index>
-          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
-          <parent-localname>geo</parent-localname>
-          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
-          <localname>pos</localname>
-          <coordinate-system>wgs84</coordinate-system>
-          <point-format>point</point-format>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-element-child-index>
-        <geospatial-element-child-index>
-          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
-          <parent-localname>geo2</parent-localname>
-          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
-          <localname>pos2</localname>
-          <coordinate-system>wgs84</coordinate-system>
-          <point-format>point</point-format>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-element-child-index>
-      </geospatial-element-child-indexes>
-      <geospatial-path-indexes>
-        <geospatial-path-index>
-          <path-expression>//sample2:some/sample:geo</path-expression>
-          <coordinate-system>wgs84</coordinate-system>
-          <point-format>point</point-format>
-          <range-value-positions>false</range-value-positions>
-          <invalid-values>reject</invalid-values>
-        </geospatial-path-index>
-      </geospatial-path-indexes>
-      <geospatial-region-path-indexes>
-        <geospatial-region-path-index>
-          <path-expression>//sample2:some/sample:geo</path-expression>
-          <coordinate-system>wgs84</coordinate-system>
-          <units>miles</units>
-          <geohash-precision>3</geohash-precision>
-          <invalid-values>reject</invalid-values>
-        </geospatial-region-path-index>
-      </geospatial-region-path-indexes>
-      <element-word-lexicons>
-        <element-word-lexicon>
-          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-          <localname>sample-element</localname>
-          <collation>http://marklogic.com/collation/</collation>
-        </element-word-lexicon>
-        <element-word-lexicon>
-          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
-          <localname>sample-element2</localname>
-          <collation>http://marklogic.com/collation/</collation>
-        </element-word-lexicon>
-      </element-word-lexicons>
-      <element-attribute-word-lexicons>
-        <element-attribute-word-lexicon>
-          <parent-namespace-uri>http://www.marklogic.com/ns/sample</parent-namespace-uri>
-          <parent-localname>sample-element</parent-localname>
-          <namespace-uri/>
-          <localname>sample-attribute</localname>
-          <collation>http://marklogic.com/collation/</collation>
-        </element-attribute-word-lexicon>
-        <element-attribute-word-lexicon>
-          <parent-namespace-uri>http://www.marklogic.com/ns/sample2</parent-namespace-uri>
-          <parent-localname>sample-element2</parent-localname>
-          <namespace-uri/>
-          <localname>sample-attribute2</localname>
-          <collation>http://marklogic.com/collation/</collation>
-        </element-attribute-word-lexicon>
-      </element-attribute-word-lexicons>
     </database>
     <!--Create Application Modules Database-->
     <database>
@@ -1141,9 +694,6 @@
       <role-name>@ml.app-role</role-name>
       <description>A role for users of the @ml.app-name application</description>
       <compartment>roxy</compartment>
-      <external-names>
-        <external-name>test</external-name>
-      </external-names>
       <role-names>
       </role-names>
       <permissions>
@@ -1227,9 +777,6 @@
       <user-name>@ml.app-name-user</user-name>
       <description>A user for the @ml.app-name application</description>
       <password>password</password>
-      <external-names>
-        <external-name>test</external-name>
-      </external-names>
       <role-names>
         <role-name>@ml.app-role</role-name>
       </role-names>

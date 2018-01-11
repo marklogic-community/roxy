@@ -110,7 +110,7 @@ class MLClient
     end
 
     request_params[:request].use_xcc(xcc)
-    logger.debug(params)
+    #logger.debug(params)
     response = get_http.request request_params
     response.value
     response

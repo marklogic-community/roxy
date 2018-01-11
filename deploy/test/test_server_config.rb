@@ -74,17 +74,42 @@ describe ServerConfig do
       r = @s.execute_query %Q{xdmp:host-name(xdmp:host())}
       r.body = parse_body(r.body)
       @properties['ml.bootstrap-host'] = r.body
-
-      @s.bootstrap.must_equal true
-      @s.validate_install.must_equal true
     end
 
-    it "should bootstrap successfully twice consecutively" do
+    it "should bootstrap successfully" do
+      @logger.info "\n\n*** bootstrap:\n"
       @s.bootstrap.must_equal true
+      @logger.info "\n\n*** validate:\n"
       @s.validate_install.must_equal true
-    end
 
-    it "should bootstrap a changed config file" do
+      @logger.info "\n\n*** bootstrap twice:\n"
+      @s.bootstrap.must_equal true
+      @logger.info "\n\n*** validate twice:\n"
+      @s.validate_install.must_equal true
+
+      org_config = File.expand_path("../data/ml#{@version}-config.xml", __FILE__)
+      unchanged_config = File.expand_path("../data/ml#{@version}-config-unchanged.xml", __FILE__)
+
+      if File.exists?(unchanged_config)
+        @s = ServerConfig.new({
+            :config_file => unchanged_config,
+            :properties => @properties,
+            :logger => @logger
+          })
+
+        @logger.info "\n\n*** bootstrap unchanged:\n"
+        @s.bootstrap.must_equal true
+
+        @s = ServerConfig.new({
+            :config_file => org_config,
+            :properties => @properties,
+            :logger => @logger
+          })
+
+        @logger.info "\n\n*** validate against org config:\n"
+        @s.validate_install.must_equal true
+      end
+
       changed_config = File.expand_path("../data/ml#{@version}-config-changed.xml", __FILE__)
 
       if File.exists?(changed_config)
@@ -94,16 +119,16 @@ describe ServerConfig do
             :logger => @logger
           })
 
+        @logger.info "\n\n*** bootstrap changed:\n"
         @s.bootstrap.must_equal true
+        @logger.info "\n\n*** validate changed:\n"
         @s.validate_install.must_equal true
       end
-    end
 
-    after do
-      @logger.info "Wiping self-test deployment.."
-      @s.wipe
+      @logger.info "\n\n*** wiping self-test deployment:\n"
+      @s.wipe.must_equal true
 
-      sleep(10)
+      sleep(20)
     end
   end
 
