@@ -81,16 +81,13 @@ describe ServerConfig do
       @s.bootstrap.must_equal true
       @logger.info "\n\n*** validate:\n"
       @s.validate_install.must_equal true
-    end
 
-    it "should bootstrap twice consecutively" do
       @logger.info "\n\n*** bootstrap twice:\n"
       @s.bootstrap.must_equal true
       @logger.info "\n\n*** validate twice:\n"
       @s.validate_install.must_equal true
-    end
 
-    it "should skip removal of indexes at bootstrap if not specified" do
+      org_config = File.expand_path("../data/ml#{@version}-config.xml", __FILE__)
       unchanged_config = File.expand_path("../data/ml#{@version}-config-unchanged.xml", __FILE__)
 
       if File.exists?(unchanged_config)
@@ -102,12 +99,17 @@ describe ServerConfig do
 
         @logger.info "\n\n*** bootstrap unchanged:\n"
         @s.bootstrap.must_equal true
-        @logger.info "\n\n*** validate unchanged:\n"
+
+        @s = ServerConfig.new({
+            :config_file => org_config,
+            :properties => @properties,
+            :logger => @logger
+          })
+
+        @logger.info "\n\n*** validate against org config:\n"
         @s.validate_install.must_equal true
       end
-    end
 
-    it "should bootstrap a changed config file" do
       changed_config = File.expand_path("../data/ml#{@version}-config-changed.xml", __FILE__)
 
       if File.exists?(changed_config)
@@ -122,13 +124,11 @@ describe ServerConfig do
         @logger.info "\n\n*** validate changed:\n"
         @s.validate_install.must_equal true
       end
-    end
 
-    after do
-      @logger.info "Wiping self-test deployment.."
-      @s.wipe
+      @logger.info "\n\n*** wiping self-test deployment:\n"
+      @s.wipe.must_equal true
 
-      sleep(10)
+      sleep(20)
     end
   end
 
