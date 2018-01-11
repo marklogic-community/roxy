@@ -1227,7 +1227,7 @@ In order to proceed please type: #{expected_response}
       #{setup}
       try {
         for $part in setup:split-config(
-          setup:rewrite-config(#{get_config(true)}, (), fn:true()),
+          setup:rewrite-config(#{get_config(true)}, map:new(), (), fn:true()),
           "#{@properties["ml.app-name"]}"
         )
         return

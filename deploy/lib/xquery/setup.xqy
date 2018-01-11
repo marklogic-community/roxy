@@ -3210,19 +3210,21 @@ declare function setup:add-geospatial-path-indexes(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-geospatial-path-index(
-    $admin-config,
-    $database,
-    for $index in $db-config/db:geospatial-path-indexes/db:geospatial-path-index
-    return
-      if (setup:at-least-version("8.0-0")) then
-        xdmp:value("
-          admin:database-geospatial-path-index(
-            $index/db:path-expression,
-            $index/db:coordinate-system,
-            $index/db:range-value-positions,
-            ($index/db:point-format, ""point"")[1],
-            ($index/db:invalid-values, $default-invalid-values)[1]
+  if (exists($db-config/db:geospatial-path-indexes/db:geospatial-path-index)) then
+    if (setup:at-least-version("8.0-0")) then
+      xdmp:value("
+        admin:database-add-geospatial-path-index(
+          $admin-config,
+          $database,
+          for $index in $db-config/db:geospatial-path-indexes/db:geospatial-path-index
+          return
+            admin:database-geospatial-path-index(
+              $index/db:path-expression,
+              $index/db:coordinate-system,
+              $index/db:range-value-positions,
+              ($index/db:point-format, ""point"")[1],
+              ($index/db:invalid-values, $default-invalid-values)[1]
+            )
           )
         ")
       else
@@ -3230,7 +3232,8 @@ declare function setup:add-geospatial-path-indexes(
           xs:QName("VERSION_NOT_SUPPORTED"),
           "Roxy does not support geospatial path indexes for this version of MarkLogic. Use 8.0-0 or later."
         )
-  )
+  else
+    $admin-config
 };
 
 declare function setup:validate-geospatial-path-indexes(
@@ -3271,27 +3274,30 @@ declare function setup:add-geospatial-region-path-indexes(
   $database as xs:unsignedLong,
   $db-config as element(db:database)) as element(configuration)
 {
-  admin:database-add-geospatial-region-path-index(
-    $admin-config,
-    $database,
-    for $index in $db-config/db:geospatial-region-path-indexes/db:geospatial-region-path-index
-    return
-      if (setup:at-least-version("9.0-0")) then
-        xdmp:value("
-          admin:database-geospatial-region-path-index(
-            $index/db:path-expression,
-            $index/db:coordinate-system,
-            $index/db:geohash-precision,
-            ($index/db:invalid-values, $default-invalid-values)[1],
-            ($index/db:units, ""miles"")[1]
-          )
-        ")
-      else
-        fn:error(
-          xs:QName("VERSION_NOT_SUPPORTED"),
-          "Roxy does not support geospatial region path indexes for this version of MarkLogic. Use 9.0-0 or later."
+  if (exists($db-config/db:geospatial-region-path-indexes/db:geospatial-region-path-index)) then
+    if (setup:at-least-version("9.0-0")) then
+      xdmp:value("
+        admin:database-add-geospatial-region-path-index(
+          $admin-config,
+          $database,
+          for $index in $db-config/db:geospatial-region-path-indexes/db:geospatial-region-path-index
+          return
+            admin:database-geospatial-region-path-index(
+              $index/db:path-expression,
+              $index/db:coordinate-system,
+              $index/db:geohash-precision,
+              ($index/db:invalid-values, $default-invalid-values)[1],
+              ($index/db:units, ""miles"")[1]
+            )
         )
-  )
+      ")
+    else
+      fn:error(
+        xs:QName("VERSION_NOT_SUPPORTED"),
+        "Roxy does not support geospatial region path indexes for this version of MarkLogic. Use 9.0-0 or later."
+      )
+  else
+    $admin-config
 };
 
 declare function setup:validate-geospatial-region-path-indexes(
