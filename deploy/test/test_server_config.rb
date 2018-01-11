@@ -74,14 +74,37 @@ describe ServerConfig do
       r = @s.execute_query %Q{xdmp:host-name(xdmp:host())}
       r.body = parse_body(r.body)
       @properties['ml.bootstrap-host'] = r.body
+    end
 
+    it "should bootstrap successfully" do
+      @logger.info "\n\n*** bootstrap:\n"
       @s.bootstrap.must_equal true
+      @logger.info "\n\n*** validate:\n"
       @s.validate_install.must_equal true
     end
 
-    it "should bootstrap successfully twice consecutively" do
+    it "should bootstrap twice consecutively" do
+      @logger.info "\n\n*** bootstrap twice:\n"
       @s.bootstrap.must_equal true
+      @logger.info "\n\n*** validate twice:\n"
       @s.validate_install.must_equal true
+    end
+
+    it "should skip removal of indexes at bootstrap if not specified" do
+      unchanged_config = File.expand_path("../data/ml#{@version}-config-unchanged.xml", __FILE__)
+
+      if File.exists?(unchanged_config)
+        @s = ServerConfig.new({
+            :config_file => unchanged_config,
+            :properties => @properties,
+            :logger => @logger
+          })
+
+        @logger.info "\n\n*** bootstrap unchanged:\n"
+        @s.bootstrap.must_equal true
+        @logger.info "\n\n*** validate unchanged:\n"
+        @s.validate_install.must_equal true
+      end
     end
 
     it "should bootstrap a changed config file" do
@@ -94,7 +117,9 @@ describe ServerConfig do
             :logger => @logger
           })
 
+        @logger.info "\n\n*** bootstrap changed:\n"
         @s.bootstrap.must_equal true
+        @logger.info "\n\n*** validate changed:\n"
         @s.validate_install.must_equal true
       end
     end
