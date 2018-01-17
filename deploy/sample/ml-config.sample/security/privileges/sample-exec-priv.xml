@@ -1,0 +1,8 @@
+<!--
+  Sample execute privilege.
+-->
+<privilege xmlns="http://marklogic.com/xdmp/security">
+  <privilege-name>my-action</privilege-name>
+  <action>http://marklogic.com/custom/privilege/my-action</action>
+  <kind>execute</kind>
+</privilege>

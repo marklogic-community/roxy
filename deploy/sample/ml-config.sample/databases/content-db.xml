@@ -1,0 +1,231 @@
+    <!--Application Database Configuration-->
+    <database xmlns="http://marklogic.com/xdmp/database">
+      <database-name>${content-db}</database-name>
+      <forests-per-host>${content-forests-per-host}</forests-per-host>
+      @ml.schemas-mapping
+      @ml.triggers-mapping
+      <forests>
+        <forest-id name="${content-db}"/>
+        @ml.forest-data-dir-xml
+      </forests>
+
+      <!-- See sample/default-docs-config.sample.xml for default settings and indexes of Documents database -->
+
+      <uri-lexicon>true</uri-lexicon>
+      <collection-lexicon>true</collection-lexicon>
+      <directory-creation>manual</directory-creation>
+      <maintain-last-modified>false</maintain-last-modified>
+<!--
+      <fragment-roots>
+        <fragment-root>
+          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
+          <localname>frag-root</localname>
+        </fragment-root>
+      </fragment-roots>
+      <fragment-parents>
+        <fragment-parent>
+          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
+          <localname>frag-parents</localname>
+        </fragment-parent>
+      </fragment-parents>
+-->
+<!--
+      <fields>
+        <field>
+          <field-name></field-name>
+          <field-path>
+            <path>some/xpath</path>
+            <weight>1.0</weight>
+          </field-path>
+          <word-lexicons/>
+          <included-elements/>
+          <excluded-elements/>
+          <tokenizer-overrides/>
+          <stemmed-searches>basic</stemmed-searches>
+          <fast-phrase-searches>true</fast-phrase-searches>
+          <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
+          <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
+        </field>
+        <field>
+          <field-name/>
+          <include-root>true</include-root>
+          <fast-case-sensitive-searches>false</fast-case-sensitive-searches>
+          <fast-diacritic-sensitive-searches>false</fast-diacritic-sensitive-searches>
+          <fast-phrase-searches>false</fast-phrase-searches>
+          <one-character-searches>false</one-character-searches>
+          <stemmed-searches>basic</stemmed-searches>
+          <three-character-searches>false</three-character-searches>
+          <three-character-word-positions>false</three-character-word-positions>
+          <trailing-wildcard-searches>false</trailing-wildcard-searches>
+          <trailing-wildcard-word-positions>false</trailing-wildcard-word-positions>
+          <two-character-searches>false</two-character-searches>
+          <value-positions>false</value-positions>
+          <value-searches>false</value-searches>
+          <word-searches>false</word-searches>
+          <word-lexicons/>
+          <included-elements>
+            <included-element>
+              <namespace-uri>http://ns.com</namespace-uri>
+              <localname>blah</localname>
+              <weight>1.0</weight>
+              <attribute-namespace-uri/>
+              <attribute-localname/>
+              <attribute-value/>
+            </included-element>
+          </included-elements>
+          <excluded-elements/>
+        </field>
+      </fields>
+-->
+      <range-element-indexes>
+        <!--
+        Sample for:
+          <name xmlns="http://marklogic.com/ns/sample">bob<name>
+
+        <range-element-index>
+          <scalar-type>string</scalar-type>
+          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
+          <localname>name</localname>
+          <collation>http://marklogic.com/collation/codepoint</collation>
+          <range-value-positions>false</range-value-positions>
+        </range-element-index>
+-->
+      </range-element-indexes>
+      <range-element-attribute-indexes>
+<!--
+        Sample for:
+          <person name="bob" xmlns="http://marklogic.com/ns/sample"/>
+
+        <range-element-attribute-index>
+          <scalar-type>string</scalar-type>
+          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>person</parent-localname>
+          <namespace-uri/>
+          <localname>name</localname>
+          <collation>http://marklogic.com/collation/codepoint</collation>
+          <range-value-positions>false</range-value-positions>
+        </range-element-attribute-index>
+-->
+      </range-element-attribute-indexes>
+      <range-field-indexes>
+<!--
+        <range-field-index>
+          <scalar-type>date</scalar-type>
+          <field-name>sample</field-name>
+          <collation/>
+          <range-value-positions>false</range-value-positions>
+          <invalid-values>ignore</invalid-values>
+        </range-field-index>
+-->
+      </range-field-indexes>
+
+      <path-namespaces>
+<!--
+        <path-namespace>
+          <prefix>sample</prefix>
+          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
+        </path-namespace>
+-->
+      </path-namespaces>
+
+      <range-path-indexes>
+<!--
+        <range-path-index>
+          <scalar-type>string</scalar-type>
+          <collation>http://marklogic.com/collation/codepoint</collation>
+          <path-expression>/sample:root/sample:child</path-expression>
+          <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
+        </range-path-index>
+-->
+      </range-path-indexes>
+
+      <geospatial-element-indexes>
+<!--
+        <geospatial-element-index>
+          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
+          <localname>geo-element</localname>
+          <coordinate-system>wgs84</coordinate-system>
+          <point-format>point</point-format>
+          <range-value-positions>false</range-value-positions>
+          <invalid-values>reject</invalid-values>
+        </geospatial-element-index>
+-->
+      </geospatial-element-indexes>
+
+      <geospatial-element-attribute-pair-indexes>
+<!--
+        Sample for:
+          <geo lat="37.237162" lon="-115.8099747" xmlns="http://marklogic.com/ns/sample"/>
+
+        <geospatial-element-attribute-pair-index>
+          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>geo</parent-localname>
+          <latitude-namespace-uri/>
+          <latitude-localname>lat</latitude-localname>
+          <longitude-namespace-uri/>
+          <longitude-localname>lon</longitude-localname>
+          <coordinate-system>wgs84</coordinate-system>
+          <range-value-positions>false</range-value-positions>
+        </geospatial-element-attribute-pair-index>
+-->
+      </geospatial-element-attribute-pair-indexes>
+      <geospatial-element-pair-indexes>
+<!--
+        Sample for:
+          <geo xmlns="http://marklogic.com/ns/sample">
+            <lat>37.237162</lat>
+            <lon>-115.8099747</lon>
+          </geo>
+
+        <geospatial-element-pair-index>
+          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>geo</parent-localname>
+          <latitude-namespace-uri>http://marklogic.com/ns/sample</latitude-namespace-uri>
+          <latitude-localname>lat</latitude-localname>
+          <longitude-namespace-uri>http://marklogic.com/ns/sample</longitude-namespace-uri>
+          <longitude-localname>lon</longitude-localname>
+          <coordinate-system>wgs84</coordinate-system>
+          <range-value-positions>true</range-value-positions>
+        </geospatial-element-pair-index>
+-->
+      </geospatial-element-pair-indexes>
+      <geospatial-element-child-indexes>
+<!--
+        Sample for:
+          <geo xmlns="http://marklogic.com/ns/sample">
+            <pos>37.237162,-115.8099747</pos>
+          </geo>
+
+        <geospatial-element-child-index>
+          <parent-namespace-uri>http://marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>geo</parent-localname>
+          <namespace-uri>http://marklogic.com/ns/sample</namespace-uri>
+          <localname>pos</localname>
+          <coordinate-system>wgs84</coordinate-system>
+          <point-format>point</point-format>
+          <range-value-positions>false</range-value-positions>
+        </geospatial-element-child-index>
+-->
+      </geospatial-element-child-indexes>
+      <element-word-lexicons>
+<!--
+        <element-word-lexicon>
+          <namespace-uri>http://www.marklogic.com/ns/sample</namespace-uri>
+          <localname>sample-element</localname>
+          <collation>http://marklogic.com/collation/</collation>
+        </element-word-lexicon>
+-->
+      </element-word-lexicons>
+      <element-attribute-word-lexicons>
+<!--
+        <element-attribute-word-lexicon>
+          <parent-namespace-uri>http://www.marklogic.com/ns/sample</parent-namespace-uri>
+          <parent-localname>sample-element</parent-localname>
+          <namespace-uri/>
+          <localname>sample-attribute</localname>
+          <collation>http://marklogic.com/collation/</collation>
+        </element-attribute-word-lexicon>
+-->
+      </element-attribute-word-lexicons>
+    </database>

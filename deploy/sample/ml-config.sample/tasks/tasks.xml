@@ -1,0 +1,91 @@
+<configuration default-group="${group}">
+  <groups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://marklogic.com/xdmp/group" xsi:schemaLocation="http://marklogic.com/xdmp/group group.xsd">
+    <group>
+      <group-name>${group}</group-name>
+      <!--
+        Only enable the task server section if you need to.
+      -->
+      <task-server>
+        <!--
+        <threads>16</threads>
+        <debug-threads>16</debug-threads>
+        <max-time-limit>3600</max-time-limit>
+        <default-time-limit>600</default-time-limit>
+        <queue-size>100000</queue-size>
+        <pre-commit-trigger-depth>1000</pre-commit-trigger-depth>
+        <post-commit-trigger-depth>1000</post-commit-trigger-depth>
+        <pre-commit-trigger-limit>10000</pre-commit-trigger-limit>
+        <log-errors>true</log-errors>
+        <debug-allow>true</debug-allow>
+        <profile-allow>true</profile-allow>
+        -->
+        <scheduled-tasks>
+          <scheduled-task>
+            <task-path>/some/daily-task.xqy</task-path>
+            <task-root>/</task-root>
+            <task-type>daily</task-type>
+            <task-period>2</task-period>
+            <task-start-time>13:00:00-05:00</task-start-time>
+            <task-database name="${content-db}"/>
+            <task-modules name="${modules-db}"/>
+            <task-user name="${default-user}"/>
+          </scheduled-task>
+          <scheduled-task>
+            <task-path>/some/hourly-task.xqy</task-path>
+            <task-root>/</task-root>
+            <task-type>hourly</task-type>
+            <task-period>2</task-period>
+            <task-minute>15</task-minute>
+            <task-database name="${content-db}"/>
+            <task-modules name="${modules-db}"/>
+            <task-user name="${default-user}"/>
+          </scheduled-task>
+          <scheduled-task>
+            <task-path>/some/minutely-task.xqy</task-path>
+            <task-root>/</task-root>
+            <task-type>minutely</task-type>
+            <task-period>3</task-period>
+            <task-database name="${content-db}"/>
+            <task-modules name="${modules-db}"/>
+            <task-user name="${default-user}"/>
+          </scheduled-task>
+          <scheduled-task>
+            <task-path>/some/monthly-task.xqy</task-path>
+            <task-root>/</task-root>
+            <task-type>monthly</task-type>
+            <task-period>1</task-period>
+            <task-month-day>15</task-month-day>
+            <task-start-time>13:00:00-05:00</task-start-time>
+            <task-database name="${content-db}"/>
+            <task-modules name="${modules-db}"/>
+            <task-user name="${default-user}"/>
+          </scheduled-task>
+          <scheduled-task>
+            <task-path>/some/once-task.xqy</task-path>
+            <task-root>/</task-root>
+            <task-type>once</task-type>
+            <task-start>2019-01-01T13:00:00-05:00</task-start>
+            <task-database name="${content-db}"/>
+            <task-modules name="${modules-db}"/>
+            <task-user name="${default-user}"/>
+          </scheduled-task>
+          <scheduled-task>
+            <task-path>/some/weekly-task.xqy</task-path>
+            <task-root>/</task-root>
+            <task-type>weekly</task-type>
+            <task-period>1</task-period>
+            <task-days>
+              <task-day>monday</task-day>
+              <task-day>wednesday</task-day>
+              <task-day>friday</task-day>
+            </task-days>
+            <task-start-time>13:00:00-05:00</task-start-time>
+            <task-database name="${content-db}"/>
+            <task-modules name="${modules-db}"/>
+            <task-user name="${default-user}"/>
+          </scheduled-task>
+        </scheduled-tasks>
+      </task-server>
+    </group>
+  </groups>
+</configuration>

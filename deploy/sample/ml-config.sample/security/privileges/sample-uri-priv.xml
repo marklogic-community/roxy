@@ -1,0 +1,8 @@
+<!--
+  Sample URI privilege.
+-->
+<privilege xmlns="http://marklogic.com/xdmp/security">
+  <privilege-name>users-uri</privilege-name>
+  <action>/users/</action>
+  <kind>uri</kind>
+</privilege>

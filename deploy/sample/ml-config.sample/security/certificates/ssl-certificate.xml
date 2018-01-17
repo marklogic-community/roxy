@@ -1,0 +1,6 @@
+<!--
+  SSL Certificate, automatically inserted if ssl properties are enabled in build or env properties
+-->
+<certificates xmlns="http://marklogic.com/xdmp/pki">
+  @ml.ssl-certificate-xml
+</certificates>

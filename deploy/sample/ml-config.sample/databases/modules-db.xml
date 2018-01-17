@@ -1,0 +1,32 @@
+    <!--Create Application Modules Database-->
+    <database xmlns="http://marklogic.com/xdmp/database">
+      <database-name>${modules-db}</database-name>
+      <forests>
+        <forest-id name="${modules-db}"/>
+      </forests>
+      <stemmed-searches>off</stemmed-searches>
+      <word-searches>false</word-searches>
+      <word-positions>false</word-positions>
+      <fast-phrase-searches>false</fast-phrase-searches>
+      <fast-reverse-searches>false</fast-reverse-searches>
+      <fast-case-sensitive-searches>false</fast-case-sensitive-searches>
+      <fast-diacritic-sensitive-searches>false</fast-diacritic-sensitive-searches>
+      <fast-element-word-searches>false</fast-element-word-searches>
+      <element-word-positions>false</element-word-positions>
+      <fast-element-phrase-searches>false</fast-element-phrase-searches>
+      <element-value-positions>false</element-value-positions>
+      <attribute-value-positions>false</attribute-value-positions>
+      <three-character-searches>false</three-character-searches>
+      <three-character-word-positions>false</three-character-word-positions>
+      <fast-element-character-searches>false</fast-element-character-searches>
+      <trailing-wildcard-searches>false</trailing-wildcard-searches>
+      <trailing-wildcard-word-positions>false</trailing-wildcard-word-positions>
+      <fast-element-trailing-wildcard-searches>false</fast-element-trailing-wildcard-searches>
+      <word-lexicons/>
+      <two-character-searches>false</two-character-searches>
+      <one-character-searches>false</one-character-searches>
+      <uri-lexicon>true</uri-lexicon>
+      <collection-lexicon>false</collection-lexicon>
+      <directory-creation>automatic</directory-creation>
+      <maintain-last-modified>false</maintain-last-modified>
+    </database>

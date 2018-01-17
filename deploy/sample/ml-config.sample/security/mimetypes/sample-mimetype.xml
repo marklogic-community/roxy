@@ -1,0 +1,8 @@
+<!--
+  Sample mimetype.
+-->
+<mimetype xmlns="http://marklogic.com/xdmp/mimetypes">
+  <name>application/crazy</name>
+  <extension>crazy stuff</extension>
+  <format>text</format>
+</mimetype>

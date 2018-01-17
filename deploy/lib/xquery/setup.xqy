@@ -434,7 +434,7 @@ declare variable $cts:parse             := fn:function-lookup(xs:QName("cts:pars
 declare variable $if-parser := ();
 
 declare function setup:get-if-parser($properties as map:map) {
-  if ($if-parser) then
+  if (fn:exists($if-parser)) then
     $if-parser
   else
     let $parser := function($query) {
@@ -469,44 +469,88 @@ declare function setup:get-if-parser($properties as map:map) {
 };
 
 declare function setup:eval-query($query as cts:query, $properties as map:map) {
-    typeswitch ($query)
-    case cts:and-query return fn:not(
-      (cts:and-query-queries($query) ! setup:eval-query(., $properties)) = fn:false()
-    )
-    case cts:or-query return (
-      (cts:or-query-queries($query) ! setup:eval-query(., $properties)) = fn:true()
-    )
-    case cts:not-query return fn:not(
-      cts:not-query-query($query) ! setup:eval-query(., $properties)
-    )
-    case cts:element-value-query return (
-      let $property := fn:string(cts:element-value-query-element-name($query))
-      let $operator := '='
-      let $values := cts:element-value-query-text($query)
-      return map:get($properties, $property) = $values
-    )
-    case cts:element-word-query return (
-      let $property := fn:string(cts:element-word-query-element-name($query))
-      let $operator := '='
-      let $values := cts:element-word-query-text($query)
-      return map:get($properties, $property) = $values
-    )
-    case cts:element-range-query return (
-      let $property := fn:string(cts:element-range-query-element-name($query))
-      let $operator := cts:element-range-query-operator($query)
-      let $values := cts:element-range-query-value($query)
+  typeswitch ($query)
+  case cts:and-query return fn:not(
+    (cts:and-query-queries($query) ! setup:eval-query(., $properties)) = fn:false()
+  )
+  case cts:or-query return (
+    (cts:or-query-queries($query) ! setup:eval-query(., $properties)) = fn:true()
+  )
+  case cts:not-query return fn:not(
+    cts:not-query-query($query) ! setup:eval-query(., $properties)
+  )
+  case cts:element-value-query return (
+    let $property := fn:string(cts:element-value-query-element-name($query))
+    let $operator := '='
+    let $values := cts:element-value-query-text($query)
+    return map:get($properties, $property) = $values
+  )
+  case cts:element-word-query return (
+    let $property := fn:string(cts:element-word-query-element-name($query))
+    let $operator := '='
+    let $values := cts:element-word-query-text($query)
+    return map:get($properties, $property) = $values
+  )
+  case cts:element-range-query return (
+    let $property := fn:string(cts:element-range-query-element-name($query))
+    let $operator := cts:element-range-query-operator($query)
+    let $values := cts:element-range-query-value($query)
+    return
+      if ($operator = ('=', '!=', '>', '>=', '<', '<=')) then
+        xdmp:value("map:get($properties, $property) " || $operator || " $values")
+      else
+        fn:error(xs:QName("UNSUPPORTED"), "Unsupported operator " || $operator)
+  )
+  case cts:word-query return (
+    fn:error(xs:QName("SYNTAX"), "Syntax error near " || cts:word-query-text($query))
+  )
+  default return (
+    fn:error(xs:QName("UNSUPPORTED"), "Cannot parse " || fn:upper-case(fn:replace(fn:string(xdmp:type($query)), "-query$", "")))
+  )
+};
+
+declare function setup:eval-conditionals($attrs, $properties) {
+  (: process conditional attrs in doc order, and stop at first failure :)
+  let $attr := fn:head($attrs)
+  let $remainder := fn:tail($attrs)
+  let $res :=
+    typeswitch($attr)
+    case attribute(if) return
+      let $parser := setup:get-if-parser($properties)
+      let $expression := fn:string($attr)
+      return try {
+        let $query := $parser($expression)[1]
+        return try {
+          setup:eval-query($query, $properties)
+        } catch ($e) {
+          fn:error(xs:QName("IF-PARSE-ERROR"),
+            "Unable to evauluate the expression '" || $expression || "': " || $e/error:format-string/fn:string())
+        }
+      } catch ($e) {
+        fn:error(xs:QName("IF-PARSE-ERROR"),
+          "Unable to parse the expression '" || $expression || "': " || $e/error:format-string/fn:string())
+      }
+    case attribute(if-exists) return fn:not(
+      for $prop in fn:tokenize(fn:string($attr), "\s+AND\s+")
       return
-        if ($operator = ('=', '!=', '>', '>=', '<', '<=')) then
-          xdmp:value("map:get($properties, $property) " || $operator || " $values")
-        else
-          fn:error(xs:QName("UNSUPPORTED"), "Unsupported operator " || $operator)
+        fn:exists(map:get($properties, "ml." || $prop)[. != ''])
+      = fn:false()
     )
-    case cts:word-query return (
-      fn:error(xs:QName("SYNTAX"), "Syntax error near " || cts:word-query-text($query))
+    case attribute(if-not-exists) return fn:not(
+      for $prop in fn:tokenize(fn:string($attr), "\s+AND\s+")
+      return
+        fn:empty(map:get($properties, "ml." || $prop)[. != ''])
+      = fn:false()
     )
-    default return (
-      fn:error(xs:QName("UNSUPPORTED"), "Cannot parse " || fn:upper-case(fn:replace(fn:string(xdmp:type($query)), "-query$", "")))
-    )
+    default return
+      fn:true()
+  return
+    if (fn:empty($remainder)) then
+      $res
+    else if ($res) then
+      setup:eval-conditionals($remainder, $properties)
+    else
+      fn:false()
 };
 
 declare function setup:process-conditionals($nodes, $properties) {
@@ -515,29 +559,20 @@ declare function setup:process-conditionals($nodes, $properties) {
     typeswitch ($node)
     case element() return
       let $if-valid :=
-        if (fn:exists($node/@if)) then
-          let $parser := setup:get-if-parser($properties)
-          let $expression := string($node/@if)
-          return try {
-            let $query := $parser($expression)[1]
-            return try {
-              setup:eval-query($query, $properties)
-            } catch ($e) {
-              fn:error(xs:QName("IF-PARSE-ERROR"),
-                "Unable to evauluate the expression '" || $expression || "': " || $e/error:format-string/data())
-            }
-          } catch ($e) {
-            fn:error(xs:QName("IF-PARSE-ERROR"),
-              "Unable to parse the expression '" || $expression || "': " || $e/error:format-string/data())
-          }
+        if (fn:exists($node/(@if-exists, @if-not-exists, @if))) then
+          setup:eval-conditionals($node/(@if-exists, @if-not-exists, @if), $properties)
         else
           fn:true()
       where $if-valid
-      return element { fn:node-name($node) } {
-        $node/@*,
-        setup:process-conditionals($node/node(), $properties)
-      }
-    case comment() return ()
+      return
+        if ($node/self::*:if) then
+          (: unwrap `if` elements :)
+          setup:process-conditionals($node/node(), $properties)
+        else
+          element { fn:node-name($node) } {
+            $node/(@* except (@if, @if-exists, @if-not-exists)),
+            setup:process-conditionals($node/node(), $properties)
+          }
     default return $node
 };
 
@@ -571,6 +606,67 @@ declare function setup:unique-attributes($attrs) {
   return map:keys($result) ! map:get($result, .)
 };
 
+declare function setup:wrap-config-fragments($fragments) {
+  if (fn:exists($fragments)) then
+    <configuration>
+      <hosts xmlns="http://marklogic.com/xdmp/hosts">{
+        setup:unique-attributes($fragments/self::ho:hosts/@*),
+        $fragments/self::ho:hosts/*,
+        $fragments/self::ho:host
+      }</hosts>
+      <assignments xmlns="http://marklogic.com/xdmp/assignments">{
+        setup:unique-attributes($fragments/self::as:assignments/@*),
+        $fragments/self::as:assignments/*,
+        $fragments/self::as:assignment
+      }</assignments>
+      <databases xmlns="http://marklogic.com/xdmp/database">{
+        setup:unique-attributes($fragments/self::db:databases/@*),
+        $fragments/self::db:databases/*,
+        $fragments/self::db:database
+      }</databases>
+      <certificates xmlns="http://marklogic.com/xdmp/pki">{
+        setup:unique-attributes($fragments/self::pki:certificates/@*),
+        $fragments/self::pki:certificates/*,
+        $fragments/self::pki:certificate
+      }</certificates>
+      <roles xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:roles/@*),
+        $fragments/self::sec:roles/*,
+        $fragments/self::sec:role
+      }</roles>
+      <users xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:users/@*),
+        $fragments/self::sec:users/*,
+        $fragments/self::sec:user
+      }</users>
+      <amps xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:amps/@*),
+        $fragments/self::sec:amps/*,
+        $fragments/self::sec:amp
+      }</amps>
+      <privileges xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:privileges/@*),
+        $fragments/self::sec:privileges/*,
+        $fragments/self::sec:privilege
+      }</privileges>
+      <mimetypes xmlns="http://marklogic.com/xdmp/mimetypes">{
+        setup:unique-attributes($fragments/self::mt:mimetypes/@*),
+        $fragments/self::mt:mimetypes/*,
+        $fragments/self::mt:mimetype
+      }</mimetypes>
+      <external-securities xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:external-securities/@*),
+        $fragments/self::sec:external-securities/*,
+        $fragments/self::sec:external-security
+      }</external-securities>
+      <credentials xmlns="http://marklogic.com/xdmp/security">{
+        setup:unique-attributes($fragments/self::sec:credentials/@*),
+        $fragments/self::sec:credentials/*
+      }</credentials>
+    </configuration>/*
+  else ()
+};
+
 (: for backwards-compatibility :)
 declare function setup:rewrite-config($import-configs as node()+, $properties as map:map) as element(configuration)
 {
@@ -582,32 +678,51 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
   setup:rewrite-config($import-configs, $properties, $silent, ())
 };
 
-declare function setup:rewrite-config($import-configs as node()+, $properties as map:map, $silent as xs:boolean?, $keep-comments as xs:boolean?) as element(configuration)
+declare function setup:rewrite-config($import-configs as node()+, $properties as map:map, $silent as xs:boolean?, $unresolved as xs:boolean?) as element(configuration)
 {
-  let $import-configs := setup:process-conditionals($import-configs, $properties)
+  let $import-configs :=
+    if ($unresolved) then
+      $import-configs
+    else
+      setup:process-conditionals($import-configs, $properties)
   let $config :=
-    element { fn:node-name($import-configs[1]) } {
-      setup:unique-attributes($import-configs/@*),
+    element configuration {
+      setup:unique-attributes($import-configs/self::configuration/@*),
 
       (: capture comments before gr:groups, and its older counterparts :)
-      $import-configs/(
+      $import-configs/self::configuration/(
         gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
       )/preceding-sibling::node(),
 
       <groups xmlns="http://marklogic.com/xdmp/group">{
         setup:unique-attributes($import-configs/gr:groups/@*),
 
-        let $default-group := ($import-configs/@default-group, "Default")[1]
-        for $group in fn:distinct-values(
-          ($import-configs/gr:groups/gr:group/gr:group-name, $import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
-            gr:odbc-servers/gr:odbc-server, gr:task-server, db:databases/db:database)/@group, $default-group))
-        let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $odbc-servers := $import-configs/gr:odbc-servers/gr:odbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $task-server := $import-configs/gr:task-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $default-group := ($import-configs/self::*:configuration/@default-group, "Default")[1]
+        for $group in fn:distinct-values((
+          $import-configs/descendant-or-self::gr:group/gr:group-name/fn:string(),
+          $import-configs/descendant-or-self::*/(
+            self::gr:http-server, self::gr:xdbc-server,
+            self::gr:odbc-server, self::gr:task-server, self::db:database
+          )/@group,
+          $default-group
+        ))
+        let $http-servers := $import-configs/descendant-or-self::gr:http-server[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
+        let $xdbc-servers := $import-configs/descendant-or-self::gr:xdbc-server[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
+        let $odbc-servers := $import-configs/descendant-or-self::gr:odbc-server[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
+        let $task-server := $import-configs/descendant-or-self::gr:task-server[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
         let $servers := ($http-servers, $xdbc-servers, $odbc-servers, $task-server)
-        let $databases := $import-configs/db:databases/db:database[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $group-config := $import-configs/gr:groups/gr:group[gr:group-name = $group]
+        let $databases := $import-configs/descendant-or-self::db:database[
+          @group = $group or ( $group = $default-group and fn:empty(@group) )
+        ]
+        let $group-config := $import-configs/descendant-or-self::gr:group[gr:group-name/fn:string() = $group]
         where fn:exists($servers | $databases | $group-config)
         return
           <group>
@@ -632,21 +747,31 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
       }</groups>,
 
       (: capture anything following gr:groups, and its older counterparts :)
-      $import-configs/(
+      $import-configs/self::*:configuration/(
         gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
       )/following-sibling::node(),
 
-      (: other fragments with configuration as root :)
-      $import-configs[fn:empty((
-        gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
-      ))]/node()
+      (: in case of config fragments, merge and wrap them :)
+      setup:wrap-config-fragments((
+        (: fragments with configuration as root :)
+        $import-configs/self::*:configuration[fn:empty((
+          gr:groups, gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server
+        ))]/node(),
+
+        (: other fragments :)
+        $import-configs[fn:not(self::*:configuration)]/(self::node() except (
+          self::gr:groups, self::gr:group, self::gr:http-servers, self::gr:http-server,
+          self::gr:xdbc-servers, self::gr:xdbc-server, self::gr:odbc-servers, self::gr:odbc-server,
+          self::gr:task-server
+        ))
+      ))
     }
 
   (: Check config on group consistency! :)
   let $_ :=
-    if ($silent) then ()
+    if ($silent or $unresolved) then ()
     else
-      for $group in $config/gr:groups/gr:group/gr:group-name
+      for $group in $config/gr:groups/gr:group/gr:group-name/fn:string()
       let $hosts := ($config/ho:hosts/ho:host[ho:group/@name = $group], try { xdmp:group-hosts(xdmp:group($group)) } catch ($ignore) {})
       where fn:empty($hosts)
       return
@@ -656,9 +781,46 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
         )
 
   (: all good :)
-  return  if ($keep-comments) then $config else setup:suppress-comments($config)
+  return  if ($unresolved) then $config else setup:suppress-comments($config)
 };
 
+declare function setup:split-config($config as element(configuration), $app-name as xs:string) as node()* {
+  for $part in (
+    $config/*/*,
+    $config/gr:groups/gr:group/(
+      (gr:http-servers, gr:xdbc-servers, gr:odbc-servers)/*,
+      gr:task-server
+    )
+  )
+  let $type := fn:local-name($part)
+
+  let $name :=
+    if ($part instance of element(gr:task-server)) then
+      "TaskServer"
+    else
+      $part/*[local-name() = ("name", "forest-name", "local-name", concat($type, "-name"))][1]
+           /fn:replace(fn:replace(fn:string(), "^(.*/)?([^/]+)", "$2"), "^\$\{group\}$", "default-group")
+
+  let $path := fn:replace(fn:replace($type, "(http|xdbc|odbc|task)-", "") || "s", "ys$", "ies")
+  let $path :=
+    if (fn:contains(fn:namespace-uri($part), "security")) then
+      "security/" || $path
+    else
+      fn:replace($path, "assignments/", "forests/")
+
+  let $file := fn:replace($name, "(@ml.|[${}])", "") || ".xml"
+
+  return (
+    comment { "SAVE-PART-AS:" || $path || "/" || $file },
+    typeswitch ($part)
+    case element(gr:group)
+      return element gr:group {
+        $part/@*,
+        $part/(node() except (gr:http-servers, gr:xdbc-servers, gr:odbc-servers, gr:task-server))
+      }
+    default return $part
+  )
+};
 
 (:
   base-name : Original forest base name - this should be the name from the config.
