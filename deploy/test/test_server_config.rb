@@ -125,7 +125,16 @@ describe ServerConfig do
         @s.validate_install.must_equal true
       end
 
-      @logger.info "\n\n*** wiping self-test deployment:\n"
+      @logger.info "\n\n*** wiping changed config:\n"
+      @s.wipe.must_equal true
+
+      @s = ServerConfig.new({
+        :config_file => org_config,
+        :properties => @properties,
+        :logger => @logger
+      })
+
+      @logger.info "\n\n*** wiping org config:\n"
       @s.wipe.must_equal true
 
       sleep(20)

@@ -599,15 +599,15 @@ declare function setup:rewrite-config($import-configs as node()+, $properties as
 
         let $default-group := ($import-configs/@default-group, "Default")[1]
         for $group in fn:distinct-values(
-          ($import-configs/gr:groups/gr:group/gr:group-name, $import-configs/(gr:http-servers/gr:http-server, gr:xdbc-servers/gr:xdbc-server,
-            gr:odbc-servers/gr:odbc-server, gr:task-server, db:databases/db:database)/@group, $default-group))
-        let $http-servers := $import-configs/gr:http-servers/gr:http-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $xdbc-servers := $import-configs/gr:xdbc-servers/gr:xdbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $odbc-servers := $import-configs/gr:odbc-servers/gr:odbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $task-server := $import-configs/gr:task-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+          ($import-configs/descendant-or-self::gr:group/gr:group-name, $import-configs/descendant-or-self::*/(self::gr:http-server, self::gr:xdbc-server,
+            self::gr:odbc-server, self::gr:task-server, self::db:database)/@group, $default-group))
+        let $http-servers := $import-configs/descendant-or-self::gr:http-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $xdbc-servers := $import-configs/descendant-or-self::gr:xdbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $odbc-servers := $import-configs/descendant-or-self::gr:odbc-server[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $task-server := $import-configs/descendant-or-self::gr:task-server[@group = $group or ($group = $default-group and fn:empty(@group))]
         let $servers := ($http-servers, $xdbc-servers, $odbc-servers, $task-server)
-        let $databases := $import-configs/db:databases/db:database[@group = $group or ($group = $default-group and fn:empty(@group))]
-        let $group-config := $import-configs/gr:groups/gr:group[gr:group-name = $group]
+        let $databases := $import-configs/descendant-or-self::db:database[@group = $group or ($group = $default-group and fn:empty(@group))]
+        let $group-config := $import-configs/descendant-or-self::gr:group[gr:group-name = $group]
         where fn:exists($servers | $databases | $group-config)
         return
           <group>
@@ -2252,6 +2252,7 @@ declare function setup:validate-fields($admin-config, $database, $db-config)
   let $existing := admin:database-get-fields($admin-config, $database)
   for $expected in $db-config/db:fields/db:field
   let $expected := element { fn:node-name($expected) } {
+    $existing[1]/namespace::*,
     $expected/@*,
     for $setting in $expected/*
     return
