@@ -683,6 +683,8 @@
           <include-root>false</include-root>
           <stemmed-searches>decompounding</stemmed-searches>
           <word-searches>true</word-searches>
+          <field-value-searches>true</field-value-searches>
+          <field-value-positions>true</field-value-positions>
           <fast-phrase-searches>true</fast-phrase-searches>
           <fast-case-sensitive-searches>true</fast-case-sensitive-searches>
           <fast-diacritic-sensitive-searches>true</fast-diacritic-sensitive-searches>
