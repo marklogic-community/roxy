@@ -61,6 +61,19 @@ class ServerConfig < MLClient
     @options = options
 
     @properties = options[:properties]
+
+    super(
+      :user_name => @properties["ml.user"],
+      :password => @properties["ml.password"],
+      :logger => options[:logger],
+      :no_prompt => options[:no_prompt],
+      :quiet => options[:quiet],
+      :http_connection_retry_count => @properties["ml.http.retry-count"].to_i,
+      :http_connection_open_timeout => @properties["ml.http.open-timeout"].to_i,
+      :http_connection_read_timeout => @properties["ml.http.read-timeout"].to_i,
+      :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i
+    )
+
     @environment = @properties["environment"]
 
     @properties["ml.server"] = @properties["ml.#{@environment}-server"] unless @properties["ml.server"]
@@ -74,25 +87,30 @@ class ServerConfig < MLClient
     @use_https = @properties["ml.use-https"] == "true"
     @protocol = "http#{@use_https ? 's' : ''}"
 
-    super(
-      :user_name => @properties["ml.user"],
-      :password => @properties["ml.password"],
-      :logger => options[:logger],
-      :no_prompt => options[:no_prompt],
-      :http_connection_retry_count => @properties["ml.http.retry-count"].to_i,
-      :http_connection_open_timeout => @properties["ml.http.open-timeout"].to_i,
-      :http_connection_read_timeout => @properties["ml.http.read-timeout"].to_i,
-      :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i
-    )
+    @server_version = @properties["ml.server-version"].to_i
+
+    if !@@quiet
+      if (@properties["ml.server"] == nil)
+        raise "Error! ml.server not set. You may be missing deploy/" + @properties["environment"] + ".properties"
+      end
+    end
+
+    @hostname = @properties["ml.server"]
+    @bootstrap_port_four = @properties["ml.bootstrap-port-four"]
+    @bootstrap_port_five = @properties["ml.bootstrap-port-five"]
+    @use_https = @properties["ml.use-https"] == "true"
+    @protocol = "http#{@use_https ? 's' : ''}"
 
     @server_version = @properties["ml.server-version"].to_i
 
-    if (@server_version < 7)
-      logger.warn "WARN: This version of Roxy is not tested against MarkLogic #{@server_version}."
-      if (@server_version > 4)
-        logger.info "      Consider downgrading to v1.7.0 using `./ml upgrade --branch=v1.7.0`."
+    if !@@quiet
+      if (@server_version < 7)
+        logger.warn "WARN: This version of Roxy is not tested against MarkLogic #{@server_version}."
+        if (@server_version > 4)
+          logger.info "      Consider downgrading to v1.7.0 using `./ml upgrade --branch=v1.7.0`."
+        end
+        logger.warn "Note: MarkLogic #{@server_version} is EOL."
       end
-      logger.warn "Note: MarkLogic #{@server_version} is EOL."
     end
 
     if @properties["ml.bootstrap-port"]
@@ -112,23 +130,29 @@ class ServerConfig < MLClient
       @qconsole_port = @bootstrap_port
     end
 
-    begin
-      r = execute_query %Q{xdmp:host-name()}
-      @properties["ml.server-name"] = parse_body(r.body)
-    rescue
-      logger.warn "WARN: unable to determine MarkLogic Host name of #{@hostname}"
+    if !(@ml_user == nil || @ml_password == nil) || !@@quiet
+      begin
+        r = execute_query %Q{xdmp:host-name()}
+        @properties["ml.server-name"] = parse_body(r.body)
+      rescue
+        if !@@quiet
+          logger.warn "WARN: unable to determine MarkLogic Host name of #{@hostname}"
+        end
+      end
     end
 
     @properties["ml.password"] = @ml_password
 
-    begin
-      r = execute_query %Q{ substring-before(xdmp:version(), ".") }
-      r.body = parse_body r.body
-      if r.body.to_i != @server_version
-        logger.warn "WARN: #{@hostname} is running MarkLogic #{r.body}, but server-version is set to #{@server_version}!"
+    if !@@quiet
+      begin
+        r = execute_query %Q{ substring-before(xdmp:version(), ".") }
+        r.body = parse_body r.body
+        if r.body.to_i != @server_version
+          logger.warn "WARN: #{@hostname} is running MarkLogic #{r.body}, but server-version is set to #{@server_version}!"
+        end
+      rescue
+        logger.warn "WARN: unable to determine MarkLogic Version of #{@hostname}"
       end
-    rescue
-      logger.warn "WARN: unable to determine MarkLogic Version of #{@hostname}"
     end
   end
 

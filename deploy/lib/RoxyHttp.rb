@@ -306,6 +306,14 @@ module Roxy
       @user_name = request_params[:user_name]
       @password = request_params[:password]
 
+      exception = get_param(:exception) || RuntimeError
+      if @server == nil || @server == ''
+        raise exception.new('RoxyHTTP: server not configured')
+      end
+      if @port == nil || @port == ''
+        raise exception.new('RoxyHTTP: port not configured')
+      end
+
       @http              = Net::HTTP.new(@server, @port)
       @http.open_timeout = @params[:http_connection_open_timeout]
       @http.read_timeout = @params[:http_connection_read_timeout]
