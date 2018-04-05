@@ -57,6 +57,7 @@ if @profile then
 end
 
 @no_prompt = find_arg(['-n', '--no-prompt'])
+@quiet = find_arg(['-q', '--quiet']) || (ARGV.include? 'info')
 
 @logger = Logger.new(STDOUT)
 @logger.level = find_arg(['-v', '--verbose']) ? Logger::DEBUG : Logger::INFO
@@ -136,6 +137,7 @@ begin
       else
         ServerConfig.logger = @logger
         ServerConfig.no_prompt = @no_prompt
+        ServerConfig.quiet = @quiet
         result = ServerConfig.send command
         if !result
           exit EXIT_SERVER_CONFIG_SEND
@@ -162,7 +164,8 @@ begin
           :config_file => File.expand_path(@properties["ml.config.file"], __FILE__),
           :properties => @properties,
           :logger => @logger,
-          :no_prompt => @no_prompt
+          :no_prompt => @no_prompt,
+          :quiet => @quiet
         ).send(command)
         if !result
           exit EXIT_SERVER_CONFIG_NEW

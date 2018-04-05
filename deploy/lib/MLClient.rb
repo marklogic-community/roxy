@@ -26,6 +26,10 @@ class MLClient
     @@no_prompt = no_prompt
   end
 
+  def MLClient.quiet=(quiet)
+    @@quiet = quiet
+  end
+
   def initialize(options)
     @ml_username = options[:user_name]
     @ml_password = options[:password]
@@ -33,11 +37,11 @@ class MLClient
     @request = {}
 
     @@no_prompt = options[:no_prompt]
+    @@quiet = options[:quiet]
     @@http_connection_retry_count = options[:http_connection_retry_count]
     @@http_connection_open_timeout = options[:http_connection_open_timeout]
     @@http_connection_read_timeout = options[:http_connection_read_timeout]
     @@http_connection_retry_delay = options[:http_connection_retry_delay]
-
   end
 
   def MLClient.logger()
@@ -110,7 +114,6 @@ class MLClient
     end
 
     request_params[:request].use_xcc(xcc)
-    #logger.debug(params)
     response = get_http.request request_params
     response.value
     response
