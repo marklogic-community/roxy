@@ -77,8 +77,10 @@ class ServerConfig < MLClient
     @environment = @properties["environment"]
 
     @properties["ml.server"] = @properties["ml.#{@environment}-server"] unless @properties["ml.server"]
-    if (@properties["ml.server"] == nil)
-      raise "Error! ml.server not set. You may be missing deploy/" + @properties["environment"] + ".properties"
+    if !@@quiet
+      if (@properties["ml.server"] == nil)
+        raise "Error! ml.server not set. You may be missing deploy/" + @properties["environment"] + ".properties"
+      end
     end
 
     @hostname = @properties["ml.server"]
@@ -88,12 +90,6 @@ class ServerConfig < MLClient
     @protocol = "http#{@use_https ? 's' : ''}"
 
     @server_version = @properties["ml.server-version"].to_i
-
-    if !@@quiet
-      if (@properties["ml.server"] == nil)
-        raise "Error! ml.server not set. You may be missing deploy/" + @properties["environment"] + ".properties"
-      end
-    end
 
     @hostname = @properties["ml.server"]
     @bootstrap_port_four = @properties["ml.bootstrap-port-four"]
