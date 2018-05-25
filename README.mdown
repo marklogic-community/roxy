@@ -44,20 +44,19 @@ enhance, override, or replace the default functionality.
 
 ### Run as a Java Jar
 If you work in an environment where installing [Ruby](http://ruby-lang.org) is not an option you
-can [run Roxy as a self contained jar](https://github.com/marklogic/roxy/wiki/Run-Roxy-as-a-Jar) file which embeds [JRuby](http://jruby.org).
+can [run Roxy as a self contained jar](https://github.com/marklogic-community/roxy/wiki/Run-Roxy-as-a-Jar) file which embeds [JRuby](http://jruby.org).
 
 ## Getting Help
 To get help with Roxy,
 
-* Subscribe to the [Roxy mailing list](http://developer.marklogic.com/mailman/listinfo/roxy)
-* Read up on [the wiki](https://github.com/marklogic/roxy/wiki)
-* Check out the [Tutorials page](https://github.com/marklogic/roxy/wiki/Tutorials)
+* Read up on [the wiki](https://github.com/marklogic-community/roxy/wiki)
+* Check out the [Tutorials page](https://github.com/marklogic-community/roxy/wiki/Tutorials)
 * For Command line usage run:  
   `$ ml -h`
-
+* Check for [issues](https://github.com/marklogic-community/roxy/issues) or create a new one
 
 ## Requirements
-* A supported version of [MarkLogic](https://github.com/marklogic/roxy/wiki/Supported-MarkLogic-versions)
+* A supported version of [MarkLogic](https://github.com/marklogic-community/roxy/wiki/Supported-MarkLogic-versions)
 * [Ruby 1.9.3](http://www.ruby-lang.org/en/) or greater
 * [Java (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
   Only if you wish to run the [mlcp](http://developer.marklogic.com/products/mlcp), [XQSync](http://developer.marklogic.com/code/xqsync, XQSync), or [RecordLoader](http://developer.marklogic.com/code/recordloader) commands.
@@ -75,10 +74,10 @@ Use one of these three options to get started.
 
 #### Using git
 You can download Roxy using git
-`$ git clone git://github.com/marklogic/roxy.git`
+`$ git clone git://github.com/marklogic-community/roxy.git`
 
 #### Grab a zipped version
-If you prefer to grab the archive simply download the latest release from our [Releases Page](https://github.com/marklogic/roxy/releases)
+If you prefer to grab the archive simply download the latest release from our [Releases Page](https://github.com/marklogic-community/roxy/releases)
 
 #### Install the Shell script or Batch File
 Roxy comes with a script that you can put in your path. This file will create new projects for you by
@@ -86,10 +85,10 @@ by issuing the `$ ml new` command. Grab one of these files and put it in a folde
 *__Note:__ In order for `$ ml new` to work you need to have git installed.*
 
 ##### Windows
-Download the [ml.bat](https://github.com/marklogic/roxy/raw/master/ml.bat) file
+Download the [ml.bat](https://github.com/marklogic-community/roxy/raw/master/ml.bat) file
 
 ##### Mac/Linux
-Download the [ml](https://github.com/marklogic/roxy/raw/master/ml) file
+Download the [ml](https://github.com/marklogic-community/roxy/raw/master/ml) file
 
 ### Configure your application
 1. Open a command prompt in the root folder of Roxy.
