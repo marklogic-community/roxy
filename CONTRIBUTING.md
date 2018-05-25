@@ -8,11 +8,6 @@ through the process.
  - [Feature Requests](#feature)
  - [Submission Guidelines](#submit)
  
-## <a name="question"></a> Got a Question or Problem?
-
-If you have questions about how to use Roxy, please direct these to the
-[Roxy Mailing List][mailing list].
-
 ## <a name="issue"></a> Found an Issue?
 If you find a bug in the source code or a mistake in the documentation, you can help us by
 submitting an issue to our [GitHub Issue Tracker][issue tracker]. Even better you can submit a Pull Request
@@ -183,5 +178,4 @@ from the main (upstream) repository:
     ```
 
 [issue tracker]: https://github.com/marklogic/roxy/issues
-[mailing list]: http://developer.marklogic.com/mailman/listinfo/roxy
 [.editorconfig]: http://editorconfig.org/
