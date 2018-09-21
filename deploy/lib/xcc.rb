@@ -100,6 +100,7 @@ module Roxy
       })
       @request = {}
       @gmt_offset = Time.now.gmt_offset
+      @xcc_protocol = "http#{options[:use_https_for_xcc] ? 's' : ''}"
     end
 
     def xcc_query(options)
@@ -176,7 +177,7 @@ private
     end
 
     def build_load_uri(target_uri, options, commit)
-      url = "http://#{@hostname}:#{@port}/insert?"
+      url = "#{@xcc_protocol}://#{@hostname}:#{@port}/insert?"
 
       url << "uri=#{url_encode(target_uri)}"
 

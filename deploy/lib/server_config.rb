@@ -2451,7 +2451,8 @@ private
           :http_connection_retry_count => @properties["ml.http.retry-count"].to_i,
           :http_connection_open_timeout => @properties["ml.http.open-timeout"].to_i,
           :http_connection_read_timeout => @properties["ml.http.read-timeout"].to_i,
-          :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i
+          :http_connection_retry_delay => @properties["ml.http.retry-delay"].to_i,
+          :use_https_for_xcc => @properties["ml.use-https-for-xcc"] == "true"
         })
       end
   end
