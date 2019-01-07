@@ -88,7 +88,7 @@ def path_separator
 end
 
 def is_jar?
-  __FILE__.match(/.*\.jar.*/) != nil
+  RUBY_PLATFORM == "java"
 end
 
 def copy_file(src, target)

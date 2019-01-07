@@ -199,7 +199,6 @@ class ServerConfig < MLClient
   end
 
   def self.jar
-    raise HelpException.new("jar", "You must be using JRuby to create a jar") unless RUBY_PLATFORM == "java"
     begin
       # ensure warbler gem is installed
       gem 'warbler'
